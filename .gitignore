@@ -1,0 +1,17 @@
+.DS_Store
+**/.DS_Store
+**/.vscode/
+
+wordpress/node_modules/
+wordpress/.npm/
+wordpress/npm-debug.log*
+wordpress/yarn-debug.log*
+wordpress/yarn-error.log*
+wordpress/pnpm-debug.log*
+
+*.swp
+*.swo
+*.tmp
+
+.env
+.env.*

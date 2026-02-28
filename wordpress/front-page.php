@@ -2,8 +2,6 @@
 /**
  * Front page template.
  *
- * Uses exported Figma markup directly to preserve fidelity.
- *
  * @package reci-media-hub
  */
 
@@ -13,13 +11,12 @@ if (! defined('ABSPATH')) {
 
 get_header();
 
-$figma_front_page = get_template_directory() . '/figma/herov3.php';
+$home_body_template = get_template_directory() . '/figma/homepage-body.php';
 
-if (file_exists($figma_front_page)) {
-	include $figma_front_page;
+if (file_exists($home_body_template)) {
+	include $home_body_template;
 } else {
-	echo '<main class="reci-wrap"><p>Missing file: figma/herov3.php</p></main>';
+	echo '<main class="reci-wrap"><p>Missing file: figma/homepage-body.php</p></main>';
 }
 
 get_footer();
-

@@ -51,9 +51,21 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 		wp_enqueue_style(
 			'reci-media-hub-style',
 			get_stylesheet_uri(),
-			[],
+			['reci-media-hub-fonts'],
 			wp_get_theme()->get('Version')
 		);
+
+		$tailwind_relative_path = '/assets/css/tailwind.css';
+		$tailwind_file_path     = get_template_directory() . $tailwind_relative_path;
+
+		if (file_exists($tailwind_file_path)) {
+			wp_enqueue_style(
+				'reci-media-hub-tailwind',
+				get_template_directory_uri() . $tailwind_relative_path,
+				['reci-media-hub-style'],
+				(string) filemtime($tailwind_file_path)
+			);
+		}
 	}
 }
 
