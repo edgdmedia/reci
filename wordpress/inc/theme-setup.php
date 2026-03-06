@@ -66,6 +66,19 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 				(string) filemtime($tailwind_file_path)
 			);
 		}
+
+		$js_relative_path = '/assets/js/theme.js';
+		$js_file_path     = get_template_directory() . $js_relative_path;
+
+		if (file_exists($js_file_path)) {
+			wp_enqueue_script(
+				'reci-media-hub-theme',
+				get_template_directory_uri() . $js_relative_path,
+				[],
+				(string) filemtime($js_file_path),
+				true
+			);
+		}
 	}
 }
 

@@ -4,6 +4,7 @@ module.exports = {
     './*.php',
     './inc/**/*.php',
     './page-templates/**/*.php',
+    './template-parts/**/*.php',
     './figma/**/*.php',
     './sample/**/*.{js,jsx,ts,tsx,php,html}',
     './legacy-block/**/*.{php,html}'

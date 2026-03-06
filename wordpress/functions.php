@@ -12,6 +12,15 @@ $reci_media_hub_includes = [
 	'/inc/theme-setup.php',
 	'/inc/content-types.php',
 	'/inc/taxonomies.php',
+	'/inc/meta-fields.php',
+	'/inc/listing-builder.php',
+	'/inc/services/class-post-format-service.php',
+	'/inc/services/class-post-query-service.php',
+	'/inc/services/class-related-posts-service.php',
+	'/inc/services/class-single-post-service.php',
+	'/inc/theme-settings.php',
+	'/inc/auth.php',
+	'/inc/theme-activation.php',
 ];
 
 foreach ($reci_media_hub_includes as $include_path) {

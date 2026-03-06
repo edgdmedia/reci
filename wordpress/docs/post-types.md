@@ -20,4 +20,8 @@ Pages
 - About
 - Donate
 - Sponsorship
--
+- Login/Signup
+
+Menu
+
+- Full screen

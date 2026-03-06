@@ -1,0 +1,89 @@
+<?php
+/**
+ * Template Name: Author Archive
+ *
+ * @package reci-media-hub
+ */
+
+if (! defined('ABSPATH')) {
+	exit;
+}
+
+$author_options = get_users(
+	[
+		'fields'              => ['ID', 'display_name'],
+		'has_published_posts' => ['reci_article', 'reci_podcast', 'reci_video'],
+		'orderby'             => 'display_name',
+		'order'               => 'ASC',
+	]
+);
+
+$current_author = isset($_GET['author']) ? max(0, (int) wp_unslash($_GET['author'])) : 0;
+$current_search = isset($_GET['search']) ? sanitize_text_field((string) wp_unslash($_GET['search'])) : '';
+
+$base_url        = get_permalink() ?: home_url('/author/');
+$all_filters_url = remove_query_arg(['author', 'search', 'paged'], $base_url);
+$has_filters     = ($current_author > 0) || ($current_search !== '');
+
+$listing_config = [
+	'post_type'                => ['reci_article', 'reci_podcast', 'reci_video'],
+	'posts_per_page'           => 9,
+	'orderby'                  => 'date',
+	'order'                    => 'DESC',
+	'listing_style'            => 'archive_grid_card',
+	'wrapper_class'            => 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8',
+	'item_overrides'           => [
+		'title_classes'   => "self-stretch justify-start text-neutral-800 text-2xl font-bold font-['EB_Garamond'] leading-7 line-clamp-3",
+		'excerpt_classes' => "self-stretch justify-start text-neutral-500 text-sm font-normal font-['SF_Pro_Display'] leading-5 tracking-tight",
+	],
+	'enable_pagination'        => true,
+	'pagination_param'         => 'paged',
+	'filter_search_param'      => 'search',
+	'filter_author_param'      => 'author',
+	'pagination_wrapper_class' => 'mt-10 flex items-center justify-center gap-2',
+	'pagination_item_class'    => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg border border-zinc-300 text-sm font-medium font-['SF_Pro_Display'] text-neutral-800 hover:bg-zinc-100",
+	'pagination_current_class' => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg bg-[#003594] text-sm font-medium font-['SF_Pro_Display'] text-white",
+	'empty_message'            => 'No content found for this author filter.',
+];
+
+get_header();
+?>
+
+<main class="bg-slate-100 min-h-screen">
+	<section class="w-full bg-white border-b border-zinc-400">
+		<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-14 flex flex-col lg:flex-row justify-between gap-6">
+			<div class="flex items-center gap-3">
+				<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
+				<h1 class="text-neutral-800 text-5xl font-medium font-['EB_Garamond']">By Author</h1>
+			</div>
+			<p class="max-w-xl text-neutral-500 text-lg font-normal font-['SF_Pro_Display']">Follow contributors and browse their latest articles, podcasts, and videos.</p>
+		</div>
+	</section>
+
+	<section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-6 border-b border-zinc-300">
+		<form method="get" action="<?php echo esc_url($base_url); ?>" class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4" data-archive-filter-form data-search-min="3" data-search-debounce="350">
+			<div class="flex items-center gap-3 w-full lg:w-auto">
+				<label for="author-filter" class="sr-only">Filter by author</label>
+				<select id="author-filter" name="author" class="px-4 py-3 rounded-lg border border-zinc-300 bg-white text-neutral-800 text-base font-['SF_Pro_Display'] focus:outline-none">
+					<option value="">All Authors</option>
+					<?php foreach ($author_options as $author) : ?>
+						<option value="<?php echo esc_attr((string) $author->ID); ?>" <?php selected($current_author, (int) $author->ID); ?>><?php echo esc_html($author->display_name); ?></option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<div class="flex items-center gap-2 w-full lg:w-auto">
+				<label for="author-search" class="sr-only">Search content</label>
+				<input id="author-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search" class="w-full lg:w-80 px-4 py-3 rounded-lg border border-zinc-300 bg-white text-neutral-700 text-base font-['SF_Pro_Display'] focus:outline-none" />
+				<?php if ($has_filters) : ?>
+					<a href="<?php echo esc_url($all_filters_url); ?>" class="px-4 py-3 text-sm font-medium text-neutral-700 hover:text-neutral-900">Reset</a>
+				<?php endif; ?>
+			</div>
+		</form>
+	</section>
+
+	<section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-10">
+		<?php echo reci_media_hub_render_listing($listing_config); ?>
+	</section>
+</main>
+
+<?php get_footer(); ?>

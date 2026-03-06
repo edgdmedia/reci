@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+	.btn {
+		@apply inline-flex items-center justify-center gap-2 overflow-hidden rounded-lg font-medium leading-6 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2;
+		font-family: "SF Pro Display", Roboto, "Segoe UI", sans-serif;
+	}
+
+	.btn-sm {
+		@apply min-w-20 px-4 py-2 text-sm leading-5;
+	}
+
+	.btn-md {
+		@apply min-w-28 px-7 py-3.5 text-base;
+	}
+
+	.btn-lg {
+		@apply min-w-32 px-8 py-4 text-base;
+	}
+
+	.btn-primary {
+		@apply bg-amber-400 text-neutral-800 hover:bg-amber-300;
+	}
+
+	.btn-secondary {
+		@apply bg-blue-900 text-white hover:bg-blue-800;
+	}
+
+	.btn-outline-primary {
+		@apply text-neutral-800 outline outline-1 outline-offset-[-1px] outline-neutral-800 hover:bg-neutral-800 hover:text-white;
+	}
+
+	.btn-outline-light {
+		@apply text-white outline outline-1 outline-offset-[-1px] outline-white hover:bg-white hover:text-neutral-800;
+	}
+
+	.btn-block {
+		@apply w-full;
+	}
+
+	.btn:disabled,
+	.btn[aria-disabled="true"] {
+		@apply pointer-events-none opacity-60;
+	}
+
+	.tag-dot {
+		@apply h-2 w-2 rounded-sm bg-amber-400 px-1 py-1;
+	}
+
+	.divider {
+		@apply self-stretch h-0 border-t;
+	}
+
+	.divider-zinc {
+		@apply border-zinc-400;
+	}
+
+	.divider-stone {
+		@apply border-stone-300;
+	}
+
+	.divider-white-50 {
+		@apply border-white/50;
+	}
+
+	.divider-slate {
+		@apply border-slate-200;
+	}
+
+	.layout-page {
+		@apply min-h-screen bg-slate-100;
+	}
+
+	.layout-main {
+		@apply w-full;
+	}
+
+	.reci-container {
+		@apply mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12 xl:px-20;
+	}
+
+	.reci-container-fluid {
+		@apply w-full px-4 sm:px-6 lg:px-12 xl:px-20;
+	}
+
+	.reci-container-full {
+		@apply w-full;
+	}
+}
