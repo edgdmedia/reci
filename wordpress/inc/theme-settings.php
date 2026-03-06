@@ -444,15 +444,25 @@ function reci_settings_page_html(): void {
 		'footer'    => 'Footer',
 		'analytics' => 'Analytics',
 		'content'   => 'Content Defaults',
+		'demo'      => 'Demo Content',
 	];
 
 	$active = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs )
 		? sanitize_key( $_GET['tab'] )
 		: 'branding';
 
+	// Demo action notices.
+	$demo_notice = isset( $_GET['demo_notice'] ) ? sanitize_key( $_GET['demo_notice'] ) : '';
+
 	?>
 	<div class="wrap">
 		<h1>RECI Theme Settings</h1>
+
+		<?php if ( $demo_notice === 'installed' ) : ?>
+			<div class="notice notice-success is-dismissible"><p>Demo content installed successfully.</p></div>
+		<?php elseif ( $demo_notice === 'reset' ) : ?>
+			<div class="notice notice-warning is-dismissible"><p>Demo content removed.</p></div>
+		<?php endif; ?>
 
 		<nav class="nav-tab-wrapper" style="margin-bottom:0;">
 			<?php foreach ( $tabs as $slug => $label ) : ?>
@@ -464,14 +474,70 @@ function reci_settings_page_html(): void {
 			<?php endforeach; ?>
 		</nav>
 
-		<form method="post" action="options.php" style="margin-top:16px;">
-			<?php
-			settings_fields( 'reci_theme_settings_group' );
-			do_settings_sections( 'reci-settings-' . $active );
-			submit_button( 'Save Settings' );
-			?>
-		</form>
+		<?php if ( $active === 'demo' ) : ?>
+			<div style="margin-top:20px;max-width:600px;">
+				<?php reci_settings_demo_tab_html(); ?>
+			</div>
+		<?php else : ?>
+			<form method="post" action="options.php" style="margin-top:16px;">
+				<?php
+				settings_fields( 'reci_theme_settings_group' );
+				do_settings_sections( 'reci-settings-' . $active );
+				submit_button( 'Save Settings' );
+				?>
+			</form>
+		<?php endif; ?>
 	</div>
+	<?php
+}
+
+function reci_settings_demo_tab_html(): void {
+	$installed = get_option( 'reci_demo_installed', false );
+	$count     = count( get_option( 'reci_demo_slugs', [] ) );
+	$nonce_url = wp_nonce_url( admin_url( 'admin-post.php' ), 'reci_demo_action' );
+	?>
+	<h2>Demo Content</h2>
+
+	<?php if ( $installed ) : ?>
+		<p>
+			<span style="color:#007017;font-weight:600;">&#10003; Demo content is installed</span>
+			— <?php echo (int) $count; ?> demo posts across all content types.
+		</p>
+		<p>To remove all demo posts, click Reset below. This permanently deletes the demo posts.</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'reci_demo_action' ); ?>
+			<input type="hidden" name="action" value="reci_reset_demo" />
+			<button
+				type="submit"
+				class="button button-secondary"
+				onclick="return confirm('Remove all demo content? This cannot be undone.');">
+				Reset Demo Content
+			</button>
+		</form>
+	<?php else : ?>
+		<p>Install sample posts, podcasts, videos, events, reflections, quotes, assessments, and courses to populate the theme for preview and development.</p>
+		<table class="widefat" style="margin-bottom:16px;">
+			<thead><tr><th>Content Type</th><th>Posts</th></tr></thead>
+			<tbody>
+				<tr><td>Articles</td><td>6</td></tr>
+				<tr><td>Podcasts</td><td>3</td></tr>
+				<tr><td>Videos</td><td>3</td></tr>
+				<tr><td>Events</td><td>3</td></tr>
+				<tr><td>Reflections</td><td>3</td></tr>
+				<tr><td>Quotes</td><td>3</td></tr>
+				<tr><td>Assessments</td><td>2</td></tr>
+				<tr><td>Courses</td><td>2</td></tr>
+			</tbody>
+		</table>
+		<p style="color:#856404;background:#fff3cd;border-left:4px solid #ffc107;padding:8px 12px;">
+			<strong>Note:</strong> Images from the theme's <code>assets/images/</code> directory will be sideloaded into the media library. Demo posts can be removed at any time using the Reset button.
+		</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'reci_demo_action' ); ?>
+			<input type="hidden" name="action" value="reci_install_demo" />
+			<button type="submit" class="button button-primary">Install Demo Content</button>
+		</form>
+	<?php endif; ?>
 	<?php
 }
 

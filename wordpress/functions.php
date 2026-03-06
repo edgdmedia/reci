@@ -19,6 +19,7 @@ $reci_media_hub_includes = [
 	'/inc/services/class-related-posts-service.php',
 	'/inc/services/class-single-post-service.php',
 	'/inc/theme-settings.php',
+	'/inc/demo-content.php',
 	'/inc/auth.php',
 	'/inc/theme-activation.php',
 ];
