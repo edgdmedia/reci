@@ -1,0 +1,78 @@
+name: Deploy WordPress Theme
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wordpress/**"
+
+  # Allow manual trigger from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Rsync theme to server
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Deploy via rsync over SSH ─────────────────────────────────
+      #
+      # Required GitHub repository secrets:
+      #   DEPLOY_HOST        — server hostname or IP
+      #   DEPLOY_USER        — SSH username
+      #   DEPLOY_SSH_KEY     — private SSH key (PEM, no passphrase)
+      #   DEPLOY_REMOTE_PATH — absolute path to the theme directory on the
+      #                        server, e.g. /var/www/html/wp-content/themes/reci-media-hub
+      #
+      # Optional secrets:
+      #   DEPLOY_PORT        — SSH port (defaults to 22)
+      #
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.DEPLOY_PORT || '22' }} -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy theme files
+        run: |
+          rsync -azP \
+            --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.vscode' \
+            --exclude='.claude' \
+            --exclude='node_modules' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT || '22' }} -o StrictHostKeyChecking=no" \
+            wordpress/ \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_REMOTE_PATH }}/"
+
+      # ── 3. Post-deploy: flush WP caches ──────────────────────────────
+      #
+      # Runs WP-CLI cache flush and reactivates the theme to trigger the
+      # after_switch_theme hook when the theme version changes.
+      # Set DEPLOY_WP_PATH to the directory containing wp-config.php,
+      # e.g. /var/www/html
+      #
+      - name: Flush WordPress caches
+        if: ${{ secrets.DEPLOY_WP_PATH != '' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p ${{ secrets.DEPLOY_PORT || '22' }} \
+            -o StrictHostKeyChecking=no \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "wp cache flush --path=${{ secrets.DEPLOY_WP_PATH }} --allow-root || true"
+
+      # ── 4. Notify ─────────────────────────────────────────────────────
+      - name: Deployment summary
+        run: |
+          echo "✅ Theme deployed to ${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_REMOTE_PATH }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
