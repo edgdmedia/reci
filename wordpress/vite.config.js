@@ -13,6 +13,7 @@ export default defineConfig({
     emptyOutDir: false,
     rollupOptions: {
       input: {
+        builder:               'src/builder/main.tsx',
         'reflection-renderer': 'src/renderer/main.tsx',
       },
       output: {
