@@ -43,15 +43,9 @@ $related     = RECI_Related_Posts_Service::get_related(
 <body <?php body_class('single-reci-reflection immersive-reflection-page'); ?>>
 <?php wp_body_open(); ?>
 <script id="reci-reflection-experience-data" type="application/json"><?php echo wp_json_encode($experience, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?></script>
-<div class="reci-reflection-page" data-reflection-template="<?php echo esc_attr($template); ?>" data-reflection-theme="<?php echo esc_attr((string) ($appearance['theme'] ?? 'immersive-dark')); ?>" data-reflection-accent="<?php echo esc_attr((string) ($appearance['accent'] ?? 'amber')); ?>" data-reflection-mode="<?php echo esc_attr($mode); ?>">
-    <main class="reci-reflection-shell" data-reflection-shell>
-        <div class="reci-reflection-stage" data-reflection-stage>
-            <?php if ($mode === 'immersive') : ?>
-                <?php RECI_Reflection_Render_Service::render_chapters($chapters); ?>
-            <?php else : ?>
-                <?php RECI_Reflection_Render_Service::render_scenes($scenes); ?>
-            <?php endif; ?>
-        </div>
+<div class="reci-reflection-page">
+    <main class="reci-reflection-shell">
+        <div id="reci-reflection-root"></div>
     </main>
 
     <?php if ($mode !== 'immersive' && ! empty($related)) : ?>

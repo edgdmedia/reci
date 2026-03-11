@@ -83,3 +83,25 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 }
 
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_assets');
+
+if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
+	function reci_media_hub_enqueue_reflection_renderer(): void
+	{
+		if (! is_singular('reci_reflection')) {
+			return;
+		}
+
+		$path    = get_template_directory() . '/assets/js/reflection-renderer.js';
+		$version = file_exists($path) ? (string) filemtime($path) : wp_get_theme()->get('Version');
+
+		wp_enqueue_script(
+			'reci-reflection-renderer',
+			get_template_directory_uri() . '/assets/js/reflection-renderer.js',
+			[],
+			$version,
+			true
+		);
+		wp_script_add_data('reci-reflection-renderer', 'type', 'module');
+	}
+}
+add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_reflection_renderer');
