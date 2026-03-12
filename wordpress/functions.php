@@ -21,6 +21,7 @@ $reci_media_hub_includes = [
 	'/inc/theme-settings.php',
 	'/inc/demo-content.php',
 	'/inc/auth.php',
+	'/inc/builder/class-reflection-builder.php',
 	'/inc/theme-activation.php',
 ];
 

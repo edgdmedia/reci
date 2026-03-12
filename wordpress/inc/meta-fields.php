@@ -596,6 +596,12 @@ if (! function_exists('reci_media_hub_save_meta_fields')) {
 			return;
 		}
 
+		// Builder metabox owns _reci_reflection_blueprint — skip generic save when builder nonce present.
+		$builder_nonce_raw = $_POST['reci_builder_nonce'] ?? '';
+		if (is_string($builder_nonce_raw) && wp_verify_nonce(sanitize_text_field(wp_unslash($builder_nonce_raw)), 'reci_builder_save')) {
+			return;
+		}
+
 		$post_type = get_post_type($post_id);
 		if (! $post_type) {
 			return;
