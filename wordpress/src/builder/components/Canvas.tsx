@@ -19,6 +19,8 @@ interface Props {
   mode: 'standard' | 'immersive';
   scenes: Scene[];
   chapters: Chapter[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
   onUpdateScene: (id: string, updates: Partial<Scene>) => void;
   onRemoveScene: (id: string) => void;
   onReorderScenes: (orderedIds: string[]) => void;
@@ -28,7 +30,7 @@ interface Props {
 }
 
 export default function Canvas({
-  mode, scenes, chapters,
+  mode, scenes, chapters, selectedId, onSelect,
   onUpdateScene, onRemoveScene, onReorderScenes,
   onUpdateChapter, onRemoveChapter, onReorderChapters,
 }: Props) {
@@ -59,6 +61,8 @@ export default function Canvas({
               <ChapterCard
                 key={chapter.id}
                 chapter={chapter}
+                selected={selectedId === chapter.id}
+                onSelect={() => onSelect(chapter.id)}
                 onUpdate={(u) => onUpdateChapter(chapter.id, u)}
                 onRemove={() => onRemoveChapter(chapter.id)}
               />
@@ -68,32 +72,6 @@ export default function Canvas({
         {chapters.length === 0 && (
           <p className="text-center text-sm text-gray-400">No chapters yet. Add from the palette.</p>
         )}
-        {/* Preview button */}
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            className="rounded bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700"
-            onClick={async () => {
-              const postIdEl = document.getElementById('reci-builder-root');
-              const postId = postIdEl ? Number(postIdEl.dataset.postId) : 0;
-              const nonce = postIdEl?.dataset.previewNonce ?? '';
-              const blueprint = JSON.parse((document.getElementById('reci-builder-blueprint') as HTMLInputElement)?.value ?? '{}');
-
-              const res = await fetch('/wp-json/reci/v1/reflection-preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
-                body: JSON.stringify({ post_id: postId, blueprint }),
-              });
-
-              if (res.ok) {
-                const { preview_url } = await res.json();
-                window.open(preview_url, '_blank');
-              }
-            }}
-          >
-            Preview in new tab
-          </button>
-        </div>
       </div>
     );
   }
@@ -106,6 +84,8 @@ export default function Canvas({
             <SceneCard
               key={scene.id}
               scene={scene}
+              selected={selectedId === scene.id}
+              onSelect={() => onSelect(scene.id)}
               onUpdate={(u) => onUpdateScene(scene.id, u)}
               onRemove={() => onRemoveScene(scene.id)}
             />
@@ -115,32 +95,6 @@ export default function Canvas({
       {scenes.length === 0 && (
         <p className="text-center text-sm text-gray-400">No scenes yet. Add from the palette.</p>
       )}
-      {/* Preview button */}
-      <div className="mt-4 flex justify-end">
-        <button
-          type="button"
-          className="rounded bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700"
-          onClick={async () => {
-            const postIdEl = document.getElementById('reci-builder-root');
-            const postId = postIdEl ? Number(postIdEl.dataset.postId) : 0;
-            const nonce = postIdEl?.dataset.previewNonce ?? '';
-            const blueprint = JSON.parse((document.getElementById('reci-builder-blueprint') as HTMLInputElement)?.value ?? '{}');
-
-            const res = await fetch('/wp-json/reci/v1/reflection-preview', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
-              body: JSON.stringify({ post_id: postId, blueprint }),
-            });
-
-            if (res.ok) {
-              const { preview_url } = await res.json();
-              window.open(preview_url, '_blank');
-            }
-          }}
-        >
-          Preview in new tab
-        </button>
-      </div>
     </div>
   );
 }

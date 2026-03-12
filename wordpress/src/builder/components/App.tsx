@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useBuilderStore } from '../store/builderStore';
-import Palette from './Palette';
 import Canvas from './Canvas';
-import ReflectionSettings from './ReflectionSettings';
+import LeftPanel from './layout/LeftPanel';
+import { SCENE_SETTINGS_MAP } from './settings/sceneSettingsMap';
+import { CHAPTER_SETTINGS_MAP } from './settings/chapterSettingsMap';
 import type { SceneType } from '../../../types/blueprint';
 import type { Chapter } from '../../../types/blueprint';
 
@@ -22,6 +24,8 @@ export default function App() {
   } = useBuilderStore();
 
   const { mode, appearance = {}, scenes = [], chapters = [] } = blueprint;
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   function syncHidden() {
     const el = document.getElementById('reci-builder-blueprint') as HTMLInputElement | null;
@@ -80,18 +84,15 @@ export default function App() {
 
   return (
     <div className="flex h-full">
-      {/* Left: settings panel */}
-      <aside className="w-64 shrink-0 overflow-y-auto border-r border-gray-200 bg-gray-50">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">Reflection Settings</h2>
-        </div>
-        <ReflectionSettings
-          mode={mode}
-          appearance={appearance}
-          onUpdateMode={handleUpdateMode}
-          onUpdateAppearance={handleUpdateAppearance}
-        />
-      </aside>
+      {/* Left: tabbed settings panel */}
+      <LeftPanel
+        mode={mode}
+        appearance={appearance}
+        onUpdateMode={handleUpdateMode}
+        onUpdateAppearance={handleUpdateAppearance}
+        onAddScene={handleAddScene}
+        onAddChapter={handleAddChapter}
+      />
 
       {/* Center: canvas */}
       <main className="flex flex-1 flex-col overflow-hidden">
@@ -104,6 +105,8 @@ export default function App() {
           mode={mode}
           scenes={scenes}
           chapters={chapters}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
           onUpdateScene={handleUpdateScene}
           onRemoveScene={handleRemoveScene}
           onReorderScenes={handleReorderScenes}
@@ -113,12 +116,43 @@ export default function App() {
         />
       </main>
 
-      {/* Right: palette */}
-      <aside className="w-56 shrink-0 overflow-y-auto border-l border-gray-200 bg-gray-50">
+      {/* Right: selected block settings */}
+      <aside className="w-72 shrink-0 overflow-y-auto border-l border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">Add Block</h2>
+          <h2 className="text-sm font-semibold text-gray-700">Block Settings</h2>
         </div>
-        <Palette mode={mode} onAddScene={handleAddScene} onAddChapter={handleAddChapter} />
+        {(() => {
+          if (!selectedId) {
+            return (
+              <div className="flex h-32 items-center justify-center text-xs text-gray-400">
+                Select a block to edit its settings
+              </div>
+            );
+          }
+          const scene = scenes.find((s) => s.id === selectedId);
+          if (scene) {
+            const SettingsForm = SCENE_SETTINGS_MAP[scene.type];
+            return SettingsForm ? (
+              <SettingsForm scene={scene} onChange={(u: Parameters<typeof handleUpdateScene>[1]) => handleUpdateScene(scene.id, u)} />
+            ) : (
+              <div className="p-4 text-xs text-gray-400">No settings available for this block type.</div>
+            );
+          }
+          const chapter = chapters.find((c) => c.id === selectedId);
+          if (chapter) {
+            const SettingsForm = CHAPTER_SETTINGS_MAP[chapter.type];
+            return SettingsForm ? (
+              <SettingsForm chapter={chapter} onChange={(u: Parameters<typeof handleUpdateChapter>[1]) => handleUpdateChapter(chapter.id, u)} />
+            ) : (
+              <div className="p-4 text-xs text-gray-400">No settings available for this block type.</div>
+            );
+          }
+          return (
+            <div className="flex h-32 items-center justify-center text-xs text-gray-400">
+              Block not found
+            </div>
+          );
+        })()}
       </aside>
     </div>
   );

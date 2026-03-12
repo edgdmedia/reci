@@ -1,58 +1,36 @@
-import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Scene, SceneType } from '../../../types/blueprint';
-import { SCENE_SETTINGS_MAP } from './settings/sceneSettingsMap';
 
 interface Props {
   scene: Scene;
+  selected: boolean;
+  onSelect: () => void;
   onUpdate: (updates: Partial<Scene>) => void;
   onRemove: () => void;
 }
 
-export default function SceneCard({ scene, onUpdate, onRemove }: Props) {
-  const [expanded, setExpanded] = useState(false);
+export default function SceneCard({ scene, selected, onSelect, onRemove }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
-
-  const SettingsForm = SCENE_SETTINGS_MAP[scene.type as SceneType];
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="mb-2 rounded-lg border border-gray-200 bg-white shadow-sm"
+      className="mb-2 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden"
     >
-      <div className="flex items-center gap-2 p-3">
-        <span
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-gray-400 hover:text-gray-600"
-          aria-label="Drag to reorder"
-        >
-          ⠿
-        </span>
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="flex-1 text-left text-sm font-medium text-gray-700"
-        >
-          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">{scene.type}</span>
+      <div
+        onClick={onSelect}
+        className={`flex items-center gap-2 cursor-pointer p-3 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+        style={selected ? { borderLeft: '3px solid #2563eb' } : { borderLeft: '3px solid transparent' }}
+      >
+        <span {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600" aria-label="Drag">⠿</span>
+        <span className="flex-1 text-sm font-medium text-gray-700">
+          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">{scene.type as SceneType}</span>
           {scene.title && <span className="ml-2 text-gray-500">{scene.title}</span>}
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-xs text-red-400 hover:text-red-600"
-          aria-label="Remove scene"
-        >
-          ✕
-        </button>
+        </span>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-xs text-red-400 hover:text-red-600" aria-label="Remove">✕</button>
       </div>
-      {expanded && SettingsForm && (
-        <div className="border-t border-gray-100 p-3">
-          <SettingsForm scene={scene} onChange={onUpdate} />
-        </div>
-      )}
     </div>
   );
 }

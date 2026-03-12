@@ -1,58 +1,36 @@
-import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Chapter } from '../../../types/blueprint';
-import { CHAPTER_SETTINGS_MAP } from './settings/chapterSettingsMap';
 
 interface Props {
   chapter: Chapter;
+  selected: boolean;
+  onSelect: () => void;
   onUpdate: (updates: Partial<Chapter>) => void;
   onRemove: () => void;
 }
 
-export default function ChapterCard({ chapter, onUpdate, onRemove }: Props) {
-  const [expanded, setExpanded] = useState(false);
+export default function ChapterCard({ chapter, selected, onSelect, onRemove }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: chapter.id });
-
-  const SettingsForm = CHAPTER_SETTINGS_MAP[chapter.type];
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="mb-2 rounded-lg border border-gray-200 bg-white shadow-sm"
+      className="mb-2 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden"
     >
-      <div className="flex items-center gap-2 p-3">
-        <span
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-gray-400 hover:text-gray-600"
-          aria-label="Drag to reorder"
-        >
-          ⠿
-        </span>
-        <button
-          type="button"
-          onClick={() => setExpanded((e) => !e)}
-          className="flex-1 text-left text-sm font-medium text-gray-700"
-        >
+      <div
+        onClick={onSelect}
+        className={`flex items-center gap-2 cursor-pointer p-3 ${selected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+        style={selected ? { borderLeft: '3px solid #2563eb' } : { borderLeft: '3px solid transparent' }}
+      >
+        <span {...attributes} {...listeners} className="cursor-grab text-gray-400 hover:text-gray-600" aria-label="Drag">⠿</span>
+        <span className="flex-1 text-sm font-medium text-gray-700">
           <span className="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700">{chapter.type}</span>
           {chapter.content?.title && <span className="ml-2 text-gray-500">{chapter.content.title}</span>}
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-xs text-red-400 hover:text-red-600"
-          aria-label="Remove chapter"
-        >
-          ✕
-        </button>
+        </span>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-xs text-red-400 hover:text-red-600" aria-label="Remove">✕</button>
       </div>
-      {expanded && SettingsForm && (
-        <div className="border-t border-gray-100 p-3">
-          <SettingsForm chapter={chapter} onChange={onUpdate} />
-        </div>
-      )}
     </div>
   );
 }

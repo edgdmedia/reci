@@ -106,8 +106,8 @@ function reci_install_demo_content(): void {
 		],
 		[
 			'slug'    => 'reci-demo-pittsburgh-community-pulse',
-			'title'   => 'Community Pulse: Pittsburgh's Racial Justice Landscape in 2025',
-			'excerpt' => 'A data-driven snapshot of where Pittsburgh stands on key racial equity indicators and what's changing.',
+			'title'   => 'Community Pulse: Pittsburgh\'s Racial Justice Landscape in 2025',
+			'excerpt' => 'A data-driven snapshot of where Pittsburgh stands on key racial equity indicators and what\'s changing.',
 			'content' => reci_demo_lorem( 4 ),
 			'topics'  => [ 'Community', 'Research' ],
 			'image'   => 'Image3.png',
@@ -134,7 +134,7 @@ function reci_install_demo_content(): void {
 		[
 			'slug'    => 'reci-demo-leadership-equity',
 			'title'   => 'Cultivating Equity-Minded Leaders at Every Level',
-			'excerpt' => 'From classrooms to boardrooms, RECI's leadership programs are changing who gets to lead and how.',
+			'excerpt' => 'From classrooms to boardrooms, RECI\'s leadership programs are changing who gets to lead and how.',
 			'content' => reci_demo_lorem( 3 ),
 			'topics'  => [ 'Leadership', 'Education' ],
 			'image'   => 'Section.png',
@@ -211,8 +211,8 @@ function reci_install_demo_content(): void {
 		],
 		[
 			'slug'    => 'reci-demo-video-community-stories',
-			'title'   => 'Community Stories: Voices from Pittsburgh's Hill District',
-			'excerpt' => 'Residents share their experiences with racial inequity and the community-led solutions they're building.',
+			'title'   => 'Community Stories: Voices from Pittsburgh\'s Hill District',
+			'excerpt' => 'Residents share their experiences with racial inequity and the community-led solutions they\'re building.',
 			'content' => reci_demo_lorem( 2 ),
 			'topics'  => [ 'Community', 'Arts & Culture' ],
 			'image'   => 'Image2.png',
@@ -302,7 +302,7 @@ function reci_install_demo_content(): void {
 		],
 		[
 			'slug'    => 'reci-demo-reflection-first-generation',
-			'title'   => 'What It Means to Be First: A First-Generation Student's Story',
+			'title'   => 'What It Means to Be First: A First-Generation Student\'s Story',
 			'excerpt' => 'Growing up in a household where college was never mentioned, and navigating what it costs to be the first.',
 			'content' => reci_demo_lorem( 3 ),
 			'topics'  => [ 'Community', 'Racial Equity' ],
@@ -312,7 +312,7 @@ function reci_install_demo_content(): void {
 		[
 			'slug'    => 'reci-demo-reflection-doctor-black-america',
 			'title'   => 'Becoming a Doctor in Black America: A Journey Through Inequity',
-			'excerpt' => 'From med school to residency, the invisible barriers that shaped one physician's commitment to health equity.',
+			'excerpt' => 'From med school to residency, the invisible barriers that shaped one physician\'s commitment to health equity.',
 			'content' => reci_demo_lorem( 3 ),
 			'topics'  => [ 'Health Equity', 'Research' ],
 			'image'   => 'JohnDoe.png',
@@ -599,7 +599,7 @@ function reci_demo_lorem( int $paragraphs = 2 ): string {
 	$p = 'Racial equity work requires sustained commitment, community partnership, and an unflinching willingness to examine systems — not just individual behaviors. Over decades of research, scholars and practitioners have demonstrated that disparities in education, health, housing, and economic opportunity are not the result of individual failings, but of policies and structures designed to produce unequal outcomes. Understanding this is the first step toward changing it.';
 	$p2 = 'The path forward demands both urgency and patience. Urgency because lives and livelihoods hang in the balance every day that inequitable systems remain in place. Patience because lasting systemic change is never quick, and meaningful progress requires building trust across communities, institutions, and generations. RECI is committed to both, bridging rigorous scholarship with community-driven action.';
 	$p3 = 'Communities most impacted by racial inequity are not simply problems to be solved — they are sources of expertise, resilience, and vision. Centering the voices and leadership of those who have navigated unjust systems firsthand is not charity; it is a prerequisite for effective and lasting change. When solutions emerge from within communities, they are more likely to endure.';
-	$p4 = 'Data matters, but data without context can mislead. Numbers alone cannot capture the lived experience of systemic exclusion. Effective equity work weaves together quantitative research, qualitative stories, and community knowledge to create a fuller picture of both the problem and the possibility. RECI's approach integrates all three.';
+	$p4 = 'Data matters, but data without context can mislead. Numbers alone cannot capture the lived experience of systemic exclusion. Effective equity work weaves together quantitative research, qualitative stories, and community knowledge to create a fuller picture of both the problem and the possibility. RECI\'s approach integrates all three.';
 
 	$all = [ $p, $p2, $p3, $p4 ];
 	return implode( "\n\n", array_slice( $all, 0, min( $paragraphs, 4 ) ) );

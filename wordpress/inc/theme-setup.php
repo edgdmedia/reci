@@ -101,7 +101,12 @@ if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
 			$version,
 			true
 		);
-		wp_script_add_data('reci-reflection-renderer', 'type', 'module');
+		add_filter('script_loader_tag', static function (string $tag, string $handle): string {
+			if ($handle === 'reci-reflection-renderer') {
+				return str_replace(' src=', ' type="module" src=', $tag);
+			}
+			return $tag;
+		}, 10, 2);
 	}
 }
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_reflection_renderer');

@@ -7,7 +7,8 @@ module.exports = {
     './template-parts/**/*.php',
     './figma/**/*.php',
     './sample/**/*.{js,jsx,ts,tsx,php,html}',
-    './legacy-block/**/*.{php,html}'
+    './legacy-block/**/*.{php,html}',
+    './src/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
     extend: {

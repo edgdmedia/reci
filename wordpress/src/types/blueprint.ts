@@ -1,6 +1,47 @@
 // Canonical data contract. Builder writes this; renderer reads it.
 // PHP service classes normalise and pass through unchanged.
 
+export type AnimationType =
+  | 'none' | 'fade-in' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | 'zoom-in';
+
+export type TextAlign = 'left' | 'center' | 'right';
+
+export interface ElementStyle {
+  fontFamily?: string;
+  fontSize?: Responsive<string>;        // e.g. "3rem", "48px"
+  color?: string;
+  textAlign?: Responsive<TextAlign>;
+  animation?: AnimationType;
+  animationDuration?: string;  // e.g. "0.8s"
+  animationDelay?: string;     // e.g. "0.3s"
+}
+
+export interface ButtonStyle {
+  fontFamily?: string;
+  fontSize?: Responsive<string>;
+  paddingX?: Responsive<string>;       // e.g. "2.5rem"
+  paddingY?: Responsive<string>;       // e.g. "1rem"
+  backgroundColor?: string;
+  textColor?: string;
+  hoverBackgroundColor?: string;
+  hoverTextColor?: string;
+  borderRadius?: string;   // e.g. "9999px" (pill), "4px"
+  action?: 'next_chapter' | 'url';
+  actionUrl?: string;
+}
+
+export interface ChapterAnimation {
+  type?: 'none' | 'fade' | 'slide-up' | 'slide-left' | 'zoom' | 'curtain';
+  duration?: string;       // e.g. "0.6s"
+  easing?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
+}
+
+export interface Responsive<T> {
+  desktop?: T;
+  tablet?: T;   // ≤1024px
+  mobile?: T;   // ≤767px
+}
+
 export interface ReflectionStyle {
   theme?: 'immersive-dark' | 'light' | 'archival' | 'editorial' | 'spotlight';
   backgroundColor?: string;
@@ -51,9 +92,12 @@ export interface Scene extends ReflectionStyle {
 
 export interface ChapterContent {
   title?: string;
+  title_style?: ElementStyle;
   subtitle?: string;
+  subtitle_style?: ElementStyle;
   content?: string;
   button_label?: string;
+  button_style?: ButtonStyle;
   placeholder?: string;
   background_image_url?: string;
   audio_url?: string;
@@ -75,6 +119,7 @@ export interface Chapter {
   label?: string;
   title?: string;
   presentation?: ReflectionStyle;
+  animation?: ChapterAnimation;
   state?: {
     initial?: 'active' | 'locked';
     completion?: {
