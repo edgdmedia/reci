@@ -32,7 +32,9 @@ export default function Canvas({
   onUpdateScene, onRemoveScene, onReorderScenes,
   onUpdateChapter, onRemoveChapter, onReorderChapters,
 }: Props) {
-  const sensors = useSensors(useSensor(PointerSensor));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   function handleSceneDragEnd(event: DragEndEvent) {
     const { active, over } = event;
