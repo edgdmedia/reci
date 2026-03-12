@@ -36,7 +36,7 @@ describe('RangeField', () => {
 
 describe('ItemListField', () => {
   it('renders add button', () => {
-    render(<ItemListField label="Items" items={[]} onChange={() => {}} fields={['content']} />);
+    render(<ItemListField label="Items" value={[]} onChange={() => {}} />);
     expect(screen.getByRole('button', { name: /add/i })).toBeInTheDocument();
   });
 });

@@ -2,12 +2,15 @@ import type { SceneItem } from '../../../../types/blueprint';
 
 interface Props {
   label: string;
-  items: SceneItem[];
+  value: SceneItem[];
   onChange: (items: SceneItem[]) => void;
-  fields: Array<keyof SceneItem>;
+  fields?: Array<keyof SceneItem>;
 }
 
-export default function ItemListField({ label, items, onChange, fields }: Props) {
+const DEFAULT_FIELDS: Array<keyof SceneItem> = ['label', 'content'];
+
+export default function ItemListField({ label, value = [], onChange, fields = DEFAULT_FIELDS }: Props) {
+  const items = value;
   function add() {
     onChange([...items, {}]);
   }
