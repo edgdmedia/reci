@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/renderer/test/setup.ts'],
+    exclude: ['node_modules/**', '.worktrees/**'],
   },
   build: {
     outDir: '.',

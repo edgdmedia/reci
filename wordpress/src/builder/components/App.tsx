@@ -1,9 +1,6 @@
-import { useState } from 'react';
 import { useBuilderStore } from '../store/builderStore';
 import Canvas from './Canvas';
 import LeftPanel from './layout/LeftPanel';
-import { SCENE_SETTINGS_MAP } from './settings/sceneSettingsMap';
-import { CHAPTER_SETTINGS_MAP } from './settings/chapterSettingsMap';
 import type { SceneType } from '../../../types/blueprint';
 import type { Chapter } from '../../../types/blueprint';
 
@@ -24,8 +21,6 @@ export default function App() {
   } = useBuilderStore();
 
   const { mode, appearance = {}, scenes = [], chapters = [] } = blueprint;
-
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   function syncHidden() {
     const el = document.getElementById('reci-builder-blueprint') as HTMLInputElement | null;
@@ -105,8 +100,6 @@ export default function App() {
           mode={mode}
           scenes={scenes}
           chapters={chapters}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
           onUpdateScene={handleUpdateScene}
           onRemoveScene={handleRemoveScene}
           onReorderScenes={handleReorderScenes}
@@ -115,45 +108,6 @@ export default function App() {
           onReorderChapters={handleReorderChapters}
         />
       </main>
-
-      {/* Right: selected block settings */}
-      <aside className="w-72 shrink-0 overflow-y-auto border-l border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">Block Settings</h2>
-        </div>
-        {(() => {
-          if (!selectedId) {
-            return (
-              <div className="flex h-32 items-center justify-center text-xs text-gray-400">
-                Select a block to edit its settings
-              </div>
-            );
-          }
-          const scene = scenes.find((s) => s.id === selectedId);
-          if (scene) {
-            const SettingsForm = SCENE_SETTINGS_MAP[scene.type];
-            return SettingsForm ? (
-              <SettingsForm scene={scene} onChange={(u: Parameters<typeof handleUpdateScene>[1]) => handleUpdateScene(scene.id, u)} />
-            ) : (
-              <div className="p-4 text-xs text-gray-400">No settings available for this block type.</div>
-            );
-          }
-          const chapter = chapters.find((c) => c.id === selectedId);
-          if (chapter) {
-            const SettingsForm = CHAPTER_SETTINGS_MAP[chapter.type];
-            return SettingsForm ? (
-              <SettingsForm chapter={chapter} onChange={(u: Parameters<typeof handleUpdateChapter>[1]) => handleUpdateChapter(chapter.id, u)} />
-            ) : (
-              <div className="p-4 text-xs text-gray-400">No settings available for this block type.</div>
-            );
-          }
-          return (
-            <div className="flex h-32 items-center justify-center text-xs text-gray-400">
-              Block not found
-            </div>
-          );
-        })()}
-      </aside>
     </div>
   );
 }

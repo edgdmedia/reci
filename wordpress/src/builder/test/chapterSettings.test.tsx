@@ -19,7 +19,7 @@ describe('CHAPTER_SETTINGS_MAP', () => {
   it('ThresholdIntroSettings renders title and button label', () => {
     const Comp = CHAPTER_SETTINGS_MAP['threshold_intro'];
     render(<Comp chapter={baseChapter} onChange={vi.fn()} />);
-    expect(screen.getByLabelText('Title')).toBeInTheDocument();
+    expect(screen.getByLabelText('Title Text')).toBeInTheDocument();
     expect(screen.getByLabelText('Button Label')).toBeInTheDocument();
   });
 

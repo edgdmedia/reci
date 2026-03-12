@@ -19,8 +19,6 @@ interface Props {
   mode: 'standard' | 'immersive';
   scenes: Scene[];
   chapters: Chapter[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
   onUpdateScene: (id: string, updates: Partial<Scene>) => void;
   onRemoveScene: (id: string) => void;
   onReorderScenes: (orderedIds: string[]) => void;
@@ -30,7 +28,7 @@ interface Props {
 }
 
 export default function Canvas({
-  mode, scenes, chapters, selectedId, onSelect,
+  mode, scenes, chapters,
   onUpdateScene, onRemoveScene, onReorderScenes,
   onUpdateChapter, onRemoveChapter, onReorderChapters,
 }: Props) {
@@ -61,8 +59,6 @@ export default function Canvas({
               <ChapterCard
                 key={chapter.id}
                 chapter={chapter}
-                selected={selectedId === chapter.id}
-                onSelect={() => onSelect(chapter.id)}
                 onUpdate={(u) => onUpdateChapter(chapter.id, u)}
                 onRemove={() => onRemoveChapter(chapter.id)}
               />
@@ -84,8 +80,6 @@ export default function Canvas({
             <SceneCard
               key={scene.id}
               scene={scene}
-              selected={selectedId === scene.id}
-              onSelect={() => onSelect(scene.id)}
               onUpdate={(u) => onUpdateScene(scene.id, u)}
               onRemove={() => onRemoveScene(scene.id)}
             />

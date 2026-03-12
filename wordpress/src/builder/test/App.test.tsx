@@ -9,9 +9,9 @@ beforeEach(() => {
 });
 
 describe('App', () => {
-  it('renders Reflection Settings heading', () => {
+  it('renders Reflection tab', () => {
     render(<App />);
-    expect(screen.getByText('Reflection Settings')).toBeInTheDocument();
+    expect(screen.getByText('Reflection')).toBeInTheDocument();
   });
 
   it('renders Add Block heading', () => {
