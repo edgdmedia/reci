@@ -1,0 +1,58 @@
+import { useState } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { Scene, SceneType } from '../../../types/blueprint';
+import { SCENE_SETTINGS_MAP } from './settings/sceneSettingsMap';
+
+interface Props {
+  scene: Scene;
+  onUpdate: (updates: Partial<Scene>) => void;
+  onRemove: () => void;
+}
+
+export default function SceneCard({ scene, onUpdate, onRemove }: Props) {
+  const [expanded, setExpanded] = useState(false);
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: scene.id });
+
+  const SettingsForm = SCENE_SETTINGS_MAP[scene.type as SceneType];
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className="mb-2 rounded-lg border border-gray-200 bg-white shadow-sm"
+    >
+      <div className="flex items-center gap-2 p-3">
+        <span
+          {...attributes}
+          {...listeners}
+          className="cursor-grab text-gray-400 hover:text-gray-600"
+          aria-label="Drag to reorder"
+        >
+          ⠿
+        </span>
+        <button
+          type="button"
+          onClick={() => setExpanded((e) => !e)}
+          className="flex-1 text-left text-sm font-medium text-gray-700"
+        >
+          <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">{scene.type}</span>
+          {scene.title && <span className="ml-2 text-gray-500">{scene.title}</span>}
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          className="text-xs text-red-400 hover:text-red-600"
+          aria-label="Remove scene"
+        >
+          ✕
+        </button>
+      </div>
+      {expanded && SettingsForm && (
+        <div className="border-t border-gray-100 p-3">
+          <SettingsForm scene={scene} onChange={onUpdate} />
+        </div>
+      )}
+    </div>
+  );
+}
