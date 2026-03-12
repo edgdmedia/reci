@@ -1,5 +1,5 @@
 import Field from '../../fields/Field';
-import UrlField from '../../fields/UrlField';
+import MediaField from '../../fields/MediaField';
 import ItemListField from '../../fields/ItemListField';
 import type { Chapter } from '../../../../../types/blueprint';
 
@@ -10,7 +10,7 @@ export default function HotspotStageSettings({ chapter, onChange }: Props) {
   return (
     <div>
       <Field label="Title" value={c.title ?? ''} onChange={(v) => onChange({ content: { ...c, title: v } })} />
-      <UrlField label="Background Image URL" value={c.background_image_url ?? ''} onChange={(v) => onChange({ content: { ...c, background_image_url: v } })} />
+      <MediaField label="Background Image URL" value={c.background_image_url ?? ''} onChange={(v) => onChange({ content: { ...c, background_image_url: v } })} />
       <ItemListField label="Hotspots" value={c.items ?? []} onChange={(v) => onChange({ content: { ...c, items: v } })} />
     </div>
   );

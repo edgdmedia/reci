@@ -1,6 +1,6 @@
 import Field from '../../fields/Field';
 import TextareaField from '../../fields/TextareaField';
-import UrlField from '../../fields/UrlField';
+import MediaField from '../../fields/MediaField';
 import ElementStyleFields from '../shared/ElementStyleFields';
 import ButtonStyleFields from '../shared/ButtonStyleFields';
 import ChapterAnimationFields from '../shared/ChapterAnimationFields';
@@ -25,7 +25,7 @@ export default function ThresholdIntroSettings({ chapter, onChange }: Props) {
           Background
         </summary>
         <div className="space-y-2 p-3">
-          <UrlField
+          <MediaField
             label="Background Image URL"
             value={c.background_image_url ?? ''}
             onChange={(v) => setContent({ background_image_url: v })}
