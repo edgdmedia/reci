@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voices of Resistance - Reflection Gallery</title>
+
+    <!-- Base Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="animations.css">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <!-- Oswald for headers to match other pages -->
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Bespoke Styles for Voices of Resistance */
+        :root {
+            --vor-primary: #8B4513;
+            /* SaddleBrown */
+            --vor-bg: #111;
+            --vor-text: #e0e0e0;
+            --vor-accent: #FFB81C;
+        }
+
+        body {
+            background-color: var(--vor-bg);
+            color: var(--vor-text);
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Navigation */
+        .vor-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            /* Let clicks pass through to content */
+        }
+
+        .vor-nav a,
+        .vor-nav button {
+            pointer-events: auto;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            mix-blend-mode: difference;
+        }
+
+        /* SECTION 1: Intro / Threshold */
+        .chapter-intro {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: black;
+            z-index: 100;
+            /* Top layer initially */
+            transition: transform 1s cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        .intro-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('assets/images/community-gathering.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.4;
+            filter: grayscale(100%);
+        }
+
+        .intro-content {
+            z-index: 2;
+            text-align: center;
+        }
+
+        .intro-title {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(3rem, 10vw, 8rem);
+            color: white;
+            line-height: 0.9;
+            margin: 0;
+        }
+
+        .intro-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            color: var(--vor-accent);
+            margin-top: 20px;
+            font-style: italic;
+        }
+
+        .enter-btn {
+            margin-top: 50px;
+            padding: 15px 40px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .enter-btn:hover {
+            background: white;
+            color: black;
+        }
+
+        /* SECTION 2: Interactive Hotspots (The Gathering) */
+        .chapter-interact {
+            height: 100vh;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            display: none;
+            /* Hidden until triggered */
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .interact-stage {
+            height: 100%;
+            width: 100%;
+            background: url('assets/images/community-gathering.png') no-repeat center center/cover;
+            position: relative;
+        }
+
+        .instruction-overlay {
+            position: absolute;
+            top: 100px;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .instruction-overlay h3 {
+            font-family: 'Oswald', sans-serif;
+            font-weight: 300;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .hotspot {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 184, 28, 0.2);
+            border: 2px solid var(--vor-accent);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+            animation: pulse-ring 2s infinite;
+        }
+
+        .hotspot:hover {
+            transform: scale(1.2);
+            background: rgba(255, 184, 28, 0.4);
+        }
+
+        @keyframes pulse-ring {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 184, 28, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 184, 28, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 184, 28, 0);
+            }
+        }
+
+        /* Hotspot Panel */
+        .hotspot-detail-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            /* Centered popup */
+            width: 80%;
+            max-width: 400px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 1px solid var(--vor-accent);
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 20;
+        }
+
+        .hotspot-detail-panel.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .continue-hint {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Oswald';
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            opacity: 0;
+            pointer-events: none;
+            cursor: pointer;
+            animation: bounce 2s infinite;
+            transition: opacity 1s;
+        }
+
+        .continue-hint.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* SECTION 3: THE HOLD (Narrative Reveal) */
+        .chapter-hold {
+            min-height: 100vh;
+            background: #1a1a1a;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 1s;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .hold-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            margin-bottom: 40px;
+            color: var(--vor-accent);
+        }
+
+        .hold-text-container {
+            max-width: 700px;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            line-height: 1.6;
+            min-height: 200px;
+        }
+
+        .hold-paragraph {
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s;
+            display: none;
+        }
+
+        .hold-paragraph.visible {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+
+        .hold-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            background: transparent;
+            color: white;
+            margin-top: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .hold-btn:active {
+            transform: scale(0.9);
+            border-color: var(--vor-accent);
+        }
+
+        /* SECTION 4: THE THRESHOLD (New Section) */
+        .chapter-threshold {
+            height: 100vh;
+            background: #111;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1s;
+            position: relative;
+        }
+
+        .thresh-text {
+            font-family: 'Oswald';
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: #333;
+            transition: color 2s;
+        }
+
+        .chapter-threshold.active .thresh-text {
+            color: white;
+        }
+
+        /* SECTION 5: THE MARCH (Horizontal) */
+        .chapter-march {
+            height: 100vh;
+            overflow: hidden;
+            display: none;
+            opacity: 0;
+            transition: opacity 1s;
+            position: relative;
+        }
+
+        .march-track {
+            display: flex;
+            height: 100%;
+            width: 300vw;
+            will-change: transform;
+        }
+
+        .march-panel {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .mp-content {
+            z-index: 2;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .mp-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+
+        /* SECTION 6: REFLECTION (Moved Later) */
+        .chapter-reflection {
+            height: 100vh;
+            background: #0a0a0a;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 1s;
+            padding: 20px;
+        }
+
+        .reflect-prompt {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .reflect-input {
+            width: 100%;
+            max-width: 600px;
+            height: 150px;
+            background: #222;
+            border: 1px solid #444;
+            color: white;
+            padding: 20px;
+            font-family: 'Inter';
+            font-size: 1.1rem;
+        }
+
+        /* Animations */
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateX(-50%) translateY(0);
+            }
+
+            50% {
+                transform: translateX(-50%) translateY(10px);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="vor-nav">
+        <a href="index.html" class="back-link">← Gallery</a>
+    </nav>
+
+    <!-- AUDIO -->
+    <audio id="bgAudio" src="assets/audio/background-music/once-in-paris-168895.mp3" loop></audio>
+
+    <!-- 1. INTRO -->
+    <section class="chapter-intro" id="s-intro">
+        <div class="intro-bg"></div>
+        <div class="intro-content">
+            <h1 class="intro-title">Voices of<br><span style="color:var(--vor-accent)">Resistance</span></h1>
+            <p class="intro-subtitle">"I remember the day we decided enough was enough..."</p>
+            <button class="enter-btn" onclick="enterExperience()">Enter the Story</button>
+        </div>
+    </section>
+
+    <!-- 2. EXPLORE (The Gathering) -->
+    <section class="chapter-interact" id="s-explore">
+        <div class="instruction-overlay">
+            <h3>Tap the Icons to Uncover the Story</h3>
+        </div>
+
+        <div class="interact-stage" id="exploreStage">
+            <div class="hotspot hp-1" style="top: 40%; left: 30%;" onclick="showDetail('strategy')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+            </div>
+            <div class="hotspot hp-2" style="top: 60%; left: 60%;" onclick="showDetail('resolve')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+            </div>
+            <div class="hotspot hp-3" style="top: 30%; left: 70%;" onclick="showDetail('legacy')">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="hotspot-detail-panel" id="detailPanel">
+            <h4 class="detail-title" id="dTitle"
+                style="font-family:'Oswald'; color:var(--vor-accent); font-size:1.5rem; margin-bottom:10px;">Title</h4>
+            <p class="detail-text" id="dText"
+                style="font-family:'Playfair Display'; font-size:1.2rem; line-height:1.5;">Text</p>
+            <button onclick="closeDetail()"
+                style="margin-top:20px; padding:10px 20px; background:#333; color:white; border:none; cursor:pointer;">CLOSE</button>
+        </div>
+
+        <div class="continue-hint" id="exploreContinue" onclick="transitionToHold()">
+            Scroll Down to Continue ↓
+        </div>
+    </section>
+
+    <!-- 3. HOLD (The Decision) -->
+    <section class="chapter-hold" id="s-hold">
+        <h2 class="hold-title">The Decision</h2>
+
+        <div class="hold-text-container" id="holdTextTarget">
+            <p class="hold-paragraph">"The march was scheduled for dawn. We knew the risks."</p>
+            <p class="hold-paragraph">"But staying silent had become more dangerous than speaking out."</p>
+            <p class="hold-paragraph">"As we walked down those streets, arm in arm, I felt the weight of generations."
+            </p>
+        </div>
+
+        <div style="text-align:center; margin-top:40px;">
+            <div
+                style="font-family:'Oswald'; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; opacity:0.7;">
+                Click to Reveal</div>
+            <button class="hold-btn" onclick="revealNextParagraph()">▼</button>
+        </div>
+
+        <button id="toThresholdBtn" class="enter-btn" style="display:none; margin-top:50px;"
+            onclick="transitionToThreshold()">Face the Moment →</button>
+    </section>
+
+    <!-- 4. THRESHOLD (New) -->
+    <section class="chapter-threshold" id="s-threshold">
+        <div style="z-index:2; max-width:800px;">
+            <h2 class="thresh-text">We stood at the edge of history.</h2>
+            <br>
+            <button class="enter-btn" style="border-color:#333; color:#333;" onclick="transitionToMarch()">March
+                Forward</button>
+        </div>
+        <div style="position:absolute; top:0; left:0; width:100%; height:100%; background:white; opacity:0.1;"></div>
+    </section>
+
+    <!-- 5. THE MARCH -->
+    <section class="chapter-march" id="s-march">
+        <div class="march-track" id="marchTrack">
+            <!-- Panel 1 -->
+            <div class="march-panel">
+                <div class="mp-bg" style="background-image:url('assets/images/protest-march.png')"></div>
+                <div class="mp-content">
+                    <h2 style="font-family:'Playfair Display'; font-size:3rem;">"Every step was an act of defiance."
+                    </h2>
+                </div>
+            </div>
+            <!-- Panel 2 -->
+            <div class="march-panel">
+                <div class="mp-bg" style="background-image:url('assets/images/voting-rights.png')"></div>
+                <div class="mp-content">
+                    <h2 style="font-family:'Playfair Display'; font-size:3rem;">"They could beat us, but they could not
+                        break our spirit."</h2>
+                </div>
+            </div>
+            <!-- Panel 3 -->
+            <div class="march-panel">
+                <div class="mp-content">
+                    <h2 style="font-family:'Oswald'; font-size:3rem; color:var(--vor-accent);">The Struggle Continues
+                    </h2>
+                    <br>
+                    <button class="enter-btn" onclick="transitionToReflection()">Reflect</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. REFLECTION -->
+    <section class="chapter-reflection" id="s-reflect">
+        <h2 class="reflect-prompt">"What does courage mean to you in the context of social justice?"</h2>
+        <textarea class="reflect-input" placeholder="Share your thoughts..."></textarea>
+        <button class="enter-btn" style="margin-top:30px;" onclick="window.location.href='/reflection-gallery'">Complete
+            Journey</button>
+    </section>
+
+    <script>
+        const audio = document.getElementById('bgAudio');
+
+        // 1. Enter Experience
+        function enterExperience() {
+            // Updated to target s-intro correctly based on user class changes
+            const intro = document.getElementById('s-intro');
+            intro.style.transform = 'translateY(-100vh)';
+
+            setTimeout(() => {
+                document.getElementById('s-explore').style.display = 'block';
+                // Trigger reflow
+                void document.getElementById('s-explore').offsetWidth;
+                document.getElementById('s-explore').style.opacity = 1;
+            }, 500);
+
+            // Play Audio
+            audio.play().catch(e => console.log(e));
+        }
+
+        // 2. Explore Interaction
+        const details = {
+            strategy: { title: "The Strategy", text: "We gathered in the church basement not just to pray, but to plan. Every route was mapped, every risk calculated." },
+            resolve: { title: "The Resolve", text: "Standing tall wasn't just physical. It was a reclaiming of space we were told we couldn't occupy." },
+            legacy: { title: "The Community", text: "Young and old, doctors and janitors. In this room, titles dissolved. We were simply one people." }
+        };
+
+        function showDetail(key) {
+            const p = document.getElementById('detailPanel');
+            document.getElementById('dTitle').innerText = details[key].title;
+            document.getElementById('dText').innerText = details[key].text;
+            p.classList.add('visible');
+
+            // Allow continue
+            document.getElementById('exploreContinue').classList.add('visible');
+
+            // Enable scroll listener
+            window.addEventListener('wheel', checkScrollToHold);
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('visible');
+        }
+
+        function checkScrollToHold(e) {
+            if (e.deltaY > 50) {
+                transitionToHold();
+                window.removeEventListener('wheel', checkScrollToHold);
+            }
+        }
+
+        // 3. Transition to Hold
+        function transitionToHold() {
+            document.getElementById('s-explore').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('s-explore').style.display = 'none';
+                document.getElementById('s-hold').style.display = 'flex';
+                void document.getElementById('s-hold').offsetWidth;
+                document.getElementById('s-hold').style.opacity = 1;
+            }, 1000);
+        }
+
+        // 4. Hold Reveal Logic
+        let pIndex = 0;
+        function revealNextParagraph() {
+            const ps = document.querySelectorAll('.hold-paragraph');
+            if (pIndex < ps.length) {
+                ps[pIndex].classList.add('visible');
+                pIndex++;
+            }
+            if (pIndex === ps.length) {
+                document.getElementById('toThresholdBtn').style.display = 'inline-block';
+            }
+        }
+
+        // 5. Threshold
+        function transitionToThreshold() {
+            document.getElementById('s-hold').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('s-hold').style.display = 'none';
+                document.getElementById('s-threshold').style.display = 'flex';
+                void document.getElementById('s-threshold').offsetWidth;
+                document.getElementById('s-threshold').style.opacity = 1;
+                document.getElementById('s-threshold').classList.add('active'); // Trigger color change
+            }, 1000);
+        }
+
+        // 6. March
+        function transitionToMarch() {
+            document.getElementById('s-threshold').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('s-threshold').style.display = 'none';
+                document.getElementById('s-march').style.display = 'block';
+                void document.getElementById('s-march').offsetWidth;
+                document.getElementById('s-march').style.opacity = 1;
+                initMarchScroll();
+            }, 1000);
+        }
+
+        function initMarchScroll() {
+            const track = document.getElementById('marchTrack');
+            const container = document.getElementById('s-march');
+            window.addEventListener('wheel', (e) => {
+                if (container.style.display === 'block') {
+                    if (e.deltaY !== 0) {
+                        container.scrollLeft += e.deltaY;
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+        }
+
+        // 7. Reflection
+        function transitionToReflection() {
+            document.getElementById('s-march').style.opacity = 0;
+            setTimeout(() => {
+                document.getElementById('s-march').style.display = 'none';
+                document.getElementById('s-reflect').style.display = 'flex';
+                void document.getElementById('s-reflect').offsetWidth;
+                document.getElementById('s-reflect').style.opacity = 1;
+            }, 1000);
+        }
+
+    </script>
+</body>
+
+</html>

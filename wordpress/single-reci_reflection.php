@@ -1,9 +1,6 @@
 <?php
 /**
  * Single template for the reci_reflection post type.
- *
- * Standalone reflection shell. Standard reflections render scene stacks.
- * Immersive reflections render staged fullscreen chapters.
  */
 
 if (! defined('ABSPATH')) {
@@ -14,12 +11,44 @@ the_post();
 
 $post_id     = get_the_ID();
 $payload     = RECI_Reflection_Content_Service::get_payload($post_id);
+$blueprint   = is_array($payload['blueprint'] ?? null) ? $payload['blueprint'] : [];
+$uses_new_system = function_exists('reci_reflection_blueprint_uses_new_system') && reci_reflection_blueprint_uses_new_system($post_id);
+
+if ($uses_new_system) {
+    $normalized = reci_reflection_system_normalize_blueprint($blueprint);
+    $response_rest_url = rest_url('reci/v1/reflection-responses');
+    $reflection_config = [
+        'isLoggedIn' => is_user_logged_in(),
+        'restUrl' => $response_rest_url,
+        'nonce' => wp_create_nonce('wp_rest'),
+        'reflectionId' => $post_id,
+    ];
+    ?>
+    <!doctype html>
+    <html <?php language_attributes(); ?>>
+    <head>
+        <meta charset="<?php bloginfo('charset'); ?>" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <?php wp_head(); ?>
+    </head>
+    <body <?php body_class('single-reci-reflection immersive-reflection-page reci-reflection-system-page'); ?>>
+    <?php wp_body_open(); ?>
+    <script>window.RECIReflectionConfig = <?php echo wp_json_encode($reflection_config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;</script>
+    <div class="reci-reflection-page">
+        <button id="reciSystemBack" type="button" class="fixed bottom-5 left-5 z-[60] hidden rounded-full border border-[color:var(--reflection-border-soft)] bg-black/45 px-4 py-3 font-['Oswald'] text-sm uppercase tracking-[0.12em] text-white">← Back</button>
+        <main class="reci-reflection-shell">
+            <?php RECI_Reflection_System_Render_Service::render_blueprint($normalized); ?>
+        </main>
+    </div>
+    <?php wp_footer(); ?>
+    </body>
+    </html>
+    <?php
+    return;
+}
+
 $experience  = RECI_Reflection_Experience_Service::get_payload($payload);
 $mode        = (string) ($experience['mode'] ?? 'standard');
-$template    = (string) ($payload['template'] ?? 'narrative');
-$appearance  = is_array($payload['appearance'] ?? null) ? $payload['appearance'] : [];
-$scenes      = array_values(array_filter(is_array($payload['scenes'] ?? null) ? $payload['scenes'] : [], 'is_array'));
-$chapters    = array_values(array_filter(is_array($experience['chapters'] ?? null) ? $experience['chapters'] : [], 'is_array'));
 $related     = RECI_Related_Posts_Service::get_related(
     $post_id,
     [

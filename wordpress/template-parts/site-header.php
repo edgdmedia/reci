@@ -122,16 +122,16 @@ $hub_subtitle     = reci_setting( 'branding_hub_subtitle', 'Media Hub' );
 
 				<div class="hidden sm:block w-px h-7 bg-zinc-400/50 flex-shrink-0"></div>
 
-				<!-- Reflection Gallery -->
+				<!-- Reflections -->
 				<a
-					href="<?php echo esc_url(home_url('/reflection-gallery/')); ?>"
+					href="<?php echo esc_url(get_post_type_archive_link('reci_reflection') ?: home_url('/reflections/')); ?>"
 					class="py-2 relative group items-center gap-1 flex-shrink-0 hidden sm:flex">
 					<img
 						src="<?php echo esc_url($icons_url . 'lightbulb-on.svg'); ?>"
 						alt=""
 						class="w-4 h-4 flex-shrink-0"
 						aria-hidden="true" />
-					<span class="text-neutral-800 text-base font-normal font-['SF_Pro_Display']">Reflection Gallery</span>
+					<span class="text-neutral-800 text-base font-normal font-['SF_Pro_Display']">Reflections</span>
 					<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 				</a>
 

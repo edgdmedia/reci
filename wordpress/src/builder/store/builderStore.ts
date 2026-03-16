@@ -1,130 +1,119 @@
-// src/builder/store/builderStore.ts
 import { create } from 'zustand';
-import type { Blueprint, Scene, Chapter, ReflectionStyle, SceneType } from '../../types/blueprint';
+import type { ReflectionSystemBlueprint, ReflectionSystemComponent } from '../../types/blueprint';
 
-export const initialBlueprint: Blueprint = {
-  mode: 'standard',
-  appearance: {},
-  scenes: [],
+export const initialBlueprint: ReflectionSystemBlueprint = {
+  version: 2,
+  system: 'reflections',
   chapters: [],
+  settings: {
+    mode: 'immersive',
+    palette: '',
+    stage_controller: 'default',
+    menu_enabled: true,
+    menu_back_url: '/reflections/',
+  },
 };
 
 function uid(): string {
   return crypto.randomUUID();
 }
 
+function mergeComponentProps(component: ReflectionSystemComponent, updates: Partial<ReflectionSystemComponent>): ReflectionSystemComponent {
+  return {
+    ...component,
+    ...updates,
+    props: updates.props ? { ...component.props, ...updates.props } : component.props,
+  };
+}
+
 interface BuilderState {
-  blueprint: Blueprint;
-  setMode: (mode: 'standard' | 'immersive') => void;
-  addScene: (type: SceneType) => void;
-  removeScene: (id: string) => void;
-  reorderScenes: (orderedIds: string[]) => void;
-  updateScene: (id: string, updates: Partial<Scene>) => void;
-  addChapter: (type: Chapter['type']) => void;
+  blueprint: ReflectionSystemBlueprint;
+  setSettings: (updates: Partial<ReflectionSystemBlueprint['settings']>) => void;
+  addChapter: (family: string, variant: string, props?: Record<string, unknown>) => void;
+  duplicateChapter: (id: string) => void;
   removeChapter: (id: string) => void;
   reorderChapters: (orderedIds: string[]) => void;
-  updateChapter: (id: string, updates: Partial<Chapter>) => void;
-  updateAppearance: (updates: Partial<ReflectionStyle>) => void;
-  loadBlueprint: (bp: Blueprint) => void;
+  updateChapter: (id: string, updates: Partial<ReflectionSystemComponent>) => void;
+  loadBlueprint: (bp: ReflectionSystemBlueprint | Record<string, unknown>) => void;
   serialise: () => string;
 }
 
+function normalizeBlueprint(bp: ReflectionSystemBlueprint | Record<string, unknown>): ReflectionSystemBlueprint {
+  const source = typeof bp === 'object' && bp !== null ? bp : {};
+  const sourceSettings = typeof source.settings === 'object' && source.settings !== null ? source.settings : {};
+
+  return {
+    version: 2,
+    system: 'reflections',
+    chapters: Array.isArray(source.chapters)
+      ? source.chapters.filter((chapter): chapter is ReflectionSystemComponent => typeof chapter === 'object' && chapter !== null)
+      : [],
+    settings: {
+      ...initialBlueprint.settings,
+      ...sourceSettings,
+      mode: 'immersive',
+    },
+  };
+}
+
+function insertDuplicate<T extends ReflectionSystemComponent>(items: T[], id: string): T[] {
+  const index = items.findIndex((item) => item.id === id);
+  if (index === -1) return items;
+  const item = items[index];
+  const duplicate = { ...item, id: uid(), props: { ...item.props } } as T;
+  const next = [...items];
+  next.splice(index + 1, 0, duplicate);
+  return next;
+}
+
+function reorder<T extends ReflectionSystemComponent>(items: T[], orderedIds: string[]): T[] {
+  const map = new Map(items.map((item) => [item.id, item]));
+  return orderedIds.map((id) => map.get(id)!).filter(Boolean);
+}
+
 export const useBuilderStore = create<BuilderState>((set, get) => ({
-  blueprint: { ...initialBlueprint },
+  blueprint: normalizeBlueprint(initialBlueprint),
 
-  setMode: (mode) =>
-    set((s) => ({ blueprint: { ...s.blueprint, mode } })),
-
-  addScene: (type) =>
-    set((s) => ({
+  setSettings: (updates) =>
+    set((state) => ({
       blueprint: {
-        ...s.blueprint,
-        scenes: [...(s.blueprint.scenes ?? []), { id: uid(), type } as Scene],
+        ...state.blueprint,
+        settings: { ...state.blueprint.settings, ...updates },
       },
     })),
 
-  removeScene: (id) =>
-    set((s) => ({
+  addChapter: (family, variant, props = {}) =>
+    set((state) => ({
       blueprint: {
-        ...s.blueprint,
-        scenes: (s.blueprint.scenes ?? []).filter((sc) => sc.id !== id),
+        ...state.blueprint,
+        chapters: [...state.blueprint.chapters, { id: uid(), family, variant, props }],
       },
     })),
 
-  reorderScenes: (orderedIds) =>
-    set((s) => {
-      const map = new Map((s.blueprint.scenes ?? []).map((sc) => [sc.id, sc]));
-      return {
-        blueprint: {
-          ...s.blueprint,
-          scenes: orderedIds.map((id) => map.get(id)!).filter(Boolean),
-        },
-      };
-    }),
-
-  updateScene: (id, updates) =>
-    set((s) => ({
-      blueprint: {
-        ...s.blueprint,
-        scenes: (s.blueprint.scenes ?? []).map((sc) =>
-          sc.id === id ? { ...sc, ...updates } : sc
-        ),
-      },
-    })),
-
-  addChapter: (type) =>
-    set((s) => ({
-      blueprint: {
-        ...s.blueprint,
-        chapters: [
-          ...(s.blueprint.chapters ?? []),
-          {
-            id: uid(),
-            type,
-            state: { initial: (s.blueprint.chapters ?? []).length === 0 ? 'active' : 'locked' },
-          } as Chapter,
-        ],
-      },
+  duplicateChapter: (id) =>
+    set((state) => ({
+      blueprint: { ...state.blueprint, chapters: insertDuplicate(state.blueprint.chapters, id) },
     })),
 
   removeChapter: (id) =>
-    set((s) => ({
-      blueprint: {
-        ...s.blueprint,
-        chapters: (s.blueprint.chapters ?? []).filter((ch) => ch.id !== id),
-      },
+    set((state) => ({
+      blueprint: { ...state.blueprint, chapters: state.blueprint.chapters.filter((chapter) => chapter.id !== id) },
     })),
 
   reorderChapters: (orderedIds) =>
-    set((s) => {
-      const map = new Map((s.blueprint.chapters ?? []).map((ch) => [ch.id, ch]));
-      return {
-        blueprint: {
-          ...s.blueprint,
-          chapters: orderedIds.map((id) => map.get(id)!).filter(Boolean),
-        },
-      };
-    }),
+    set((state) => ({
+      blueprint: { ...state.blueprint, chapters: reorder(state.blueprint.chapters, orderedIds) },
+    })),
 
   updateChapter: (id, updates) =>
-    set((s) => ({
+    set((state) => ({
       blueprint: {
-        ...s.blueprint,
-        chapters: (s.blueprint.chapters ?? []).map((ch) =>
-          ch.id === id ? { ...ch, ...updates } : ch
-        ),
+        ...state.blueprint,
+        chapters: state.blueprint.chapters.map((chapter) => chapter.id === id ? mergeComponentProps(chapter, updates) : chapter),
       },
     })),
 
-  updateAppearance: (updates) =>
-    set((s) => ({
-      blueprint: {
-        ...s.blueprint,
-        appearance: { ...s.blueprint.appearance, ...updates },
-      },
-    })),
-
-  loadBlueprint: (bp) => set({ blueprint: bp }),
+  loadBlueprint: (bp) => set({ blueprint: normalizeBlueprint(bp) }),
 
   serialise: () => JSON.stringify(get().blueprint),
 }));

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breaking Chains - Reflection Gallery</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --chain-bg: #0a0a0a;
+            --chain-metal: #5a5a5a;
+            --chain-gold: #D4AF37;
+            --chain-text: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--chain-bg);
+            color: var(--chain-text);
+            font-family: 'Lato', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* NAVIGATION */
+        .chain-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 100;
+            mix-blend-mode: difference;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* AUDIO DOCK */
+        .audio-dock {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #333;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .play-btn {
+            background: none;
+            border: 1px solid white;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* SECTIONS */
+        .section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .section.active {
+            opacity: 1;
+        }
+
+        .title-huge {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            color: var(--chain-text);
+            text-transform: uppercase;
+            letter-spacing: 10px;
+            margin-bottom: 20px;
+        }
+
+        .verse-text {
+            max-width: 600px;
+            font-size: 1.4rem;
+            line-height: 1.6;
+            margin: 0 auto;
+        }
+
+        /* CHAIN INTERACTION */
+        .chain-container {
+            position: relative;
+            height: 400px;
+            width: 100px;
+            margin: 50px auto;
+        }
+
+        .chain-link {
+            width: 80px;
+            height: 120px;
+            border: 15px solid var(--chain-metal);
+            border-radius: 40px;
+            position: absolute;
+            left: 10px;
+            box-shadow: inset 0 0 20px black, 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .link-top {
+            top: 0;
+            z-index: 1;
+        }
+
+        .link-bottom {
+            top: 80px;
+            z-index: 0;
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+
+        .link-bottom:active {
+            cursor: grabbing;
+        }
+
+        .link-broken {
+            border-color: #333;
+            transform-origin: top center;
+            animation: breakAndFall 1s forwards;
+        }
+
+        @keyframes breakAndFall {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            20% {
+                transform: rotate(15deg);
+                border-color: var(--chain-gold);
+            }
+
+            100% {
+                transform: rotate(45deg) translateY(500px);
+                opacity: 0;
+            }
+        }
+
+        /* SCROLL PROGRESS LINE */
+        .liberation-line {
+            position: fixed;
+            left: 50%;
+            top: 0;
+            height: 0%;
+            width: 2px;
+            background: var(--chain-gold);
+            z-index: 50;
+            box-shadow: 0 0 10px var(--chain-gold);
+            transition: height 0.5s;
+        }
+
+        /* FINAL REVEAL */
+        .freedom-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to top, #1a0b00, #000);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 2s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="chain-nav">
+        <a href="index.html" class="back-link">← Gallery</a>
+    </nav>
+
+    <div class="audio-dock">
+        <button class="play-btn" onclick="toggleAudio()" id="playBtn">▶</button>
+        <span style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Breaking Chains</span>
+    </div>
+
+    <div class="liberation-line" id="progressLine"></div>
+    <div class="freedom-bg" id="freedomBg"></div>
+
+    <audio id="mainAudio" src="assets/audio/breaking-chains.m4a"></audio>
+
+    <!-- 1. THE BURDEN -->
+    <div class="section active" id="s1">
+        <h1 class="title-huge">Breaking<br>Chains</h1>
+        <p class="verse-text">"Liberation is not merely the absence of physical chains. It is the transformation of
+            consciousness."</p>
+        <div style="margin-top: 50px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #888;">
+            Scroll Down to Begin
+        </div>
+    </div>
+
+    <!-- 2. THE LOCK (Interactive) -->
+    <div class="section" id="s2">
+        <p class="verse-text">"Historically, systems of oppression have relied on more than physical force..."</p>
+
+        <div class="chain-container" id="chainInteract">
+            <div class="chain-link link-top"></div>
+            <div class="chain-link link-bottom" id="breakableLink" onmousedown="startDrag(event)"
+                ontouchstart="startDrag(event)"></div>
+        </div>
+
+        <p id="instruction"
+            style="color: var(--chain-gold); text-transform: uppercase; letter-spacing: 2px; margin-top: 20px;">
+            Drag Down to Break
+        </p>
+    </div>
+
+    <!-- 3. THE SHIFT -->
+    <div class="section" id="s3">
+        <h2 class="title-huge" style="font-size: 3rem;">Internal<br>Narratives</h2>
+        <div class="verse-text transform-container">
+            "The process of liberation requires <span class="shift-word"
+                data-shift="CONSCIENTIZATION">awakening</span>... a shift from feeling <span class="shift-word"
+                data-shift="POWERFUL">powerless</span> to recognizing one's own <span class="shift-word"
+                data-shift="AGENCY">fate</span>."
+        </div>
+    </div>
+
+    <style>
+        .shift-word {
+            color: var(--chain-gold);
+            cursor: pointer;
+            border-bottom: 1px dashed var(--chain-gold);
+            transition: all 0.3s;
+        }
+
+        .shift-word:hover,
+        .shift-word.shifted {
+            background: rgba(212, 175, 55, 0.2);
+            color: white;
+        }
+    </style>
+
+    <script>
+        // Identity Shift Interaction
+        document.querySelectorAll('.shift-word').forEach(span => {
+            span.addEventListener('mouseenter', function () {
+                if (!this.dataset.orig) this.dataset.orig = this.innerText;
+                this.innerText = this.dataset.shift;
+                this.classList.add('shifted');
+            });
+            span.addEventListener('mouseleave', function () {
+                this.innerText = this.dataset.orig;
+                this.classList.remove('shifted');
+            });
+        });
+    </script>
+
+    <!-- 4. COLLECTIVE POWER -->
+    <div class="section" id="s4">
+        <img src="assets/images/hands-unity.png"
+            style="width: 300px; border-radius: 50%; opacity: 0.8; margin-bottom: 30px; filter: sepia(50%);">
+        <p class="verse-text">"When people come together, they build the collective power necessary for change."</p>
+    </div>
+
+    <!-- 5. FINAL -->
+    <div class="section" id="s5">
+        <h1 class="title-huge" style="color: var(--chain-gold);">Freedom</h1>
+        <p class="verse-text">"A world where all people can live fully, freely, and with dignity."</p>
+        <a href="/reflection-gallery/"
+            style="margin-top: 40px; color: white; border: 1px solid white; padding: 15px 40px; text-decoration: none; text-transform: uppercase; letter-spacing: 2px; display: inline-block;">
+            Return to Gallery
+        </a>
+    </div>
+
+    <script>
+        const audio = document.getElementById('mainAudio');
+        const sections = document.querySelectorAll('.section');
+        const progressLine = document.getElementById('progressLine');
+        const freedomBg = document.getElementById('freedomBg');
+
+        // --- SCROLL LOGIC ---
+        window.addEventListener('scroll', () => {
+            const scrollPct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+            progressLine.style.height = (scrollPct * 100) + '%';
+
+            // Show sections based on scroll
+            sections.forEach((sec, i) => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top < window.innerHeight * 0.7 && rect.bottom > 0) {
+                    sec.classList.add('active');
+
+                    // Trigger BG change at end
+                    if (i === 4) {
+                        freedomBg.style.opacity = 1;
+                    }
+                }
+            });
+        });
+
+        // --- DRAG INTERACTION ---
+        let startY = 0;
+        let isDragging = false;
+        const link = document.getElementById('breakableLink');
+        const instruction = document.getElementById('instruction');
+
+        function startDrag(e) {
+            isDragging = true;
+            startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('touchmove', onDrag, { passive: false });
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            e.preventDefault(); // prevent scroll on touch
+            const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            const delta = clientY - startY;
+
+            if (delta > 0 && delta < 150) {
+                link.style.transform = `translateY(${delta}px)`;
+
+                // Tension feedback
+                if (delta > 50) instruction.innerText = "Pull Harder...";
+            }
+
+            if (delta >= 150) {
+                breakLink();
+            }
+        }
+
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDrag);
+
+            // Snap back if not broken
+            if (!link.classList.contains('link-broken')) {
+                link.style.transform = 'translateY(0)';
+                instruction.innerText = "Drag Down to Break";
+            }
+        }
+
+        function breakLink() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('touchmove', onDrag);
+
+            link.classList.add('link-broken');
+            instruction.innerText = "BROKEN";
+            instruction.style.color = "#D4AF37";
+
+            // Play Audio Effect?
+            if (audio.paused) audio.play();
+            document.getElementById('playBtn').innerText = '||';
+
+            // Auto scroll after break
+            setTimeout(() => {
+                document.getElementById('s3').scrollIntoView({ behavior: 'smooth' });
+            }, 1500);
+        }
+
+        function toggleAudio() {
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('playBtn').innerText = '||';
+            } else {
+                audio.pause();
+                document.getElementById('playBtn').innerText = '▶';
+            }
+        }
+    </script>
+</body>
+
+</html>

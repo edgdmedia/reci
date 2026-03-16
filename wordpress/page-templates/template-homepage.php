@@ -97,7 +97,7 @@ $build_content_card = static function (WP_Post $post) use ($get_post_image, $get
 		'tags'             => $get_post_tags($post_id, 3),
 		'image_url'        => $get_post_image($post_id, 'large', $placeholder_image_card),
 		'image_alt'        => $get_post_image_alt($post_id),
-			'link_url'         => get_permalink($post_id),
+		'link_url'         => get_permalink($post_id),
 	];
 
 	if ('reci_podcast' === $post_type) {
@@ -311,7 +311,7 @@ if (! empty($videos_query->posts)) {
 		'excerpt'      => $featured_video_item['excerpt'],
 		'tags'         => $featured_video_item['tags'],
 		'bg_image_url' => $get_post_image((int) $featured_video->ID, 'large', $placeholder_image_medium),
-			'link_url'    => get_permalink((int) $featured_video->ID),
+		'link_url'    => get_permalink((int) $featured_video->ID),
 	];
 	foreach (array_slice($videos_query->posts, 1, 2) as $post) {
 		$item               = $build_content_card($post);
@@ -482,7 +482,7 @@ get_header();
 	<div class="reci-container pt-8 lg:pt-10 pb-12 lg:pb-24 flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10">
 		<?php get_template_part('template-parts/listings/post-item-half-row', null, $hero_feature_item); ?>
 
-		<div data-layer="Content" class="Content w-full lg:flex-1 lg:min-h-[700px] lg:pl-10 pb-5 border-t-[0.50px] lg:border-t-0 lg:border-l-[0.50px] border-zinc-400 pt-6 lg:pt-0 inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
+		<div class=" w-full lg:flex-1 lg:min-h-[700px] lg:pl-10 pb-5 border-t-[0.50px] lg:border-t-0 lg:border-l-[0.50px] border-zinc-400 pt-6 lg:pt-0 inline-flex flex-col justify-start items-start gap-5 overflow-hidden">
 			<?php foreach ($hero_sidebar_items as $index => $item) : ?>
 				<?php get_template_part('template-parts/listings/post-item-compact', null, $item); ?>
 				<?php if ($index < count($hero_sidebar_items) - 1) : ?>
@@ -525,14 +525,14 @@ get_header();
 
 	<!-- Articles -->
 	<div class="reci-container py-10 flex flex-col justify-center items-start gap-8 lg:gap-10">
-		<div data-layer="Cotnent" class="Cotnent self-stretch flex flex-col sm:flex-row justify-between items-start lg:items-center gap-4 border-b border-zinc-400 pb-8">
-			<div data-layer="Content" class=" flex justify-start items-center gap-2">
+		<div class=" self-stretch flex flex-col sm:flex-row justify-between items-start lg:items-center gap-4 border-b border-zinc-400 pb-8">
+			<div class=" flex justify-start items-center gap-2">
 				<div data-layer="Tag" class="Tag tag-dot"></div>
 				<div data-layer="Articles" class="Articles justify-start text-neutral-800 text-5xl font-bold font-['EB_Garamond'] leading-[50.40px]">Articles</div>
 			</div>
 			<a href="<?php echo esc_url(get_post_type_archive_link('reci_article') ?: home_url('/articles/')); ?>" class="btn btn-outline-primary btn-md">View all</a>
 		</div>
-		<div data-layer="Content" class="Content self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10 border-b border-zinc-400 pb-8">
+		<div class=" self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10 border-b border-zinc-400 pb-8">
 			<?php get_template_part('template-parts/listings/post-item-half-row', null, $articles_feature_item); ?>
 			<?php get_template_part('template-parts/listings/articles-side-rail', null, ['items' => $articles_side_items]); ?>
 		</div>
@@ -540,10 +540,10 @@ get_header();
 
 	<!-- Reflection Gallery -->
 	<div class="reci-container-full px-4 sm:px-6 lg:px-12 xl:px-20 pt-12 lg:pt-24 pb-10 lg:pb-14 bg-neutral-800/60  lg:gap-10" style="background-image: url('/wp-content/uploads/2026/03/reflection2.png'); background-size: cover; background-position: center;">
-		<div class="reci-container min-h-[100vh] flex flex-col justify-end items-start gap-8">
+		<div class="reci-container min-h-[80vh] flex flex-col justify-end items-start gap-8">
 			<div data-layer="Frame 1" class="Frame1 self-stretch flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
 				<div data-layer="Reflection Gallery" class="ReflectionGallery justify-start text-white text-5xl font-bold font-['EB_Garamond'] leading-[50.40px]">Reflection Gallery</div>
-				<a href="<?php echo esc_url(home_url('/reflection-gallery/')); ?>" class="btn btn-primary btn-md">Reflection gallery</a>
+				<a href="<?php echo esc_url(get_post_type_archive_link('reci_reflection') ?: home_url('/reflections/')); ?>" class="btn btn-primary btn-md">Reflection gallery</a>
 			</div>
 			<div data-layer="Vector 3" class=" divider divider-white-50"></div>
 			<div data-layer="Description" class="self-stretch justify-start text-white text-2xl font-normal font-['EB_Garamond'] leading-10 tracking-tight">Dive into the Racial Equity Consciousness Institute's Virtual Reflection Gallery – a unique space we've created for you to connect with the stories and perspectives of civil rights leaders and activists.</div>
@@ -552,15 +552,15 @@ get_header();
 	<!-- Videos-->
 	<div class="reci-container py-10 flex flex-col justify-start items-start gap-8 lg:gap-10">
 		<div data-layer="Cotnent" class="Cotnent self-stretch flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-			<div data-layer="Content" class="Content w-full lg:w-[652.50px] flex justify-start items-center gap-2">
+			<div class="Content w-full lg:w-[652.50px] flex justify-start items-center gap-2">
 				<div data-layer="Tag" class="Tag tag-dot"></div>
 				<div data-layer="Videos" class="Videos justify-start text-neutral-800 text-5xl font-bold font-['EB_Garamond'] leading-[50.40px]">Videos</div>
 			</div>
 			<a href="<?php echo esc_url(get_post_type_archive_link('reci_video') ?: home_url('/videos/')); ?>" class="btn btn-outline-primary btn-md">View all</a>
 		</div>
 		<div data-layer="Vector 3" class=" divider divider-zinc"></div>
-		<div data-layer="Content" class="Content self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10">
-			<div data-layer="Content" class="Content w-full lg:flex-1 lg:min-h-[701px] lg:pr-10 overflow-hidden border-b-[0.50px] lg:border-b-0 lg:border-r-[0.50px] border-zinc-400 pb-6 lg:pb-0 inline-flex flex-col justify-start items-start gap-5">
+		<div class="Content self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10">
+			<div class="Content w-full lg:flex-1 lg:min-h-[701px] lg:pr-10 overflow-hidden border-b-[0.50px] lg:border-b-0 lg:border-r-[0.50px] border-zinc-400 pb-6 lg:pb-0 inline-flex flex-col justify-start items-start gap-5">
 				<?php foreach ($videos_side_items as $index => $item) : ?>
 					<?php get_template_part('template-parts/listings/articles-side-card', null, $item); ?>
 					<?php if ($index < count($videos_side_items) - 1) : ?>
@@ -602,7 +602,7 @@ get_header();
 	<!-- podcast-->
 	<div class=" reci-container py-10 flex flex-col justify-start items-center gap-8 lg:gap-10">
 		<div data-layer="Cotnent" class="Cotnent self-stretch flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-			<div data-layer="Content" class="Content w-full lg:w-[652.50px] flex justify-start items-center gap-2">
+			<div class="Content w-full lg:w-[652.50px] flex justify-start items-center gap-2">
 				<div data-layer="Tag" class="Tag tag-dot"></div>
 				<div data-layer="Podcasts" class="Podcasts justify-start text-neutral-800 text-5xl font-bold font-['EB_Garamond'] leading-[50.40px]">Podcasts</div>
 			</div>
@@ -618,8 +618,8 @@ get_header();
 	</div>
 
 	<div class=" reci-container-full py-12 lg:py-24 bg-white ">
-		<div data-layer="Content" class="reci-container  self-stretch py-10 lg:py-14 bg-slate-100 rounded-lg flex flex-col justify-start items-start gap-8 lg:gap-10">
-			<div data-layer="content" class="self-stretch px-4 sm:px-6 lg:px-14 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+		<div class="reci-container  self-stretch py-10 lg:py-14 bg-slate-100 rounded-lg flex flex-col justify-start items-start gap-8 lg:gap-10">
+			<div class="self-stretch px-4 sm:px-6 lg:px-14 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
 				<div data-layer="Check your lens" class="CheckYourLens justify-start text-neutral-800 text-5xl font-medium font-['EB_Garamond'] leading-[50.40px]">Check your lens</div>
 				<a href="<?php echo esc_url(get_post_type_archive_link('reci_assessment') ?: home_url('/assessments/')); ?>" class="btn btn-outline-primary btn-md">View all</a>
 			</div>
@@ -629,9 +629,9 @@ get_header();
 
 	<div class=" reci-container-full py-12 lg:py-24 bg-neutral-800 ">
 		<div class="reci-container flex flex-col justify-start items-start gap-12 lg:gap-24">
-			<div data-layer="Content" class="Content self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10">
+			<div class="Content self-stretch flex flex-col lg:flex-row justify-start items-start gap-6 lg:gap-10">
 				<img data-layer="Image" class="Image flex-1 self-stretch p-2.5 rounded-lg border-b-[11px] border-amber-400" src="<?php echo get_template_directory_uri() . '/assets/images/connect-now3.png'; ?>" alt="Connect elements" />
-				<div data-layer="Content" class="Content inline-flex flex-col justify-start items-start gap-10">
+				<div class="Content inline-flex flex-col justify-start items-start gap-10">
 					<div data-layer="Tag" class="Tag flex flex-col justify-start items-start gap-2.5">
 						<div data-layer="Tag" class="Tag px-2 py-1 bg-amber-400 rounded inline-flex justify-center items-center gap-2.5">
 							<div data-layer="Connect Elements" class="ConnectElements justify-start text-neutral-800 text-sm font-normal font-['SF_Pro_Display'] leading-4">Connect Elements</div>
@@ -644,9 +644,9 @@ get_header();
 			<div data-layer="Vector 4" class="Vector4 divider divider-zinc"></div>
 
 			<!-- Community Pulse carousel -->
-			<div data-layer="Content" class="Content self-stretch p-6 lg:p-14 relative bg-neutral-600 rounded-lg flex flex-col xl:flex-row justify-start items-start gap-8 xl:gap-28" data-carousel="community">
-				<div data-layer="Content" class="Content inline-flex flex-col justify-start items-start gap-2.5">
-					<div data-layer="Content" class="Content w-24 h-6"></div>
+			<div class="Content self-stretch p-6 lg:p-14 relative bg-neutral-600 rounded-lg flex flex-col xl:flex-row justify-start items-start gap-8 xl:gap-28" data-carousel="community">
+				<div class="Content inline-flex flex-col justify-start items-start gap-2.5">
+					<div class="Content w-24 h-6"></div>
 					<div data-layer="Community Pulse" class="CommunityPulse w-56 justify-start text-white text-5xl font-medium font-['EB_Garamond'] leading-[50.40px]">Community Pulse</div>
 				</div>
 				<div data-layer="format-quote-open" class="FormatQuoteOpen hidden lg:block w-20 h-20 left-[307px] top-[87px] absolute overflow-hidden">

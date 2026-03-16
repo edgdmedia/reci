@@ -37,6 +37,6 @@ $image_alt     = $args['image_alt'] ?? '';
         <a href="<?php echo esc_url($link_url); ?>" class="btn btn-primary btn-md"><?php echo esc_html($button_label); ?></a>
     </div>
     <?php if ($image_url) : ?>
-        <img data-layer="Image" class="Image w-full md:w-96 self-stretch p-2.5" src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" />
+        <img data-layer="Image" class="Image w-full md:w-96 object-cover self-stretch p-2.5" src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" />
     <?php endif; ?>
 </div>

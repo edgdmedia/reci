@@ -91,6 +91,41 @@ if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
 			return;
 		}
 
+		$post_id = get_queried_object_id();
+		if ($post_id) {
+			$selected_template = (string) get_post_meta($post_id, '_wp_page_template', true);
+			if ($selected_template !== '' && $selected_template !== 'default') {
+				return;
+			}
+			if (function_exists('reci_reflection_blueprint_uses_new_system') && reci_reflection_blueprint_uses_new_system($post_id)) {
+				$controller_path = get_template_directory() . '/assets/js/reflection-stage-controller.js';
+				$controller_version = file_exists($controller_path) ? (string) filemtime($controller_path) : wp_get_theme()->get('Version');
+				wp_enqueue_script(
+					'reci-reflection-stage-controller',
+					get_template_directory_uri() . '/assets/js/reflection-stage-controller.js',
+					[],
+					$controller_version,
+					true
+				);
+				$runtime_path = get_template_directory() . '/assets/js/reflection-system-runtime.js';
+				$runtime_version = file_exists($runtime_path) ? (string) filemtime($runtime_path) : wp_get_theme()->get('Version');
+				wp_enqueue_script(
+					'reci-reflection-system-runtime',
+					get_template_directory_uri() . '/assets/js/reflection-system-runtime.js',
+					['reci-reflection-stage-controller'],
+					$runtime_version,
+					true
+				);
+				add_filter('script_loader_tag', static function (string $tag, string $handle): string {
+					if (in_array($handle, ['reci-reflection-stage-controller', 'reci-reflection-system-runtime'], true)) {
+						return str_replace(' src=', ' type="module" src=', $tag);
+					}
+					return $tag;
+				}, 10, 2);
+				return;
+			}
+		}
+
 		$path    = get_template_directory() . '/assets/js/reflection-renderer.js';
 		$version = file_exists($path) ? (string) filemtime($path) : wp_get_theme()->get('Version');
 

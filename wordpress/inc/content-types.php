@@ -103,7 +103,9 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 					'rewrite'            => ['slug' => $config['slug']],
 					'menu_icon'          => $config['menu_icon'],
 					'menu_position'      => $config['menu_position'],
-					'supports'           => ['title', 'editor', 'excerpt', 'thumbnail', 'author', 'revisions'],
+					'supports'           => $post_type === 'reci_reflection'
+					? ['title', 'editor', 'excerpt', 'thumbnail', 'author', 'revisions', 'page-attributes']
+					: ['title', 'editor', 'excerpt', 'thumbnail', 'author', 'revisions'],
 					'publicly_queryable' => true,
 					'show_in_nav_menus'  => true,
 				]

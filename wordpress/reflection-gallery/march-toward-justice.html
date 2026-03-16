@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The March Toward Justice - Reflection Gallery</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;700&family=Merriweather:ital,wght@0,300;0,400;1,300&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --march-bg: #e6e6e6;
+            --march-text: #222;
+            --march-red: #8a0e0e;
+            /* Brick red */
+            --march-blue: #0e1d8a;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--march-bg);
+            color: var(--march-text);
+            font-family: 'Merriweather', serif;
+            overflow-x: hidden;
+            overflow-y: hidden;
+            /* We will control scrolling manually/programmatically */
+        }
+
+        /* NAVIGATION & AUDIO DOCK */
+        .march-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 1000;
+            /* Removed mix-blend-mode: multiply to prevent disappearing on dark backgrounds */
+            pointer-events: none;
+            /* Let clicks pass through empty space */
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+            mix-blend-mode: difference;
+            /* Ensures visibility on light and dark */
+            pointer-events: auto;
+            /* Re-enable clicks */
+            font-size: 1.2rem;
+        }
+
+        .audio-dock {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: white;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            pointer-events: auto;
+            /* Re-enable clicks */
+        }
+
+        .play-btn {
+            background: black;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* MAIN CONTAINER (Horizontal Scroll World) */
+        .timeline-world {
+            height: 100vh;
+            width: 700vw;
+            /* 7 Sections: Title, Context, Selma, 1968, 2020, Crowd, Reflection */
+            display: flex;
+            position: relative;
+            transform: translateX(0);
+            transition: transform 1s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* SECTION Styles */
+        .section {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            flex-shrink: 0;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        /* SECTION 1: TITLE */
+        .title-section {
+            background-image: url('assets/images/protest-march.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .title-overlay {
+            width: 100%;
+            height: 100%;
+            background: rgba(230, 230, 230, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            /* Mask effect */
+            -webkit-mask-image: linear-gradient(to right, black 50%, transparent 100%);
+        }
+
+        h1 {
+            font-family: 'Oswald', sans-serif;
+            font-size: 8vw;
+            text-transform: uppercase;
+            line-height: 0.9;
+            margin: 0;
+            color: #111;
+        }
+
+        .start-btn {
+            margin-top: 50px;
+            padding: 20px 50px;
+            background: var(--march-red);
+            color: white;
+            border: none;
+            font-family: 'Oswald', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* SECTION 2: CONTEXT (Text Only) */
+        .context-section {
+            background: #111;
+            color: #ddd;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 2vw;
+            text-align: center;
+        }
+
+        /* SECTION 3: THE TIMELINE (History Interaction) */
+        .history-section {
+            background: #222;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Position Year behind everything */
+        .year-huge {
+            font-family: 'Oswald', sans-serif;
+            font-size: 30vw;
+            opacity: 0.05;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Container for the Active Marching Interaction */
+        .march-interaction-layer {
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: opacity 0.5s;
+            position: absolute;
+        }
+
+        .march-interaction-layer.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Reuse Step Button */
+        .mini-step-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid var(--march-red);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mini-step-btn:active {
+            transform: scale(0.95);
+            background: rgba(138, 14, 14, 0.2);
+        }
+
+        .mini-step-btn:hover {
+            background: rgba(138, 14, 14, 0.1);
+        }
+
+        /* The Card */
+        .history-card {
+            width: 400px;
+            background: white;
+            color: black;
+            padding: 40px;
+            z-index: 20;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            transition: all 0.5s ease;
+            position: absolute;
+            /* Stack on top of interaction */
+            pointer-events: none;
+        }
+
+        .history-card.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        /* Footprints for History Sections */
+        .history-footprints {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .mini-fp {
+            font-size: 2rem;
+            opacity: 0.2;
+            transform: rotate(90deg);
+            transition: opacity 0.3s;
+        }
+
+        .mini-fp.active {
+            opacity: 1;
+            color: var(--march-red);
+        }
+
+        /* New Sections Colors */
+        .sec-1968 {
+            background: #1a1a1a;
+            color: #eee;
+        }
+
+        .sec-2020 {
+            background: #f0f0f0;
+            color: #111;
+        }
+
+        /* SECTION 4: PARALLAX CROWD */
+        .crowd-section {
+            background: #8aa;
+            overflow: hidden;
+        }
+
+        .crowd-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .cl-1 {
+            background-image: url('assets/images/hands-unity.png');
+            opacity: 0.4;
+            transform: scale(1.1);
+        }
+
+        .cl-2 {
+            background-image: url('assets/images/voting-rights.png');
+            opacity: 0.6;
+            mix-blend-mode: multiply;
+            transform: translateX(100px);
+        }
+
+        .crowd-text {
+            position: absolute;
+            bottom: 100px;
+            left: 100px;
+            font-size: 2rem;
+            max-width: 500px;
+            z-index: 10;
+            background: white;
+            padding: 30px;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="march-nav">
+        <a href="index.html" class="back-link">← Gallery</a>
+        <div class="audio-dock">
+            <button class="play-btn" id="playBtn" onclick="toggleAudio()">▶</button>
+            <span id="audioLabel">History in Motion</span>
+        </div>
+    </nav>
+
+    <audio id="mainAudio" src="assets/audio/background-music/once-in-paris-168895.mp3" loop></audio>
+
+    <!-- WRAPPER -->
+    <div class="timeline-world" id="world">
+
+        <!-- 0. TITLE -->
+        <div class="section title-section">
+            <div class="title-overlay">
+                <!-- Year counter -->
+                <div style="font-family: 'Oswald'; font-size: 2rem; color: var(--march-red);">1965</div>
+                <h1>The March<br>Toward<br>Justice</h1>
+                <button class="start-btn" onclick="startJourney()">Take the First Step</button>
+            </div>
+        </div>
+
+        <!-- 1. CONTEXT (Background) NEW -->
+        <div class="section context-section">
+            <h2 style="font-family: 'Oswald'; font-size: 2rem; margin-bottom: 20px; color: var(--march-red);">The Weight
+                of History</h2>
+            <p style="font-size: 1rem; line-height: 1.4; max-width: 800px; margin-bottom: 40px;">
+                "The fight for justice didn't start on a bridge in Selma. It began in the fields, in the courtrooms, and
+                in the quiet resolve of millions who refused to accept inequality as their fate.<br><br>
+                By 1965, the Civil Rights Act had passed, but the ballot box remained locked to Black Americans in the
+                South. The march you are about to witness was not just a protest—it was a demand for the soul of
+                democracy."
+            </p>
+            <button class="start-btn" style="background: transparent; border: 2px solid white; color: white;"
+                onclick="advance(2)">Begin the March →</button>
+        </div>
+
+        <!-- 2. HISTORY 1 (1965) -->
+        <div class="section history-section">
+            <div class="year-huge">SELMA</div>
+
+            <!-- Active Step Interaction -->
+            <div class="march-interaction-layer" id="mil-1965">
+                <div class="history-footprints">
+                    <div class="mini-fp hfp1-1">👣</div>
+                    <div class="mini-fp hfp1-2">👣</div>
+                    <div class="mini-fp hfp1-3">👣</div>
+                </div>
+                <div style="font-family:'Oswald'; letter-spacing:2px; margin-bottom:10px;">JOIN THE MARCH TO WITNESS
+                </div>
+                <button class="mini-step-btn" onmousedown="marchToReveal(1)">STEP</button>
+            </div>
+
+            <div class="history-card" id="hc1">
+                <h3 style="font-family:'Oswald'; text-transform:uppercase; margin:0; color:var(--march-red);">The Bridge
+                </h3>
+                <p>We stood at the edge of the bridge, looking down at the water below and the line of troopers ahead.
+                    The air was cold, but our resolve was burning.</p>
+                <button class="start-btn" style="font-size:1rem; padding:10px 20px;" onclick="advance(3)">Forward to
+                    1968 →</button>
+            </div>
+        </div>
+
+        <!-- 3. HISTORY 2 (1968) -->
+        <div class="section history-section sec-1968">
+            <div class="year-huge">1968</div>
+
+            <div class="march-interaction-layer" id="mil-1968">
+                <div class="history-footprints">
+                    <div class="mini-fp hfp2-1">👣</div>
+                    <div class="mini-fp hfp2-2">👣</div>
+                    <div class="mini-fp hfp2-3">👣</div>
+                </div>
+                <div style="font-family:'Oswald'; letter-spacing:2px; margin-bottom:10px;">JOIN THE MARCH TO WITNESS
+                </div>
+                <button class="mini-step-btn" style="border-color:white; color:white;"
+                    onmousedown="marchToReveal(2)">STEP</button>
+            </div>
+
+            <div class="history-card" id="hc2">
+                <h3 style="font-family:'Oswald'; text-transform:uppercase; margin:0; color:var(--march-red);">The
+                    Mourning</h3>
+                <p>When the news broke, the world stopped. But silence didn't last long. The grief turned into a new
+                    kind of fire, one that burned across cities and decades.</p>
+                <button class="start-btn"
+                    style="font-size:1rem; padding:10px 20px; background: var(--march-red); color: white;"
+                    onclick="advance(4)">Forward to 2020 →</button>
+            </div>
+        </div>
+
+        <!-- 4. HISTORY 3 (2020) -->
+        <div class="section history-section sec-2020">
+            <div class="year-huge" style="color:black; opacity:0.05;">2020</div>
+
+            <div class="march-interaction-layer" id="mil-2020">
+                <div class="history-footprints">
+                    <div class="mini-fp hfp3-1">👣</div>
+                    <div class="mini-fp hfp3-2">👣</div>
+                    <div class="mini-fp hfp3-3">👣</div>
+                </div>
+                <div style="font-family:'Oswald'; letter-spacing:2px; margin-bottom:10px; color:#333;">JOIN THE MARCH TO
+                    WITNESS</div>
+                <button class="mini-step-btn" style="border-color:#333; color:#333;"
+                    onmousedown="marchToReveal(3)">STEP</button>
+            </div>
+
+            <div class="history-card" id="hc3" style="background:black; color:white;">
+                <h3 style="font-family:'Oswald'; text-transform:uppercase; margin:0; color:var(--march-red);">The
+                    Awakening</h3>
+                <p>A global chorus rose up. "I can't breathe" became a rallying cry heard in every language. The march
+                    hadn't ended; it had just found new feet.</p>
+                <button class="start-btn"
+                    style="font-size:1rem; padding:10px 20px; background: var(--march-red); color: white;"
+                    onclick="advance(5)">Join the Crowd →</button>
+            </div>
+        </div>
+
+        <!-- 5. CROWD -->
+        <div class="section crowd-section" onmousemove="parallax(event)">
+            <div class="crowd-layer cl-1" id="p1"></div>
+            <div class="crowd-layer cl-2" id="p2"></div>
+            <div class="crowd-text">
+                "We are not just marching for ourselves. We are marching for the soul of this nation."
+            </div>
+            <button class="start-btn" style="position:absolute; bottom:20vh; right:10vw; z-index:20;"
+                onclick="advance(6)">Reflect on the Journey →</button>
+        </div>
+
+        <!-- 6. REFLECTION -->
+        <div class="section reflection-section"
+            style="background: #111; color: white; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <h2 style="font-family:'Oswald'; font-size:3rem; margin-bottom:40px; color:var(--march-red);">Your
+                Reflection</h2>
+            <div class="prompt-container" style="max-width:800px; text-align:center;">
+                <p style="font-size:1.5rem; margin-bottom:30px;">"Which moment in this timeline resonates most with you,
+                    and why?"</p>
+                <textarea
+                    style="width:100%; height:100px; background:#222; border:1px solid #444; color:white; padding:15px; font-family:'Merriweather'; margin-bottom:40px; border-radius:4px;"
+                    placeholder="Share your thoughts..."></textarea>
+
+                <button class="start-btn" onclick="window.location.href='/reflection-gallery'">Complete &
+                    Return</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentSection = 0;
+        const world = document.getElementById('world');
+        const sections = document.querySelectorAll('.section');
+        const audio = document.getElementById('mainAudio');
+        audio.loop = true; // Loop background music
+
+        function startJourney() {
+            if (audio.paused) {
+                audio.play().catch(e => console.log('Audio play failed:', e));
+                document.getElementById('playBtn').innerText = '||';
+            }
+            advance(1); // Go to Context (Section 1)
+        }
+
+        // Navigation
+        function advance(index) {
+            currentSection = index;
+            const vw = window.innerWidth;
+            world.style.transform = `translateX(-${index * vw}px)`;
+            console.log(currentSection, vw, index * vw, index, world.style.transform);
+
+        }
+
+        // --- MARCHING HISTORY INTERACTIONS ---
+        const historyState = { 1: 0, 2: 0, 3: 0 };
+
+        function marchToReveal(id) {
+            historyState[id]++;
+            const count = historyState[id];
+
+            // Visual Feedback
+            const audio = document.getElementById('mainAudio');
+            // Play a subtle step sound? Or rely on music
+
+            const fps = document.querySelectorAll(`.hfp${id}-${count}`);
+            if (fps.length > 0) fps[0].classList.add('active');
+
+            // Reveal Condition
+            if (count >= 3) {
+                let cardId = '', layerId = '';
+                if (id === 1) { cardId = 'hc1'; layerId = 'mil-1965'; }
+                if (id === 2) { cardId = 'hc2'; layerId = 'mil-1968'; }
+                if (id === 3) { cardId = 'hc3'; layerId = 'mil-2020'; }
+
+                setTimeout(() => {
+                    document.getElementById(layerId).classList.add('hidden');
+                    document.getElementById(cardId).classList.add('visible');
+                }, 300);
+            }
+        }
+
+        // Parallax Mouse
+        function parallax(e) {
+            const x = e.clientX / window.innerWidth;
+            const p1 = document.getElementById('p1');
+            const p2 = document.getElementById('p2');
+
+            p1.style.transform = `translateX(${x * 20}px) scale(1.1)`;
+            p2.style.transform = `translateX(-${x * 40}px)`;
+        }
+
+        // Audio Toggle
+        function toggleAudio() {
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('playBtn').innerText = '||';
+            } else {
+                audio.pause();
+                document.getElementById('playBtn').innerText = '▶';
+            }
+        }
+    </script>
+</body>
+
+</html>

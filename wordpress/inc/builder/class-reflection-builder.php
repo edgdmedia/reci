@@ -87,11 +87,23 @@ if (! class_exists('RECI_Reflection_Builder')) {
             }
 
             $raw           = (string) get_post_meta($post_id, '_reci_reflection_blueprint', true);
-            $blueprint     = ($raw !== '') ? $raw : '{"mode":"standard","appearance":{},"scenes":[],"chapters":[]}';
+            $decoded       = $raw !== '' ? json_decode($raw, true) : [];
+            $normalized    = is_array($decoded) && function_exists('reci_reflection_system_normalize_blueprint')
+                ? reci_reflection_system_normalize_blueprint($decoded)
+                : reci_reflection_system_default_blueprint();
+            $blueprint     = wp_json_encode($normalized);
             $preview_nonce = wp_create_nonce('wp_rest');
             $save_nonce    = wp_create_nonce('reci_builder_save');
             $back_url      = get_edit_post_link($post_id, 'url');
             $post_title    = get_the_title($post_id);
+            $builder_config = [
+                'registry' => reci_reflection_system_registry(),
+                'defaultBlueprint' => reci_reflection_system_default_blueprint(),
+                'currentBlueprint' => $normalized,
+                'postId' => $post_id,
+                'previewNonce' => $preview_nonce,
+                'previewEndpoint' => rest_url('reci/v1/reflection-preview'),
+            ];
 
             // Enqueue assets for this page
             self::enqueue_builder_assets($post_id);
@@ -145,6 +157,8 @@ if (! class_exists('RECI_Reflection_Builder')) {
             <input type="hidden" id="reci-builder-blueprint" value="<?php echo esc_attr($blueprint); ?>" />
             <input type="hidden" id="reci-builder-nonce"     value="<?php echo esc_attr($save_nonce); ?>" />
             <input type="hidden" id="reci-builder-post-id"   value="<?php echo esc_attr((string) $post_id); ?>" />
+
+            <script>window.RECIReflectionBuilderConfig = <?php echo wp_json_encode($builder_config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;</script>
 
             <script>
             document.getElementById('reci-builder-save-btn').addEventListener('click', async function() {
@@ -252,7 +266,12 @@ if (! class_exists('RECI_Reflection_Builder')) {
                 wp_send_json_error(['message' => 'Invalid JSON.']);
             }
 
-            update_post_meta($post_id, '_reci_reflection_blueprint', wp_unslash($raw));
+            if (! function_exists('reci_reflection_system_normalize_blueprint')) {
+                wp_send_json_error(['message' => 'Reflection system unavailable.']);
+            }
+
+            $normalized = reci_reflection_system_normalize_blueprint($decoded);
+            update_post_meta($post_id, '_reci_reflection_blueprint', wp_json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
             wp_send_json_success(['message' => 'Saved.']);
         }
 
@@ -284,7 +303,12 @@ if (! class_exists('RECI_Reflection_Builder')) {
                 return;
             }
 
-            update_post_meta($post_id, '_reci_reflection_blueprint', wp_unslash($raw));
+            if (! function_exists('reci_reflection_system_normalize_blueprint')) {
+                return;
+            }
+
+            $normalized = reci_reflection_system_normalize_blueprint($decoded);
+            update_post_meta($post_id, '_reci_reflection_blueprint', wp_json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
     }
 }

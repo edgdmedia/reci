@@ -81,7 +81,10 @@ add_action('template_redirect', static function (): void {
         return;
     }
 
-    $post_id = get_the_ID();
+    $post_id = get_queried_object_id();
+    if (! $post_id) {
+        return;
+    }
 
     add_filter(
         'get_post_metadata',

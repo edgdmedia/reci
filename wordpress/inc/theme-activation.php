@@ -27,11 +27,9 @@ function reci_theme_activation_setup(): void {
 		'verify-email'             => [ 'Verify Email',        'page-templates/template-verify-email.php' ],
 
 		// Content archives
-		'articles'           => [ 'Articles',          'page-templates/template-article-archive.php' ],
 		'podcasts'           => [ 'Podcasts',           'page-templates/template-podcast-archive.php' ],
 		'videos'             => [ 'Videos',             'page-templates/template-video-archive.php' ],
 		'reflections'        => [ 'Reflections',        'page-templates/template-reflection-archive.php' ],
-		'reflection-gallery' => [ 'Reflection Gallery', 'page-templates/template-reflection-gallery.php' ],
 		'events'             => [ 'Events',             'page-templates/template-event-archive.php' ],
 		'courses'            => [ 'Courses',            'page-templates/template-course-archive.php' ],
 		'assessments'        => [ 'Assessments',        'page-templates/template-assessment-archive.php' ],

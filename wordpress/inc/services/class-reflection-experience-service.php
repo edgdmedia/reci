@@ -110,8 +110,14 @@ if (! class_exists('RECI_Reflection_Experience_Service')) {
          * @return array<string,mixed>
          */
         protected static function normalize_content(string $type, array $content, array $payload): array {
-            if (empty($content['background_image_url'])) {
-                $content['background_image_url'] = (string) ($payload['featured_image_url'] ?? '');
+            // Only inject a featured-image fallback for types that display a full-bleed background.
+            $types_with_background = ['threshold_intro', 'content_stage', 'hotspot_stage', 'parallax_stage'];
+            if (in_array($type, $types_with_background, true) && empty($content['background_image_url'])) {
+                $featured = (string) ($payload['featured_image_url'] ?? '');
+                // Only use the featured image — never inject a placeholder URL.
+                if ($featured !== '' && strpos($featured, 'placehold.co') === false) {
+                    $content['background_image_url'] = $featured;
+                }
             }
 
             if ($type === 'threshold_intro') {

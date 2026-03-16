@@ -1,21 +1,31 @@
 import { createRoot } from 'react-dom/client';
 import App from './components/App';
-import { useBuilderStore } from './store/builderStore';
-import type { Blueprint } from '../../types/blueprint';
+import { useBuilderStore, initialBlueprint } from './store/builderStore';
+import type { BuilderConfig } from '../types/blueprint';
+
+declare global {
+  interface Window {
+    RECIReflectionBuilderConfig?: BuilderConfig;
+  }
+}
 
 async function renderApp() {
   const rootEl = document.getElementById('reci-builder-root');
   if (!rootEl) return;
 
-  // Hydrate store from existing blueprint JSON (if editing an existing post)
+  const config = window.RECIReflectionBuilderConfig;
   const blueprintInput = document.getElementById('reci-builder-blueprint') as HTMLInputElement | null;
+  const fallback = config?.defaultBlueprint ?? initialBlueprint;
+
   if (blueprintInput?.value) {
     try {
-      const bp = JSON.parse(blueprintInput.value) as Blueprint;
-      useBuilderStore.getState().loadBlueprint(bp);
+      const blueprint = JSON.parse(blueprintInput.value) as Record<string, unknown>;
+      useBuilderStore.getState().loadBlueprint(blueprint);
     } catch {
-      // malformed JSON — start fresh
+      useBuilderStore.getState().loadBlueprint(fallback);
     }
+  } else {
+    useBuilderStore.getState().loadBlueprint(fallback);
   }
 
   createRoot(rootEl).render(<App />);

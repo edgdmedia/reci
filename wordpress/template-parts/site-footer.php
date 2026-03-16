@@ -78,7 +78,7 @@ $hub_subtitle      = reci_setting( 'branding_hub_subtitle', 'Media Hub' );
 							<span class="text-white text-base font-normal font-['SF_Pro_Display']">Learn</span>
 							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 						</a>
-						<a href="<?php echo esc_url(home_url('/reflection-gallery/')); ?>" class="py-2 relative group inline-flex items-center gap-1">
+						<a href="<?php echo esc_url(get_post_type_archive_link('reci_reflection') ?: home_url('/reflections/')); ?>" class="py-2 relative group inline-flex items-center gap-1">
 							<span class="text-white text-base font-normal font-['SF_Pro_Display']">Reflect</span>
 							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 						</a>

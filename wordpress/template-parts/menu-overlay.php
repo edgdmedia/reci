@@ -146,7 +146,7 @@ $overlay_address = get_option(
 				<a href="<?php echo esc_url(home_url('/learn/')); ?>" class="block pr-5 py-1.5 rounded-xl group">
 					<span class="py-2 text-white text-lg font-medium font-['SF_Pro_Display'] group-hover:text-amber-400 transition-colors">Learn</span>
 				</a>
-				<a href="<?php echo esc_url(home_url('/reflection-gallery/')); ?>" class="block pr-5 py-1.5 rounded-xl group">
+				<a href="<?php echo esc_url(get_post_type_archive_link('reci_reflection') ?: home_url('/reflections/')); ?>" class="block pr-5 py-1.5 rounded-xl group">
 					<span class="py-2 text-white text-lg font-medium font-['SF_Pro_Display'] group-hover:text-amber-400 transition-colors">Reflect</span>
 				</a>
 				<a href="<?php echo esc_url(home_url('/community/')); ?>" class="block pr-5 py-1.5 rounded-xl group">

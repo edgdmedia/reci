@@ -1,112 +1,36 @@
+import { useEffect } from 'react';
 import { useBuilderStore } from '../store/builderStore';
 import Canvas from './Canvas';
 import LeftPanel from './layout/LeftPanel';
-import type { SceneType } from '../../../types/blueprint';
-import type { Chapter } from '../../../types/blueprint';
+import PreviewPane from './PreviewPane';
 
 export default function App() {
-  const {
-    blueprint,
-    setMode,
-    addScene,
-    removeScene,
-    reorderScenes,
-    updateScene,
-    addChapter,
-    removeChapter,
-    reorderChapters,
-    updateChapter,
-    updateAppearance,
-    serialise,
-  } = useBuilderStore();
+  const { blueprint, setSettings, addChapter, duplicateChapter, removeChapter, reorderChapters, updateChapter, serialise } = useBuilderStore();
+  const { chapters = [], settings } = blueprint;
 
-  const { mode, appearance = {}, scenes = [], chapters = [] } = blueprint;
-
-  function syncHidden() {
+  useEffect(() => {
     const el = document.getElementById('reci-builder-blueprint') as HTMLInputElement | null;
-    if (el) el.value = serialise();
-  }
-
-  function handleAddScene(type: SceneType) {
-    addScene(type);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleAddChapter(type: Chapter['type']) {
-    addChapter(type);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleUpdateScene(id: string, updates: Parameters<typeof updateScene>[1]) {
-    updateScene(id, updates);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleRemoveScene(id: string) {
-    removeScene(id);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleReorderScenes(orderedIds: string[]) {
-    reorderScenes(orderedIds);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleUpdateChapter(id: string, updates: Parameters<typeof updateChapter>[1]) {
-    updateChapter(id, updates);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleRemoveChapter(id: string) {
-    removeChapter(id);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleReorderChapters(orderedIds: string[]) {
-    reorderChapters(orderedIds);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleUpdateMode(newMode: 'standard' | 'immersive') {
-    setMode(newMode);
-    setTimeout(syncHidden, 0);
-  }
-
-  function handleUpdateAppearance(updates: Parameters<typeof updateAppearance>[0]) {
-    updateAppearance(updates);
-    setTimeout(syncHidden, 0);
-  }
+    if (el) {
+      el.value = serialise();
+    }
+  }, [blueprint, serialise]);
 
   return (
     <div className="flex h-full">
-      {/* Left: tabbed settings panel */}
-      <LeftPanel
-        mode={mode}
-        appearance={appearance}
-        onUpdateMode={handleUpdateMode}
-        onUpdateAppearance={handleUpdateAppearance}
-        onAddScene={handleAddScene}
-        onAddChapter={handleAddChapter}
-      />
-
-      {/* Center: canvas */}
-      <main className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-700">
-            {mode === 'immersive' ? 'Chapters' : 'Scenes'}
-          </h2>
-        </div>
-        <Canvas
-          mode={mode}
-          scenes={scenes}
-          chapters={chapters}
-          onUpdateScene={handleUpdateScene}
-          onRemoveScene={handleRemoveScene}
-          onReorderScenes={handleReorderScenes}
-          onUpdateChapter={handleUpdateChapter}
-          onRemoveChapter={handleRemoveChapter}
-          onReorderChapters={handleReorderChapters}
-        />
+      <LeftPanel settings={settings} onUpdateSettings={setSettings} onAddChapter={addChapter} />
+      <main className="flex min-w-0 flex-1 overflow-hidden">
+        <section className="flex min-w-0 flex-1 flex-col overflow-hidden border-r border-gray-200">
+          <Canvas
+            title="Chapters"
+            emptyMessage="No chapters yet. Add one from the palette."
+            components={chapters}
+            onUpdateComponent={updateChapter}
+            onDuplicateComponent={duplicateChapter}
+            onRemoveComponent={removeChapter}
+            onReorderComponents={reorderChapters}
+          />
+        </section>
+        <PreviewPane blueprint={blueprint} />
       </main>
     </div>
   );

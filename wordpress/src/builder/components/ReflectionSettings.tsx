@@ -1,95 +1,45 @@
-import ColorPicker from './ColorPicker';
-import SelectField from './fields/SelectField';
-import RangeField from './fields/RangeField';
 import Field from './fields/Field';
-import type { ReflectionStyle } from '../../../types/blueprint';
+import SelectField from './fields/SelectField';
+import type { ReflectionSystemSettings } from '../../types/blueprint';
 
 interface Props {
-  mode: 'standard' | 'immersive';
-  appearance: ReflectionStyle;
-  onUpdateMode: (mode: 'standard' | 'immersive') => void;
-  onUpdateAppearance: (updates: Partial<ReflectionStyle>) => void;
+  settings: ReflectionSystemSettings;
+  onUpdateSettings: (updates: Partial<ReflectionSystemSettings>) => void;
 }
 
-const THEME_OPTIONS = [
-  { value: '', label: 'None (custom)' },
-  { value: 'immersive-dark', label: 'Immersive Dark' },
-  { value: 'light', label: 'Light' },
-  { value: 'archival', label: 'Archival' },
-  { value: 'editorial', label: 'Editorial' },
-  { value: 'spotlight', label: 'Spotlight' },
-];
-
-const SPACING_OPTIONS = [
-  { value: 'comfortable', label: 'Comfortable' },
-  { value: 'tight', label: 'Tight' },
-  { value: 'spacious', label: 'Spacious' },
-];
-
-export default function ReflectionSettings({ mode, appearance, onUpdateMode, onUpdateAppearance }: Props) {
+export default function ReflectionSettings({ settings, onUpdateSettings }: Props) {
   return (
     <div className="space-y-4 p-4">
+      <Field label="System" value="reflections" onChange={() => {}} disabled />
       <SelectField
         label="Mode"
-        value={mode}
-        options={[
-          { value: 'standard', label: 'Standard' },
-          { value: 'immersive', label: 'Immersive' },
-        ]}
-        onChange={(v) => onUpdateMode(v as 'standard' | 'immersive')}
+        value={settings.mode}
+        options={[{ value: 'immersive', label: 'Immersive' }]}
+        onChange={() => onUpdateSettings({ mode: 'immersive' })}
       />
-
-      <SelectField
-        label="Theme"
-        value={appearance.theme ?? ''}
-        options={THEME_OPTIONS}
-        onChange={(v) => onUpdateAppearance({ theme: v as ReflectionStyle['theme'] || undefined })}
-      />
-
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-600">Background Color</label>
-        <ColorPicker
-          color={appearance.backgroundColor ?? '#ffffff'}
-          onChange={(c) => onUpdateAppearance({ backgroundColor: c })}
-        />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-600">Text Color</label>
-        <ColorPicker
-          color={appearance.textColor ?? '#000000'}
-          onChange={(c) => onUpdateAppearance({ textColor: c })}
-        />
-      </div>
-
-      <div>
-        <label className="mb-1 block text-xs font-medium text-gray-600">Accent Color</label>
-        <ColorPicker
-          color={appearance.accentColor ?? '#3b82f6'}
-          onChange={(c) => onUpdateAppearance({ accentColor: c })}
-        />
-      </div>
-
       <Field
-        label="Heading Font"
-        value={appearance.headingFont ?? ''}
-        onChange={(v) => onUpdateAppearance({ headingFont: v || undefined })}
-        placeholder="e.g. Georgia, serif"
+        label="Palette"
+        value={settings.palette ?? ''}
+        onChange={(value) => onUpdateSettings({ palette: value })}
+        placeholder="Optional palette key"
       />
-
-      <RangeField
-        label="Base Font Size (px)"
-        value={appearance.baseFontSize ?? 16}
-        min={14}
-        max={26}
-        onChange={(v) => onUpdateAppearance({ baseFontSize: v })}
+      <Field
+        label="Stage Controller"
+        value={settings.stage_controller ?? 'default'}
+        onChange={(value) => onUpdateSettings({ stage_controller: value || 'default' })}
+        placeholder="default"
       />
-
       <SelectField
-        label="Spacing"
-        value={appearance.spacing ?? 'comfortable'}
-        options={SPACING_OPTIONS}
-        onChange={(v) => onUpdateAppearance({ spacing: v as ReflectionStyle['spacing'] })}
+        label="Include menu overlay"
+        value={settings.menu_enabled === false ? '0' : '1'}
+        options={[{ value: '1', label: 'Yes' }, { value: '0', label: 'No' }]}
+        onChange={(value) => onUpdateSettings({ menu_enabled: value === '1' })}
+      />
+      <Field
+        label="Menu back URL"
+        value={settings.menu_back_url ?? ''}
+        onChange={(value) => onUpdateSettings({ menu_back_url: value })}
+        placeholder="/reflections/"
       />
     </div>
   );

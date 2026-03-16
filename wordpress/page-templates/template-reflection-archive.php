@@ -2,7 +2,7 @@
 /**
  * Template Name: Reflection Archive
  *
- * Real-data archive template using the reusable listing builder.
+ * Reflection archive using the original gallery Figma layout with live reflection posts.
  *
  * @package reci-media-hub
  */
@@ -11,124 +11,221 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
-$page_title    = 'Reflections';
-$page_subtitle = 'Personal essays and reflective writing on the lived experience of racial justice, belonging, and community.';
-
-$topic_terms = get_terms(
+$reflection_posts = get_posts(
 	[
-		'taxonomy'   => 'category',
-		'hide_empty' => true,
+		'post_type'      => 'reci_reflection',
+		'post_status'    => 'publish',
+		'posts_per_page' => -1,
+		'orderby'        => 'date',
+		'order'          => 'DESC',
 	]
 );
-if (is_wp_error($topic_terms)) {
-	$topic_terms = [];
+
+$resource_links = [
+	[
+		'label' => 'Cognitive-Behavioral Techniques for Racial Equity Consciousness Development',
+		'url'   => '#',
+	],
+	[
+		'label' => 'Strategies For Developing Racial Equity Consciousness',
+		'url'   => '#',
+	],
+	[
+		'label' => 'Racial Equity Areas of Opportunity',
+		'url'   => '#',
+	],
+];
+
+$collage_size_classes = [
+	'w-36 h-36',
+	'w-64 h-64',
+	'w-36 h-36',
+	'w-64 h-64',
+	'w-36 h-36',
+	'w-64 h-64',
+	'w-36 h-36',
+];
+
+$connect_image = trailingslashit(get_template_directory_uri()) . 'assets/images/connect-now3.png';
+
+$community_post = get_posts(
+	[
+		'post_type'      => 'reci_quote',
+		'post_status'    => 'publish',
+		'posts_per_page' => 1,
+		'orderby'        => 'date',
+		'order'          => 'DESC',
+	]
+);
+
+$community_quote       = $community_post ? $community_post[0] : null;
+$community_quote_id    = $community_quote instanceof WP_Post ? (int) $community_quote->ID : 0;
+$community_quote_text  = $community_quote_id ? (string) get_post_meta($community_quote_id, '_reci_quote_text', true) : '';
+$community_author_name = $community_quote_id ? (string) get_post_meta($community_quote_id, '_reci_quote_author_name', true) : '';
+$community_author_role = $community_quote_id ? (string) get_post_meta($community_quote_id, '_reci_quote_author_title', true) : '';
+$community_author_img  = $community_quote_id ? (string) get_post_meta($community_quote_id, '_reci_quote_author_image_url', true) : '';
+
+if ($community_quote instanceof WP_Post) {
+	$community_quote_text  = $community_quote_text !== '' ? $community_quote_text : wp_trim_words(wp_strip_all_tags((string) $community_quote->post_content), 28, '...');
+	$community_author_name = $community_author_name !== '' ? $community_author_name : get_the_title($community_quote_id);
 }
 
-$authors = get_users(
-	[
-		'has_published_posts' => ['reci_reflection'],
-		'orderby'             => 'display_name',
-		'order'               => 'ASC',
-	]
-);
-
-$current_topic  = isset($_GET['topic']) ? sanitize_title((string) wp_unslash($_GET['topic'])) : '';
-$current_author = isset($_GET['author']) ? (int) wp_unslash($_GET['author']) : 0;
-$current_search = isset($_GET['search']) ? sanitize_text_field((string) wp_unslash($_GET['search'])) : '';
-
-$base_url        = is_post_type_archive('reci_reflection') ? get_post_type_archive_link('reci_reflection') : get_permalink();
-$base_url        = $base_url ?: home_url('/reflections/');
-$all_filters_url = remove_query_arg(['topic', 'author', 'search', 'paged'], $base_url);
-$has_filters     = ($current_topic !== '') || ($current_author > 0) || ($current_search !== '');
-
-$listing_config = [
-	'post_type'                => 'reci_reflection',
-	'posts_per_page'           => 9,
-	'orderby'                  => 'date',
-	'order'                    => 'DESC',
-	'listing_style'            => 'archive_grid_card',
-	'wrapper_class'            => 'self-stretch grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10',
-	'enable_pagination'        => true,
-	'pagination_param'         => 'paged',
-	'filter_search_param'      => 'search',
-	'filter_author_param'      => 'author',
-	'filter_taxonomies'        => [
-		'category' => [
-			'param' => 'topic',
-			'field' => 'slug',
-		],
-	],
-	'pagination_wrapper_class' => 'mt-8 flex items-center justify-center gap-2',
-	'pagination_item_class'    => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg border border-zinc-300 text-sm font-medium font-['SF_Pro_Display'] text-neutral-800 hover:bg-zinc-100",
-	'pagination_current_class' => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg bg-[#003594] text-sm font-medium font-['SF_Pro_Display'] text-white",
-	'empty_message'            => 'No reflections found for this filter combination.',
-];
+$community_quote_text  = $community_quote_text !== '' ? $community_quote_text : 'RECI has truly transformed how we approach market analysis. The insights are unparalleled!.';
+$community_author_name = $community_author_name !== '' ? $community_author_name : 'Jane Doe';
+$community_author_role = $community_author_role !== '' ? $community_author_role : 'Financial Analyst';
+$community_author_img  = $community_author_img !== '' ? $community_author_img : 'https://placehold.co/60x60';
 
 get_header();
 ?>
 
-<div class="bg-slate-100 min-h-screen">
-	<section class="w-full bg-white border-b border-zinc-400" aria-label="Reflections header">
-		<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-14">
-			<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-				<div class="flex justify-start items-center gap-3">
-					<div class="w-3 h-3 bg-amber-400 rounded-sm flex-shrink-0"></div>
-					<h1 class="text-neutral-800 text-5xl font-medium font-['EB_Garamond'] leading-tight"><?php echo esc_html($page_title); ?></h1>
-				</div>
-				<div class="lg:pl-10 lg:border-l lg:border-zinc-400 flex justify-center items-center gap-2.5 max-w-xl">
-					<p class="text-neutral-500 text-lg font-normal font-['SF_Pro_Display'] leading-7 tracking-tight"><?php echo esc_html($page_subtitle); ?></p>
+<div class="bg-slate-100 min-h-screen overflow-hidden">
+	<section class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-24 py-14 border-b border-zinc-400">
+		<div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 xl:gap-10">
+			<div class="flex justify-start items-center gap-3">
+				<div class="w-3 h-3 bg-amber-400 rounded-sm"></div>
+				<h1 class="justify-start text-neutral-800 text-5xl font-medium font-['EB_Garamond'] leading-[50.40px]">
+					RECI Reflection gallery
+				</h1>
+			</div>
+			<div class="xl:pl-10 xl:border-l border-zinc-400 flex justify-center items-center gap-2.5">
+				<div class="max-w-[556px] justify-start text-neutral-500 text-lg font-normal font-['SF_Pro_Display'] leading-7 tracking-tight">
+					We're eager to see how these reflections can fuel conversations and positive change! We hope you enjoy!
 				</div>
 			</div>
 		</div>
 	</section>
 
-	<section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 pt-5 pb-14 flex flex-col justify-start items-start gap-10">
-		<div class="self-stretch pb-5 border-b border-zinc-400">
-			<form method="get" action="<?php echo esc_url($base_url); ?>" class="self-stretch flex flex-col sm:flex-row justify-between items-center gap-5" data-archive-filter-form data-search-min="3" data-search-debounce="350">
-				<div class="flex justify-start items-center gap-5 flex-wrap">
-					<span class="text-neutral-800 text-base font-bold font-['SF_Pro_Display']">Filter by:</span>
-					<div class="relative">
-						<label for="reflection-topic-filter" class="sr-only">Filter by topic</label>
-						<select id="reflection-topic-filter" name="topic" class="appearance-none px-4 py-2 pr-8 text-neutral-800 text-base font-normal font-['SF_Pro_Display'] bg-transparent border-none cursor-pointer focus:outline-none" aria-label="Filter by topic">
-							<option value="">All Topics</option>
-							<?php foreach ($topic_terms as $term) : ?>
-								<option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_topic, $term->slug); ?>><?php echo esc_html($term->name); ?></option>
-							<?php endforeach; ?>
-						</select>
-						<span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
-							<svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-						</span>
-					</div>
-					<?php if (! empty($authors)) : ?>
-						<div class="relative">
-							<label for="reflection-author-filter" class="sr-only">Filter by author</label>
-							<select id="reflection-author-filter" name="author" class="appearance-none px-4 py-2 pr-8 text-neutral-800 text-base font-normal font-['SF_Pro_Display'] bg-transparent border-none cursor-pointer focus:outline-none" aria-label="Filter by author">
-								<option value="">All Authors</option>
-								<?php foreach ($authors as $author) : ?>
-									<option value="<?php echo esc_attr((string) $author->ID); ?>" <?php selected($current_author, $author->ID); ?>><?php echo esc_html($author->display_name); ?></option>
-								<?php endforeach; ?>
-							</select>
-							<span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1">
-								<svg class="w-4 h-4 text-neutral-800" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
-							</span>
-						</div>
-					<?php endif; ?>
-				</div>
+	<section class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-24 py-12 xl:py-24 flex flex-wrap justify-center items-center gap-6 xl:gap-10">
+		<?php foreach (array_slice($reflection_posts, 0, count($collage_size_classes)) as $index => $reflection_post) : ?>
+			<?php
+			$collage_id    = (int) $reflection_post->ID;
+			$collage_image = get_the_post_thumbnail_url($collage_id, 'medium_large') ?: 'https://placehold.co/250x250';
+			$collage_alt   = get_post_meta((int) get_post_thumbnail_id($collage_id), '_wp_attachment_image_alt', true);
+			$collage_alt   = $collage_alt !== '' ? $collage_alt : get_the_title($collage_id);
+			?>
+			<img
+				class="<?php echo esc_attr($collage_size_classes[$index]); ?> rounded-lg object-cover"
+				src="<?php echo esc_url($collage_image); ?>"
+				alt="<?php echo esc_attr($collage_alt); ?>"
+			/>
+		<?php endforeach; ?>
+	</section>
 
-				<div class="w-full sm:w-auto flex items-center gap-2.5">
-					<div class="w-full sm:w-80 px-5 py-4 bg-white rounded-lg flex justify-start items-center gap-2.5" role="search">
-						<svg class="w-4 h-4 flex-shrink-0 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-						<label for="reflection-search" class="sr-only">Search reflections</label>
-						<input id="reflection-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search Reflections" class="flex-1 bg-transparent text-neutral-500 text-base font-light font-['SF_Pro_Display'] placeholder-neutral-500 focus:outline-none" />
-					</div>
-					<?php if ($has_filters) : ?>
-						<a href="<?php echo esc_url($all_filters_url); ?>" class="px-4 py-3 text-sm font-medium text-neutral-700 hover:text-neutral-900">Reset</a>
-					<?php endif; ?>
+	<section class="max-w-[1440px] w-full mx-auto bg-neutral-800">
+		<div class="px-4 sm:px-6 lg:px-12 xl:px-24 py-12 xl:py-24 flex justify-start items-center gap-10">
+			<div class="flex-1 inline-flex flex-col justify-start items-start gap-10">
+				<div class="self-stretch justify-start text-white text-base font-normal font-['SF_Pro_Display'] leading-6 tracking-tight">
+					Dive into the Racial Equity Consciousness Institute's Virtual Reflection Gallery - a unique space we've created for you to connect with the stories and perspectives of civil rights leaders and activists. This gallery, born as an extension of the RECI modules, is all about sparking deep reflection and inspiring action in our community. As you explore the artwork, reflect and record what resonates with you (you can journal, take notes in your phone etc!)
+					<br /><br />
+					As you navigate the gallery below, consider leveraging the resources linked below to support building your consciousness toward racial equity:
 				</div>
-			</form>
+				<div class="self-stretch flex flex-col justify-start items-start gap-5">
+					<?php foreach ($resource_links as $resource_link) : ?>
+						<div class="self-stretch inline-flex justify-start items-center gap-3">
+							<div class="w-2 h-2 bg-amber-400 rounded-sm"></div>
+							<a href="<?php echo esc_url($resource_link['url']); ?>" class="justify-start text-white text-base font-normal font-['SF_Pro_Display'] underline leading-6 tracking-tight">
+								<?php echo esc_html($resource_link['label']); ?>
+							</a>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<section class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-12 xl:px-24 py-12 xl:py-24 flex flex-col justify-start items-start gap-10">
+		<?php if (! empty($reflection_posts)) : ?>
+			<?php foreach (array_chunk($reflection_posts, 3) as $row_posts) : ?>
+				<div class="self-stretch flex flex-col lg:flex-row justify-start items-start gap-10">
+					<?php foreach ($row_posts as $reflection_post) : ?>
+						<?php
+						$post_id      = (int) $reflection_post->ID;
+						$image_url    = get_the_post_thumbnail_url($post_id, 'large') ?: 'https://placehold.co/387x300';
+						$image_alt    = get_post_meta((int) get_post_thumbnail_id($post_id), '_wp_attachment_image_alt', true);
+						$image_alt    = $image_alt !== '' ? $image_alt : get_the_title($post_id);
+						$quote        = (string) get_post_meta($post_id, '_reci_reflection_quote', true);
+						$description  = $quote !== '' ? $quote : (has_excerpt($post_id) ? get_the_excerpt($post_id) : wp_trim_words(wp_strip_all_tags((string) $reflection_post->post_content), 24, '...'));
+						$description  = wp_trim_words($description, 24, '...');
+						?>
+						<article class="flex-1 self-stretch inline-flex flex-col justify-start items-start gap-5">
+							<a href="<?php echo esc_url(get_permalink($post_id)); ?>" class="w-full inline-flex flex-col justify-start items-start gap-5 no-underline">
+								<img class="self-stretch h-72 rounded-lg object-cover" src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" />
+								<div class="self-stretch flex flex-col justify-start items-start gap-3">
+									<div class="self-stretch justify-start text-neutral-800 text-xl font-bold font-['EB_Garamond'] leading-6">
+										<?php echo esc_html(get_the_title($post_id)); ?>
+									</div>
+									<div class="self-stretch justify-start text-neutral-800 text-base font-normal font-['SF_Pro_Display'] leading-6 tracking-tight line-clamp-3">
+										<?php echo esc_html($description); ?>
+									</div>
+								</div>
+							</a>
+						</article>
+					<?php endforeach; ?>
+				</div>
+			<?php endforeach; ?>
+		<?php else : ?>
+			<div class="self-stretch justify-start text-neutral-800 text-xl font-normal font-['SF_Pro_Display'] leading-8 tracking-tight">
+				No reflections published yet.
+			</div>
+		<?php endif; ?>
+	</section>
+
+	<section class="max-w-[1440px] w-full mx-auto bg-neutral-800 px-4 sm:px-6 lg:px-12 xl:px-24 py-12 xl:py-24 flex flex-col justify-start items-start gap-16 xl:gap-24">
+		<div class="self-stretch flex flex-col xl:flex-row justify-start items-start gap-10">
+			<img class="flex-1 self-stretch rounded-lg border-b-[11px] border-amber-400 object-cover" src="<?php echo esc_url($connect_image); ?>" alt="" aria-hidden="true" />
+			<div class="inline-flex flex-col justify-start items-start gap-10">
+				<div class="flex flex-col justify-start items-start gap-2.5">
+					<div class="px-2 py-1 bg-amber-400 rounded inline-flex justify-center items-center gap-2.5">
+						<div class="justify-start text-neutral-800 text-sm font-normal font-['SF_Pro_Display'] leading-4">Connect Elements</div>
+					</div>
+					<div class="max-w-[785px] justify-start text-white text-4xl xl:text-6xl font-semibold font-['EB_Garamond'] leading-tight xl:leading-[74.40px]">
+						Connect your interests to improve your feed and discover more relevant content
+					</div>
+				</div>
+				<a href="<?php echo esc_url(is_user_logged_in() ? home_url('/my-account/') : home_url('/sign-up/')); ?>" class="min-w-28 px-7 py-3.5 bg-amber-400 rounded-lg inline-flex justify-center items-center gap-2 overflow-hidden text-neutral-800 text-base font-medium font-['SF_Pro_Display'] leading-6 no-underline">
+					Connect Now
+				</a>
+			</div>
 		</div>
 
-		<?php echo reci_media_hub_render_listing($listing_config); ?>
+		<div class="self-stretch h-0 outline outline-[0.50px] outline-offset-[-0.25px] outline-zinc-400"></div>
+
+		<div class="self-stretch p-6 lg:p-10 xl:p-14 relative bg-neutral-600 rounded-lg flex flex-col xl:flex-row justify-start items-start gap-10 xl:gap-28">
+			<div class="inline-flex flex-col justify-start items-start gap-2.5">
+				<div class="w-24 h-6"></div>
+				<div class="w-56 justify-start text-white text-5xl font-medium font-['EB_Garamond'] leading-[50.40px]">Community Pulse</div>
+			</div>
+			<div class="hidden xl:block w-20 h-20 left-[307px] top-[87px] absolute overflow-hidden" aria-hidden="true">
+				<div class="w-12 h-8 left-[16.67px] top-[23.33px] absolute bg-amber-400"></div>
+			</div>
+			<div class="flex-1 py-4 xl:py-10 inline-flex flex-col justify-start items-start gap-10">
+				<div class="self-stretch justify-start text-white text-2xl font-normal font-['EB_Garamond'] leading-10 tracking-tight">
+					<?php echo esc_html($community_quote_text); ?>
+				</div>
+				<div class="self-stretch h-0 outline outline-[0.50px] outline-offset-[-0.25px] outline-zinc-400"></div>
+				<div class="self-stretch inline-flex justify-between items-center gap-6">
+					<div class="flex justify-start items-center gap-2.5">
+						<img class="w-14 h-14 rounded-full outline outline-4 outline-white object-cover" src="<?php echo esc_url($community_author_img); ?>" alt="<?php echo esc_attr($community_author_name); ?>" />
+						<div class="inline-flex flex-col justify-start items-start gap-1">
+							<div class="w-48 justify-start text-white text-xl font-bold font-['SF_Pro_Display'] leading-8 tracking-tight">
+								<?php echo esc_html($community_author_name); ?>
+							</div>
+							<div class="w-48 justify-start text-zinc-400 text-base font-medium font-['SF_Pro_Display'] leading-6 tracking-tight">
+								<?php echo esc_html($community_author_role); ?>
+							</div>
+						</div>
+					</div>
+					<div class="hidden md:flex justify-start items-center gap-3">
+						<div class="p-4 rounded-lg outline outline-[0.50px] outline-offset-[-0.50px] outline-zinc-400 flex justify-center items-center gap-2 overflow-hidden text-white text-sm font-medium">
+							Prev
+						</div>
+						<div class="p-4 rounded-lg outline outline-[0.50px] outline-offset-[-0.50px] outline-zinc-400 flex justify-center items-center gap-2 overflow-hidden text-white text-sm font-medium">
+							Next
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</section>
 </div>
 
