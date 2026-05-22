@@ -21,10 +21,11 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_article_source_name'     => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_article_source_url'      => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_article_canonical_url'   => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_event'      => [
-				'_reci_event_status'            => ['type' => 'string', 'single' => true, 'default' => 'upcoming'],
 				'_reci_event_start_date'        => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_event_end_date'          => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_event_start_time'        => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_event_end_time'          => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_event_timezone'          => ['type' => 'string', 'single' => true, 'default' => 'UTC'],
@@ -33,6 +34,7 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_event_is_virtual'        => ['type' => 'boolean', 'single' => true, 'default' => false],
 				'_reci_event_registration_url'  => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_event_cta_label'         => ['type' => 'string', 'single' => true, 'default' => 'Register'],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_podcast'    => [
 				'_reci_podcast_audio_url'       => ['type' => 'string', 'single' => true, 'default' => ''],
@@ -44,6 +46,7 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_podcast_transcript_url'  => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_podcast_spotify_url'     => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_podcast_apple_url'       => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_video'      => [
 				'_reci_video_url'             => ['type' => 'string', 'single' => true, 'default' => ''],
@@ -51,6 +54,7 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_video_duration_label'  => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_video_duration_secs'   => ['type' => 'integer', 'single' => true, 'default' => 0],
 				'_reci_video_external_id'     => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_reflection' => [
 				'_reci_reflection_type'       => ['type' => 'string', 'single' => true, 'default' => 'story'],
@@ -59,20 +63,24 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_reflection_role'       => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_reflection_video_url'  => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_reflection_audio_url'  => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
-			'reci_quote'      => [
-				'_reci_quote_text'            => ['type' => 'string', 'single' => true, 'default' => ''],
-				'_reci_quote_author_name'     => ['type' => 'string', 'single' => true, 'default' => ''],
-				'_reci_quote_author_title'    => ['type' => 'string', 'single' => true, 'default' => ''],
-				'_reci_quote_author_image_url' => ['type' => 'string', 'single' => true, 'default' => ''],
-				'_reci_quote_source_url'      => ['type' => 'string', 'single' => true, 'default' => ''],
-			],
+		'reci_quote'      => [
+			'_reci_quote_text'                 => ['type' => 'string', 'single' => true, 'default' => ''],
+			'_reci_quote_author_name'          => ['type' => 'string', 'single' => true, 'default' => ''],
+			'_reci_quote_author_title'         => ['type' => 'string', 'single' => true, 'default' => ''],
+			'_reci_display_author_profile_id'  => ['type' => 'integer', 'single' => true, 'default' => 0],
+		],
 			'reci_assessment' => [
 				'_reci_assessment_type'           => ['type' => 'string', 'single' => true, 'default' => 'quiz'],
 				'_reci_assessment_intro'          => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_assessment_estimated_time' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_assessment_instructions'  => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_assessment_questions'      => ['type' => 'string', 'single' => true, 'default' => '[]'],
 				'_reci_assessment_result_ranges'  => ['type' => 'string', 'single' => true, 'default' => '[]'],
+				'_reci_assessment_completion_title' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_assessment_completion_message' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_course'     => [
 				'_reci_course_level'           => ['type' => 'string', 'single' => true, 'default' => 'beginner'],
@@ -81,6 +89,21 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_course_start_date'      => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_course_fee_label'       => ['type' => 'string', 'single' => true, 'default' => 'Free'],
 				'_reci_course_enrollment_url'  => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
+			],
+			'reci_author'     => [
+				'_reci_author_profile_user_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
+				'_reci_author_profile_title'   => ['type' => 'string', 'single' => true, 'default' => ''],
+			],
+			'reci_partner'    => [
+				'_reci_partner_url' => ['type' => 'string', 'single' => true, 'default' => ''],
+			],
+			'reci_testimonial' => [
+				'_reci_testimonial_text'         => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_testimonial_full_name'     => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_testimonial_role'          => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_testimonial_organization'  => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 		];
 	}
@@ -153,12 +176,50 @@ if (! function_exists('reci_media_hub_add_meta_boxes')) {
 		add_meta_box('reci-video-details', __('Video Details', 'reci-media-hub'), 'reci_media_hub_render_video_metabox', 'reci_video', 'normal', 'high');
 		add_meta_box('reci-reflection-details', __('Reflection Details', 'reci-media-hub'), 'reci_media_hub_render_reflection_metabox', 'reci_reflection', 'normal', 'high');
 		add_meta_box('reci-quote-details', __('Quote Details', 'reci-media-hub'), 'reci_media_hub_render_quote_metabox', 'reci_quote', 'normal', 'high');
-		add_meta_box('reci-assessment-details', __('Assessment Details', 'reci-media-hub'), 'reci_media_hub_render_assessment_metabox', 'reci_assessment', 'normal', 'high');
+		add_meta_box('reci-assessment-details', __('Quiz Details', 'reci-media-hub'), 'reci_media_hub_render_assessment_metabox', 'reci_assessment', 'normal', 'high');
 		add_meta_box('reci-course-details', __('Course Details', 'reci-media-hub'), 'reci_media_hub_render_course_metabox', 'reci_course', 'normal', 'high');
+		add_meta_box('reci-author-profile-details', __('Author Profile Details', 'reci-media-hub'), 'reci_media_hub_render_author_profile_metabox', 'reci_author', 'normal', 'high');
+		add_meta_box('reci-partner-details', __('Partner Details', 'reci-media-hub'), 'reci_media_hub_render_partner_metabox', 'reci_partner', 'normal', 'high');
+		add_meta_box('reci-testimonial-details', __('Testimonial Details', 'reci-media-hub'), 'reci_media_hub_render_testimonial_metabox', 'reci_testimonial', 'normal', 'high');
+
+		foreach (reci_media_hub_display_author_post_types() as $post_type) {
+			add_meta_box('reci-display-author', __('Display Author', 'reci-media-hub'), 'reci_media_hub_render_display_author_metabox', $post_type, 'side', 'high');
+		}
 	}
 }
 
 add_action('add_meta_boxes', 'reci_media_hub_add_meta_boxes');
+
+if (! function_exists('reci_media_hub_remove_quote_metaboxes')) {
+	add_action('do_meta_boxes', 'reci_media_hub_remove_quote_metaboxes');
+	function reci_media_hub_remove_quote_metaboxes(): void {
+		remove_meta_box('postimagediv', 'reci_quote', 'side');
+	}
+}
+
+if (! function_exists('reci_media_hub_quote_featured_image_label')) {
+	add_filter('admin_post_thumbnail_html', 'reci_media_hub_quote_featured_image_label', 10, 2);
+	function reci_media_hub_quote_featured_image_label(string $html, int $post_id): string {
+		if (get_post_type($post_id) !== 'reci_quote') {
+			return $html;
+		}
+		return str_replace(
+			['Featured Image', 'Set featured image', 'Remove featured image'],
+			["Author's Image", 'Set author image', 'Remove author image'],
+			$html
+		);
+	}
+}
+
+if (! function_exists('reci_media_hub_quote_featured_image_title')) {
+	add_filter('admin_post_thumbnail_title', 'reci_media_hub_quote_featured_image_title', 10, 2);
+	function reci_media_hub_quote_featured_image_title(string $title, int $post_id): string {
+		if (get_post_type($post_id) !== 'reci_quote') {
+			return $title;
+		}
+		return __('Author\'s Image', 'reci-media-hub');
+	}
+}
 
 if (! function_exists('reci_media_hub_metabox_styles')) {
 	/**
@@ -215,7 +276,94 @@ if (! function_exists('reci_media_hub_metabox_styles')) {
 				gap: 8px;
 			}
 		</style>
+		<script>
+		(function($) {
+			function initImagePicker() {
+				$('.reci-image-picker-button').each(function() {
+					var btn = $(this);
+					var target = $('#' + btn.data('target'));
+					var preview = $('#' + btn.data('target') + '-preview');
+					var removeBtn = btn.siblings('.reci-image-picker-remove');
+					var frame;
+
+					btn.on('click', function(e) {
+						e.preventDefault();
+						if (frame) {
+							frame.open();
+							return;
+						}
+						frame = wp.media({
+							title: '<?php echo esc_js(__('Select Author Image', 'reci-media-hub')); ?>',
+							library: { type: 'image' },
+							button: { text: '<?php echo esc_js(__('Use Image', 'reci-media-hub')); ?>' },
+							multiple: false
+						});
+						frame.on('select', function() {
+							var attachment = frame.state().get('selection').first().toJSON();
+							target.val(attachment.id);
+							preview.show().html('<img src="' + attachment.sizes.thumbnail.url + '" alt="" style="max-width:150px;max-height:150px;border-radius:4px;display:block;" />');
+							removeBtn.show();
+						});
+						frame.open();
+					});
+
+					removeBtn.on('click', function(e) {
+						e.preventDefault();
+						target.val('');
+						preview.hide().empty();
+						removeBtn.hide();
+					});
+				});
+			}
+			$(document).ready(initImagePicker);
+		})(jQuery);
+		</script>
 	<?php
+	}
+}
+
+if (! function_exists('reci_get_quote_author_data')) {
+	function reci_get_quote_author_data(int $post_id): array {
+		$name = (string) get_post_meta($post_id, '_reci_quote_author_name', true);
+		$title = (string) get_post_meta($post_id, '_reci_quote_author_title', true);
+		$image_url = get_the_post_thumbnail_url($post_id, 'thumbnail') ?: '';
+
+		$profile_id = max(0, (int) get_post_meta($post_id, '_reci_display_author_profile_id', true));
+		if ($profile_id > 0) {
+			$profile = reci_media_hub_get_author_profile_data($profile_id);
+			if (! empty($profile)) {
+				$name = $profile['name'];
+				$title = $profile['title'];
+				$image_url = $profile['image_url'] ?: $image_url;
+			}
+		}
+
+		return [
+			'name'       => $name,
+			'title'      => $title,
+			'image_url'  => $image_url,
+		];
+	}
+}
+
+if (! function_exists('reci_get_author_avatar_url')) {
+	function reci_get_author_avatar_url(int $post_id): string {
+		$data = reci_get_quote_author_data($post_id);
+		return $data['image_url'];
+	}
+}
+
+if (! function_exists('reci_media_hub_enqueue_admin_assets')) {
+	add_action('admin_enqueue_scripts', 'reci_media_hub_enqueue_admin_assets');
+	function reci_media_hub_enqueue_admin_assets(string $hook): void {
+		if (! in_array($hook, ['post.php', 'post-new.php'], true)) {
+			return;
+		}
+		$screen = get_current_screen();
+		if (! $screen || $screen->post_type !== 'reci_quote') {
+			return;
+		}
+		wp_enqueue_media();
 	}
 }
 
@@ -254,6 +402,34 @@ if (! function_exists('reci_media_hub_render_textarea_field')) {
 	}
 }
 
+if (! function_exists('reci_media_hub_render_select_field')) {
+	/**
+	 * Render a select field row.
+	 *
+	 * @param array<int|string,string> $options Options keyed by value.
+	 */
+	function reci_media_hub_render_select_field(string $name, string $label, string $value, array $options, string $class = ''): void
+	{
+	?>
+		<div class="reci-meta-row <?php echo esc_attr($class); ?>">
+			<label for="<?php echo esc_attr($name); ?>"><strong><?php echo esc_html($label); ?></strong></label>
+			<select id="<?php echo esc_attr($name); ?>" name="<?php echo esc_attr($name); ?>">
+				<?php foreach ($options as $option_value => $option_label) : ?>
+					<option value="<?php echo esc_attr((string) $option_value); ?>" <?php selected($value, (string) $option_value); ?>><?php echo esc_html($option_label); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+	<?php
+	}
+}
+
+if (! function_exists('reci_media_hub_enqueue_admin_assets')) {
+	add_action('admin_enqueue_scripts', 'reci_media_hub_enqueue_admin_assets');
+	function reci_media_hub_enqueue_admin_assets(string $hook): void {
+		// Reserved for admin asset enqueuing.
+	}
+}
+
 if (! function_exists('reci_media_hub_render_article_metabox')) {
 	function reci_media_hub_render_article_metabox(WP_Post $post): void
 	{
@@ -283,8 +459,8 @@ if (! function_exists('reci_media_hub_render_event_metabox')) {
 		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
 		reci_media_hub_metabox_styles();
 
-		$status           = (string) get_post_meta($post->ID, '_reci_event_status', true);
 		$start_date       = (string) get_post_meta($post->ID, '_reci_event_start_date', true);
+		$end_date         = (string) get_post_meta($post->ID, '_reci_event_end_date', true);
 		$start_time       = (string) get_post_meta($post->ID, '_reci_event_start_time', true);
 		$end_time         = (string) get_post_meta($post->ID, '_reci_event_end_time', true);
 		$timezone         = (string) get_post_meta($post->ID, '_reci_event_timezone', true);
@@ -295,15 +471,8 @@ if (! function_exists('reci_media_hub_render_event_metabox')) {
 		$cta_label        = (string) get_post_meta($post->ID, '_reci_event_cta_label', true);
 	?>
 		<div class="reci-meta-grid">
-			<div class="reci-meta-row">
-				<label for="_reci_event_status"><strong><?php esc_html_e('Status', 'reci-media-hub'); ?></strong></label>
-				<select id="_reci_event_status" name="_reci_event_status">
-					<?php foreach (['upcoming' => 'Upcoming', 'live' => 'Live', 'past' => 'Past'] as $value => $label) : ?>
-						<option value="<?php echo esc_attr($value); ?>" <?php selected($status, $value); ?>><?php echo esc_html($label); ?></option>
-					<?php endforeach; ?>
-				</select>
-			</div>
 			<?php reci_media_hub_render_field('_reci_event_start_date', __('Start Date', 'reci-media-hub'), $start_date, 'date'); ?>
+			<?php reci_media_hub_render_field('_reci_event_end_date', __('End Date', 'reci-media-hub'), $end_date, 'date'); ?>
 			<?php reci_media_hub_render_field('_reci_event_start_time', __('Start Time', 'reci-media-hub'), $start_time, 'time'); ?>
 			<?php reci_media_hub_render_field('_reci_event_end_time', __('End Time', 'reci-media-hub'), $end_time, 'time'); ?>
 			<?php reci_media_hub_render_field('_reci_event_timezone', __('Timezone', 'reci-media-hub'), $timezone); ?>
@@ -415,28 +584,32 @@ if (! function_exists('reci_media_hub_render_reflection_metabox')) {
 	}
 }
 
-if (! function_exists('reci_media_hub_render_quote_metabox')) {
-	function reci_media_hub_render_quote_metabox(WP_Post $post): void
-	{
-		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
-		reci_media_hub_metabox_styles();
+	if (! function_exists('reci_media_hub_render_quote_metabox')) {
+		function reci_media_hub_render_quote_metabox(WP_Post $post): void
+		{
+			wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
+			reci_media_hub_metabox_styles();
 
-		$quote_text  = (string) get_post_meta($post->ID, '_reci_quote_text', true);
-		$author_name = (string) get_post_meta($post->ID, '_reci_quote_author_name', true);
-		$author_role = (string) get_post_meta($post->ID, '_reci_quote_author_title', true);
-		$author_img  = (string) get_post_meta($post->ID, '_reci_quote_author_image_url', true);
-		$source_url  = (string) get_post_meta($post->ID, '_reci_quote_source_url', true);
-	?>
-		<div class="reci-meta-grid">
-			<?php reci_media_hub_render_textarea_field('_reci_quote_text', __('Quote Text', 'reci-media-hub'), $quote_text, 'reci-meta-row--full', 5); ?>
-			<?php reci_media_hub_render_field('_reci_quote_author_name', __('Author Name', 'reci-media-hub'), $author_name); ?>
-			<?php reci_media_hub_render_field('_reci_quote_author_title', __('Author Title', 'reci-media-hub'), $author_role); ?>
-			<?php reci_media_hub_render_field('_reci_quote_author_image_url', __('Author Image URL', 'reci-media-hub'), $author_img, 'url'); ?>
-			<?php reci_media_hub_render_field('_reci_quote_source_url', __('Source URL', 'reci-media-hub'), $source_url, 'url'); ?>
-		</div>
-	<?php
+			$quote_text  = (string) get_post_meta($post->ID, '_reci_quote_text', true);
+			$author_name = (string) get_post_meta($post->ID, '_reci_quote_author_name', true);
+			$author_role = (string) get_post_meta($post->ID, '_reci_quote_author_title', true);
+		?>
+			<div class="reci-meta-grid" style="grid-template-columns: 1fr;">
+				<?php reci_media_hub_render_textarea_field('_reci_quote_text', __('Quote Text', 'reci-media-hub'), $quote_text, 'reci-meta-row--full', 5); ?>
+
+				<div class="reci-meta-row reci-meta-row--full" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #dcdcde;padding-top:16px;margin-top:8px;">
+					<?php reci_media_hub_render_field('_reci_quote_author_name', __('Author Name', 'reci-media-hub'), $author_name); ?>
+					<?php reci_media_hub_render_field('_reci_quote_author_title', __('Author Title', 'reci-media-hub'), $author_role); ?>
+				</div>
+
+			<div class="reci-meta-row reci-meta-row--full" style="border-top:1px solid #dcdcde;padding-top:16px;margin-top:8px;">
+					<strong style="display:block;margin-bottom:8px;"><?php esc_html_e("Author's Image", 'reci-media-hub'); ?></strong>
+					<?php echo _wp_post_thumbnail_html(get_post_thumbnail_id($post->ID), $post->ID); ?>
+				</div>
+			</div>
+		<?php
+		}
 	}
-}
 
 if (! function_exists('reci_media_hub_render_assessment_metabox')) {
 	function reci_media_hub_render_assessment_metabox(WP_Post $post): void
@@ -444,44 +617,84 @@ if (! function_exists('reci_media_hub_render_assessment_metabox')) {
 		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
 		reci_media_hub_metabox_styles();
 
-		$type          = (string) get_post_meta($post->ID, '_reci_assessment_type', true);
-		$intro         = (string) get_post_meta($post->ID, '_reci_assessment_intro', true);
-		$estimated     = (string) get_post_meta($post->ID, '_reci_assessment_estimated_time', true);
-		$questions_raw = (string) get_post_meta($post->ID, '_reci_assessment_questions', true);
-		$ranges_raw    = (string) get_post_meta($post->ID, '_reci_assessment_result_ranges', true);
-		$questions     = json_decode($questions_raw, true);
-
-		if (! is_array($questions)) {
-			$questions = [];
-		}
+		$settings           = reci_media_hub_get_assessment_settings($post->ID);
+		$type               = (string) $settings['type'];
+		$intro              = (string) $settings['intro'];
+		$estimated          = (string) $settings['estimated_time'];
+		$completion_title   = (string) $settings['completion_title'];
+		$completion_message = (string) $settings['completion_message'];
+		$questions          = is_array($settings['questions']) ? $settings['questions'] : [];
+		$instructions       = (string) $settings['instructions'];
+		$sample_url         = reci_media_hub_get_assessment_csv_sample_url();
 	?>
 		<div class="reci-meta-grid">
 			<div class="reci-meta-row">
-				<label for="_reci_assessment_type"><strong><?php esc_html_e('Assessment Type', 'reci-media-hub'); ?></strong></label>
+				<label for="_reci_assessment_type"><strong><?php esc_html_e('Quiz Type', 'reci-media-hub'); ?></strong></label>
 				<select id="_reci_assessment_type" name="_reci_assessment_type">
-					<?php foreach (['quiz' => 'Quiz', 'checklist' => 'Checklist', 'survey' => 'Survey'] as $value => $label) : ?>
+					<?php foreach (['survey' => 'Survey', 'quiz' => 'Quiz', 'checklist' => 'Checklist'] as $value => $label) : ?>
 						<option value="<?php echo esc_attr($value); ?>" <?php selected($type, $value); ?>><?php echo esc_html($label); ?></option>
 					<?php endforeach; ?>
 				</select>
 			</div>
 			<?php reci_media_hub_render_field('_reci_assessment_estimated_time', __('Estimated Time', 'reci-media-hub'), $estimated); ?>
 			<?php reci_media_hub_render_textarea_field('_reci_assessment_intro', __('Intro Text', 'reci-media-hub'), $intro, 'reci-meta-row--full', 3); ?>
-			<?php reci_media_hub_render_textarea_field('_reci_assessment_result_ranges', __('Result Ranges JSON', 'reci-media-hub'), $ranges_raw, 'reci-meta-row--full', 4); ?>
+			<?php reci_media_hub_render_field('_reci_assessment_completion_title', __('Completion Title', 'reci-media-hub'), $completion_title, 'text', 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_textarea_field('_reci_assessment_completion_message', __('Completion Message', 'reci-media-hub'), $completion_message, 'reci-meta-row--full', 3); ?>
+			<?php reci_media_hub_render_textarea_field('_reci_assessment_instructions', __('Instructions', 'reci-media-hub'), $instructions, 'reci-meta-row--full', 4); ?>
 		</div>
 
 		<div class="reci-meta-row reci-meta-row--full" style="margin-top:12px;">
-			<label><strong><?php esc_html_e('Questions (Repeater)', 'reci-media-hub'); ?></strong></label>
+			<label><strong><?php esc_html_e('CSV Import', 'reci-media-hub'); ?></strong></label>
+			<input type="file" name="_reci_assessment_csv_import" accept=".csv" />
+			<p class="description">
+				<?php esc_html_e('Upload a CSV and save the quiz to replace the current questions. Use the sample file to match the expected column format.', 'reci-media-hub'); ?>
+				<a href="<?php echo esc_url($sample_url); ?>" target="_blank" rel="noopener"><?php esc_html_e('Download sample CSV', 'reci-media-hub'); ?></a>
+			</p>
+		</div>
+
+		<div class="reci-meta-row reci-meta-row--full" style="margin-top:12px;">
+			<label><strong><?php esc_html_e('Questions', 'reci-media-hub'); ?></strong></label>
 			<div id="reci-assessment-questions" class="reci-repeater-list">
 				<?php foreach ($questions as $index => $question) : ?>
 					<div class="reci-repeater-item">
 						<div class="reci-meta-grid">
 							<div class="reci-meta-row reci-meta-row--full">
 								<label><?php esc_html_e('Question', 'reci-media-hub'); ?></label>
-								<input type="text" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][question]" value="<?php echo esc_attr((string) ($question['question'] ?? '')); ?>" />
+								<input type="text" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][prompt]" value="<?php echo esc_attr((string) ($question['prompt'] ?? '')); ?>" />
+							</div>
+							<div class="reci-meta-row">
+								<label><?php esc_html_e('Type', 'reci-media-hub'); ?></label>
+								<select class="reci-assessment-question-type" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][type]">
+									<?php foreach (['scale' => 'Scale / Rating', 'single_choice' => 'Single Choice', 'multiple_choice' => 'Multiple Choice', 'text' => 'Short Text', 'textarea' => 'Long Text'] as $value => $label) : ?>
+										<option value="<?php echo esc_attr($value); ?>" <?php selected((string) ($question['type'] ?? 'single_choice'), $value); ?>><?php echo esc_html($label); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</div>
+							<div class="reci-meta-row" style="justify-content:flex-end;">
+								<label style="margin-top:28px;">
+									<input type="checkbox" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][required]" value="1" <?php checked(! empty($question['required'])); ?> />
+									<?php esc_html_e('Required', 'reci-media-hub'); ?>
+								</label>
 							</div>
 							<div class="reci-meta-row reci-meta-row--full">
+								<label><?php esc_html_e('Help Text (optional)', 'reci-media-hub'); ?></label>
+								<textarea name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][help_text]" rows="2"><?php echo esc_textarea((string) ($question['help_text'] ?? '')); ?></textarea>
+							</div>
+							<div class="reci-meta-row reci-meta-row--full reci-question-options" <?php if (! in_array((string) ($question['type'] ?? ''), ['single_choice', 'multiple_choice'], true)) : ?>style="display:none;"<?php endif; ?>>
 								<label><?php esc_html_e('Options (one per line)', 'reci-media-hub'); ?></label>
-								<textarea name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][options]" rows="4"><?php echo esc_textarea((string) ($question['options'] ?? '')); ?></textarea>
+								<textarea name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][options]" rows="4"><?php echo esc_textarea(implode("\n", is_array($question['options'] ?? null) ? $question['options'] : [])); ?></textarea>
+							</div>
+							<div class="reci-meta-row reci-question-scale" <?php if ((string) ($question['type'] ?? '') !== 'scale') : ?>style="display:none;"<?php endif; ?>>
+								<label><?php esc_html_e('Low Label', 'reci-media-hub'); ?></label>
+								<input type="text" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][scale_min_label]" value="<?php echo esc_attr((string) ($question['scale_min_label'] ?? '')); ?>" />
+							</div>
+							<div class="reci-meta-row reci-question-scale" <?php if ((string) ($question['type'] ?? '') !== 'scale') : ?>style="display:none;"<?php endif; ?>>
+								<label><?php esc_html_e('High Label', 'reci-media-hub'); ?></label>
+								<input type="text" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][scale_max_label]" value="<?php echo esc_attr((string) ($question['scale_max_label'] ?? '')); ?>" />
+							</div>
+							<div class="reci-meta-row reci-question-scale" <?php if ((string) ($question['type'] ?? '') !== 'scale') : ?>style="display:none;"<?php endif; ?>>
+								<label><?php esc_html_e('Scale Steps', 'reci-media-hub'); ?></label>
+								<input type="number" min="2" max="10" name="_reci_assessment_questions[<?php echo esc_attr((string) $index); ?>][scale_steps]" value="<?php echo esc_attr((string) ($question['scale_steps'] ?? 5)); ?>" />
 							</div>
 						</div>
 						<div class="reci-repeater-actions">
@@ -501,17 +714,59 @@ if (! function_exists('reci_media_hub_render_assessment_metabox')) {
 				const addButton = document.getElementById('reci-add-question');
 				if (!wrap || !addButton) return;
 
+				function syncQuestionType(item) {
+					const select = item.querySelector('.reci-assessment-question-type');
+					if (!select) return;
+
+					const type = select.value;
+					item.querySelectorAll('.reci-question-options').forEach((section) => {
+						section.style.display = (type === 'single_choice' || type === 'multiple_choice') ? '' : 'none';
+					});
+					item.querySelectorAll('.reci-question-scale').forEach((section) => {
+						section.style.display = type === 'scale' ? '' : 'none';
+					});
+				}
+
 				function questionHtml(index) {
 					return '' +
 						'<div class="reci-repeater-item">' +
 						'<div class="reci-meta-grid">' +
 						'<div class="reci-meta-row reci-meta-row--full">' +
 						'<label><?php echo esc_js(__('Question', 'reci-media-hub')); ?></label>' +
-						'<input type="text" name="_reci_assessment_questions[' + index + '][question]" value="" />' +
+						'<input type="text" name="_reci_assessment_questions[' + index + '][prompt]" value="" />' +
+						'</div>' +
+						'<div class="reci-meta-row">' +
+						'<label><?php echo esc_js(__('Type', 'reci-media-hub')); ?></label>' +
+						'<select class="reci-assessment-question-type" name="_reci_assessment_questions[' + index + '][type]">' +
+						'<option value="scale"><?php echo esc_js(__('Scale / Rating', 'reci-media-hub')); ?></option>' +
+						'<option value="single_choice"><?php echo esc_js(__('Single Choice', 'reci-media-hub')); ?></option>' +
+						'<option value="multiple_choice"><?php echo esc_js(__('Multiple Choice', 'reci-media-hub')); ?></option>' +
+						'<option value="text"><?php echo esc_js(__('Short Text', 'reci-media-hub')); ?></option>' +
+						'<option value="textarea"><?php echo esc_js(__('Long Text', 'reci-media-hub')); ?></option>' +
+						'</select>' +
+						'</div>' +
+						'<div class="reci-meta-row" style="justify-content:flex-end;">' +
+						'<label style="margin-top:28px;"><input type="checkbox" name="_reci_assessment_questions[' + index + '][required]" value="1" checked /> <?php echo esc_js(__('Required', 'reci-media-hub')); ?></label>' +
 						'</div>' +
 						'<div class="reci-meta-row reci-meta-row--full">' +
+						'<label><?php echo esc_js(__('Help Text (optional)', 'reci-media-hub')); ?></label>' +
+						'<textarea rows="2" name="_reci_assessment_questions[' + index + '][help_text]"></textarea>' +
+						'</div>' +
+						'<div class="reci-meta-row reci-meta-row--full reci-question-options" style="display:none;">' +
 						'<label><?php echo esc_js(__('Options (one per line)', 'reci-media-hub')); ?></label>' +
 						'<textarea rows="4" name="_reci_assessment_questions[' + index + '][options]"></textarea>' +
+						'</div>' +
+						'<div class="reci-meta-row reci-question-scale">' +
+						'<label><?php echo esc_js(__('Low Label', 'reci-media-hub')); ?></label>' +
+						'<input type="text" name="_reci_assessment_questions[' + index + '][scale_min_label]" value="<?php echo esc_js(__('Not at all like me', 'reci-media-hub')); ?>" />' +
+						'</div>' +
+						'<div class="reci-meta-row reci-question-scale">' +
+						'<label><?php echo esc_js(__('High Label', 'reci-media-hub')); ?></label>' +
+						'<input type="text" name="_reci_assessment_questions[' + index + '][scale_max_label]" value="<?php echo esc_js(__('Very much like me', 'reci-media-hub')); ?>" />' +
+						'</div>' +
+						'<div class="reci-meta-row reci-question-scale">' +
+						'<label><?php echo esc_js(__('Scale Steps', 'reci-media-hub')); ?></label>' +
+						'<input type="number" min="2" max="10" name="_reci_assessment_questions[' + index + '][scale_steps]" value="5" />' +
 						'</div>' +
 						'</div>' +
 						'<div class="reci-repeater-actions">' +
@@ -523,6 +778,7 @@ if (! function_exists('reci_media_hub_render_assessment_metabox')) {
 				addButton.addEventListener('click', function() {
 					const index = wrap.querySelectorAll('.reci-repeater-item').length;
 					wrap.insertAdjacentHTML('beforeend', questionHtml(index));
+					syncQuestionType(wrap.lastElementChild);
 				});
 
 				wrap.addEventListener('click', function(event) {
@@ -531,6 +787,15 @@ if (! function_exists('reci_media_hub_render_assessment_metabox')) {
 					const item = button.closest('.reci-repeater-item');
 					if (item) item.remove();
 				});
+
+				wrap.addEventListener('change', function(event) {
+					const select = event.target.closest('.reci-assessment-question-type');
+					if (!select) return;
+					const item = select.closest('.reci-repeater-item');
+					if (item) syncQuestionType(item);
+				});
+
+				wrap.querySelectorAll('.reci-repeater-item').forEach(syncQuestionType);
 			})();
 		</script>
 	<?php
@@ -576,6 +841,210 @@ if (! function_exists('reci_media_hub_render_course_metabox')) {
 	}
 }
 
+if (! function_exists('reci_media_hub_render_author_profile_metabox')) {
+	/**
+	 * Render author profile admin fields.
+	 */
+	function reci_media_hub_render_author_profile_metabox(WP_Post $post): void
+	{
+		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
+		reci_media_hub_metabox_styles();
+
+		$linked_user_id = (string) get_post_meta($post->ID, '_reci_author_profile_user_id', true);
+		$profile_title  = (string) get_post_meta($post->ID, '_reci_author_profile_title', true);
+
+		$user_options = ['0' => __('No linked account yet', 'reci-media-hub')];
+		$users        = get_users([
+			'fields'  => ['ID', 'display_name'],
+			'orderby' => 'display_name',
+			'order'   => 'ASC',
+		]);
+		foreach ($users as $user) {
+			$user_options[(string) $user->ID] = $user->display_name;
+		}
+	?>
+		<p class="description"><?php esc_html_e('Use the post title as the public author name. Featured image becomes the avatar, excerpt/content becomes the bio, and the linked account is optional.', 'reci-media-hub'); ?></p>
+		<div class="reci-meta-grid">
+			<?php reci_media_hub_render_select_field('_reci_author_profile_user_id', __('Linked User Account', 'reci-media-hub'), $linked_user_id, $user_options, 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_field('_reci_author_profile_title', __('Role / Title', 'reci-media-hub'), $profile_title, 'text', 'reci-meta-row--full'); ?>
+		</div>
+	<?php
+	}
+}
+
+if (! function_exists('reci_media_hub_render_partner_metabox')) {
+	/**
+	 * Render partner admin fields.
+	 */
+	function reci_media_hub_render_partner_metabox(WP_Post $post): void
+	{
+		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
+		reci_media_hub_metabox_styles();
+
+		$partner_url = (string) get_post_meta($post->ID, '_reci_partner_url', true);
+	?>
+		<p class="description"><?php esc_html_e('Post title is the organization name. Featured image is the logo.', 'reci-media-hub'); ?></p>
+		<div class="reci-meta-grid">
+			<?php reci_media_hub_render_field('_reci_partner_url', __('Partner Website URL', 'reci-media-hub'), $partner_url, 'url', 'reci-meta-row--full'); ?>
+		</div>
+	<?php
+	}
+}
+
+if (! function_exists('reci_media_hub_render_testimonial_metabox')) {
+	function reci_media_hub_render_testimonial_metabox(WP_Post $post): void
+	{
+		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
+		reci_media_hub_metabox_styles();
+
+		$text       = (string) get_post_meta($post->ID, '_reci_testimonial_text', true);
+		$full_name  = (string) get_post_meta($post->ID, '_reci_testimonial_full_name', true);
+		$role       = (string) get_post_meta($post->ID, '_reci_testimonial_role', true);
+		$org        = (string) get_post_meta($post->ID, '_reci_testimonial_organization', true);
+	?>
+		<div class="reci-meta-grid" style="grid-template-columns: 1fr;">
+			<?php reci_media_hub_render_textarea_field('_reci_testimonial_text', __('Testimonial Text', 'reci-media-hub'), $text, 'reci-meta-row--full', 5); ?>
+
+			<div class="reci-meta-row reci-meta-row--full" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #dcdcde;padding-top:16px;margin-top:8px;">
+				<?php reci_media_hub_render_field('_reci_testimonial_full_name', __('Full Name', 'reci-media-hub'), $full_name); ?>
+				<?php reci_media_hub_render_field('_reci_testimonial_role', __('Title / Role', 'reci-media-hub'), $role); ?>
+			</div>
+
+			<div class="reci-meta-row reci-meta-row--full" style="border-top:1px solid #dcdcde;padding-top:16px;margin-top:8px;">
+				<?php reci_media_hub_render_field('_reci_testimonial_organization', __('Organization', 'reci-media-hub'), $org); ?>
+			</div>
+
+			<div class="reci-meta-row reci-meta-row--full" style="border-top:1px solid #dcdcde;padding-top:16px;margin-top:8px;">
+				<strong style="display:block;margin-bottom:8px;"><?php esc_html_e('Headshot', 'reci-media-hub'); ?></strong>
+				<?php echo _wp_post_thumbnail_html(get_post_thumbnail_id($post->ID), $post->ID); ?>
+			</div>
+		</div>
+	<?php
+	}
+}
+
+if (! function_exists('reci_media_hub_remove_testimonial_metaboxes')) {
+	add_action('do_meta_boxes', 'reci_media_hub_remove_testimonial_metaboxes');
+	function reci_media_hub_remove_testimonial_metaboxes(): void {
+		remove_meta_box('postimagediv', 'reci_testimonial', 'side');
+	}
+}
+
+if (! function_exists('reci_media_hub_testimonial_featured_image_label')) {
+	add_filter('admin_post_thumbnail_html', 'reci_media_hub_testimonial_featured_image_label', 10, 2);
+	function reci_media_hub_testimonial_featured_image_label(string $html, int $post_id): string {
+		if (get_post_type($post_id) !== 'reci_testimonial') {
+			return $html;
+		}
+		return str_replace(
+			['Featured Image', 'Set featured image', 'Remove featured image'],
+			['Headshot', 'Set headshot', 'Remove headshot'],
+			$html
+		);
+	}
+}
+
+if (! function_exists('reci_media_hub_testimonial_featured_image_title')) {
+	add_filter('admin_post_thumbnail_title', 'reci_media_hub_testimonial_featured_image_title', 10, 2);
+	function reci_media_hub_testimonial_featured_image_title(string $title, int $post_id): string {
+		if (get_post_type($post_id) !== 'reci_testimonial') {
+			return $title;
+		}
+		return __('Headshot', 'reci-media-hub');
+	}
+}
+
+if (! function_exists('reci_media_hub_render_display_author_metabox')) {
+	/**
+	 * Render shared display-author selector on content items.
+	 */
+	function reci_media_hub_render_display_author_metabox(WP_Post $post): void
+	{
+		wp_nonce_field('reci_save_meta', 'reci_meta_nonce');
+		reci_media_hub_metabox_styles();
+
+		$current_profile_id = (string) max(0, (int) get_post_meta($post->ID, '_reci_display_author_profile_id', true));
+		$current_user_id    = (int) get_post_field('post_author', $post->ID);
+		$linked_profile_id  = $current_user_id > 0 ? reci_media_hub_get_author_profile_by_user_id($current_user_id) : 0;
+
+		$options = ['0' => __('Use linked account / post author fallback', 'reci-media-hub')];
+		foreach (reci_media_hub_get_author_profile_options(false) as $profile) {
+			$options[(string) $profile['ID']] = (string) $profile['display_name'];
+		}
+	?>
+		<div class="reci-meta-grid" style="grid-template-columns: 1fr;">
+			<?php reci_media_hub_render_select_field('_reci_display_author_profile_id', __('Public Author', 'reci-media-hub'), $current_profile_id, $options); ?>
+		</div>
+		<div class="reci-meta-grid" style="grid-template-columns: 1fr; margin-top: 16px;">
+			<div class="reci-meta-row">
+				<label for="_reci_new_author_name"><strong><?php esc_html_e('Create New Author', 'reci-media-hub'); ?></strong></label>
+				<input type="text" id="_reci_new_author_name" name="_reci_new_author_name" value="" placeholder="<?php esc_attr_e('New author name', 'reci-media-hub'); ?>" />
+			</div>
+			<?php reci_media_hub_render_field('_reci_new_author_title', __('New Author Role / Title', 'reci-media-hub'), '', 'text'); ?>
+			<?php reci_media_hub_render_textarea_field('_reci_new_author_bio', __('New Author Bio', 'reci-media-hub'), '', '', 3); ?>
+		</div>
+		<p class="description"><?php esc_html_e('If you enter a new author name here and save the post, a profile will be created and selected automatically.', 'reci-media-hub'); ?></p>
+		<?php if ($linked_profile_id > 0) : ?>
+			<p class="description"><?php echo esc_html(sprintf(__('This post author is linked to "%s". Leave the field on fallback to use that profile automatically.', 'reci-media-hub'), get_the_title($linked_profile_id))); ?></p>
+		<?php elseif ($current_user_id > 0) : ?>
+			<p class="description"><?php esc_html_e('If left on fallback, the frontend will use the WordPress account name until a profile is linked or selected.', 'reci-media-hub'); ?></p>
+		<?php else : ?>
+			<p class="description"><?php esc_html_e('Select an author profile when this content should credit someone who does not own the WordPress post.', 'reci-media-hub'); ?></p>
+		<?php endif; ?>
+	<?php
+	}
+}
+
+if (! function_exists('reci_media_hub_create_or_get_author_profile')) {
+	/**
+	 * Create or reuse an author profile from inline post-edit input.
+	 */
+	function reci_media_hub_create_or_get_author_profile(string $name, string $title = '', string $bio = ''): int
+	{
+		$name = sanitize_text_field($name);
+		$title = sanitize_text_field($title);
+		$bio = sanitize_textarea_field($bio);
+
+		if ($name === '') {
+			return 0;
+		}
+
+		$existing = get_page_by_title($name, OBJECT, 'reci_author');
+		if ($existing instanceof WP_Post) {
+			if ($title !== '' && (string) get_post_meta((int) $existing->ID, '_reci_author_profile_title', true) === '') {
+				update_post_meta((int) $existing->ID, '_reci_author_profile_title', $title);
+			}
+			if ($bio !== '' && ! has_excerpt((int) $existing->ID)) {
+				wp_update_post([
+					'ID' => (int) $existing->ID,
+					'post_excerpt' => $bio,
+				]);
+			}
+
+			return (int) $existing->ID;
+		}
+
+		$post_status = current_user_can('publish_posts') ? 'publish' : 'draft';
+		$profile_id = wp_insert_post([
+			'post_type' => 'reci_author',
+			'post_status' => $post_status,
+			'post_title' => $name,
+			'post_excerpt' => $bio,
+			'post_content' => $bio,
+		], true);
+
+		if (is_wp_error($profile_id) || ! $profile_id) {
+			return 0;
+		}
+
+		if ($title !== '') {
+			update_post_meta((int) $profile_id, '_reci_author_profile_title', $title);
+		}
+
+		return (int) $profile_id;
+	}
+}
+
 if (! function_exists('reci_media_hub_save_meta_fields')) {
 	/**
 	 * Save all custom meta fields.
@@ -607,32 +1076,48 @@ if (! function_exists('reci_media_hub_save_meta_fields')) {
 			return;
 		}
 
+		if ($post_type === 'reci_article') {
+			$content_raw = isset($_POST['content']) ? wp_strip_all_tags(wp_unslash((string) $_POST['content'])) : '';
+			if (empty($content_raw)) {
+				$post       = get_post($post_id);
+				$content_raw = $post ? wp_strip_all_tags($post->post_content) : '';
+			}
+			if ($content_raw) {
+				$word_count = str_word_count($content_raw);
+				$minutes    = max(1, ceil($word_count / 200));
+				update_post_meta($post_id, '_reci_article_read_time_label', $minutes . ' min read');
+			}
+		}
+
 		$definitions = reci_media_hub_meta_definitions();
 		if (! isset($definitions[$post_type])) {
 			return;
 		}
 
+		$new_author_name  = isset($_POST['_reci_new_author_name']) ? sanitize_text_field((string) wp_unslash($_POST['_reci_new_author_name'])) : '';
+		$new_author_title = isset($_POST['_reci_new_author_title']) ? sanitize_text_field((string) wp_unslash($_POST['_reci_new_author_title'])) : '';
+		$new_author_bio   = isset($_POST['_reci_new_author_bio']) ? sanitize_textarea_field((string) wp_unslash($_POST['_reci_new_author_bio'])) : '';
+		$new_author_id    = 0;
+
+		if ($new_author_name !== '' && in_array($post_type, reci_media_hub_display_author_post_types(), true)) {
+			$new_author_id = reci_media_hub_create_or_get_author_profile($new_author_name, $new_author_title, $new_author_bio);
+			if ($new_author_id > 0) {
+				update_post_meta($post_id, '_reci_display_author_profile_id', $new_author_id);
+			}
+		}
+
 		foreach ($definitions[$post_type] as $meta_key => $config) {
+			if ($meta_key === '_reci_article_read_time_label') {
+				continue;
+			}
 			if ($meta_key === '_reci_assessment_questions') {
-				$raw_questions = $_POST['_reci_assessment_questions'] ?? [];
-				$sanitized     = [];
+				$sanitized = reci_media_hub_collect_assessment_questions_from_request();
+				update_post_meta($post_id, $meta_key, wp_json_encode($sanitized));
+				continue;
+			}
 
-				if (is_array($raw_questions)) {
-					foreach ($raw_questions as $item) {
-						$question_text = sanitize_text_field((string) ($item['question'] ?? ''));
-						$options_text  = sanitize_textarea_field((string) ($item['options'] ?? ''));
-
-						if ($question_text === '') {
-							continue;
-						}
-
-						$sanitized[] = [
-							'question' => $question_text,
-							'options'  => $options_text,
-						];
-					}
-				}
-
+			if ($meta_key === '_reci_assessment_result_ranges') {
+				$sanitized = reci_media_hub_collect_assessment_result_ranges_from_request();
 				update_post_meta($post_id, $meta_key, wp_json_encode($sanitized));
 				continue;
 			}
@@ -647,7 +1132,7 @@ if (! function_exists('reci_media_hub_save_meta_fields')) {
 			$value = wp_unslash($_POST[$meta_key]);
 
 			if ($config['type'] === 'string') {
-				if (in_array($meta_key, ['_reci_assessment_intro', '_reci_assessment_result_ranges', '_reci_quote_text'], true)) {
+				if (in_array($meta_key, ['_reci_assessment_intro', '_reci_assessment_instructions', '_reci_assessment_result_ranges', '_reci_assessment_completion_message', '_reci_quote_text', '_reci_testimonial_text'], true)) {
 					$value = sanitize_textarea_field((string) $value);
 				} else {
 					$value = str_contains($meta_key, '_url')
@@ -661,6 +1146,10 @@ if (! function_exists('reci_media_hub_save_meta_fields')) {
 			}
 
 			update_post_meta($post_id, $meta_key, $value);
+		}
+
+		if ($new_author_id > 0) {
+			update_post_meta($post_id, '_reci_display_author_profile_id', $new_author_id);
 		}
 	}
 }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Template Name: Quote Archive
  *
@@ -32,8 +33,8 @@ $listing_config = [
 	'pagination_param'         => 'paged',
 	'filter_search_param'      => 'search',
 	'pagination_wrapper_class' => 'mt-8 flex items-center justify-center gap-2',
-	'pagination_item_class'    => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg border border-zinc-300 text-sm font-medium font-['SF_Pro_Display'] text-neutral-800 hover:bg-zinc-100",
-	'pagination_current_class' => "inline-flex items-center justify-center min-w-10 h-10 px-3 rounded-lg bg-[#003594] text-sm font-medium font-['SF_Pro_Display'] text-white",
+	'pagination_item_class'    => "inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100",
+	'pagination_current_class' => "inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg bg-[#003594] text-sm font-medium text-white",
 	'empty_message'            => 'No quotes found.',
 ];
 
@@ -41,28 +42,21 @@ get_header();
 ?>
 
 <div class="bg-slate-100 min-h-screen">
-	<section class="w-full bg-white border-b border-zinc-400" aria-label="Quotes header">
-		<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 py-14">
-			<div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-				<div class="flex justify-start items-center gap-3">
-					<div class="w-3 h-3 bg-amber-400 rounded-sm flex-shrink-0"></div>
-					<h1 class="text-neutral-800 text-5xl font-medium font-['EB_Garamond'] leading-tight"><?php echo esc_html($page_title); ?></h1>
-				</div>
-				<div class="lg:pl-10 lg:border-l lg:border-zinc-400 flex justify-center items-center gap-2.5 max-w-xl">
-					<p class="text-neutral-500 text-lg font-normal font-['SF_Pro_Display'] leading-7 tracking-tight"><?php echo esc_html($page_subtitle); ?></p>
-				</div>
-			</div>
-		</div>
-	</section>
+	<?php get_template_part('template-parts/common/page-title-card', null, [
+		'title'    => $page_title,
+		'subtitle' => $page_subtitle,
+	]); ?>
 
-	<section class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 pt-5 pb-14 flex flex-col justify-start items-start gap-10">
+	<section class=" mx-auto px-4 sm:px-6 lg:px-12 xl:px-20 pt-5 pb-14 flex flex-col justify-start items-start gap-10">
 		<div class="self-stretch pb-5 border-b border-zinc-400">
 			<form method="get" action="<?php echo esc_url($base_url); ?>" class="self-stretch flex justify-end items-center gap-5" data-archive-filter-form data-search-min="3" data-search-debounce="350">
 				<div class="w-full sm:w-auto flex items-center gap-2.5">
-					<div class="w-full sm:w-80 px-5 py-4 bg-white rounded-lg flex justify-start items-center gap-2.5" role="search">
-						<svg class="w-4 h-4 flex-shrink-0 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+					<div class="w-full sm:w-80 px-5 py-4 bg-white rounded-lg border border-zinc-300 flex justify-start items-center gap-2.5" role="search">
+						<svg class="w-4 h-4 flex-shrink-0 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+						</svg>
 						<label for="quote-search" class="sr-only">Search quotes</label>
-						<input id="quote-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search Quotes" class="flex-1 bg-transparent text-neutral-500 text-base font-light font-['SF_Pro_Display'] placeholder-neutral-500 focus:outline-none" />
+						<input id="quote-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search Quotes" class="flex-1 bg-transparent text-neutral-600 text-base font-light placeholder-neutral-600 focus:outline-none" />
 					</div>
 					<?php if ($has_filters) : ?>
 						<a href="<?php echo esc_url($all_filters_url); ?>" class="px-4 py-3 text-sm font-medium text-neutral-700 hover:text-neutral-900">Reset</a>

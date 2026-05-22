@@ -12,40 +12,49 @@ if ( ! defined( 'ABSPATH' ) ) {
 the_post();
 
 $post_id = get_the_ID();
+$display_author = reci_media_hub_get_display_author($post_id);
 
 // Meta.
-$status           = (string) get_post_meta( $post_id, '_reci_event_status', true );
 $start_date_raw   = (string) get_post_meta( $post_id, '_reci_event_start_date', true );
-$start_time_raw   = (string) get_post_meta( $post_id, '_reci_event_start_time', true );
 $end_date_raw     = (string) get_post_meta( $post_id, '_reci_event_end_date', true );
+$start_time_raw   = (string) get_post_meta( $post_id, '_reci_event_start_time', true );
 $end_time_raw     = (string) get_post_meta( $post_id, '_reci_event_end_time', true );
 $timezone_raw     = (string) get_post_meta( $post_id, '_reci_event_timezone', true );
-$location         = (string) get_post_meta( $post_id, '_reci_event_location', true );
+$location_name    = (string) get_post_meta( $post_id, '_reci_event_location_name', true );
+$location_address = (string) get_post_meta( $post_id, '_reci_event_location_address', true );
+$location         = trim( $location_name . ( $location_address ? ' - ' . $location_address : '' ) );
 $cta_label        = (string) get_post_meta( $post_id, '_reci_event_cta_label', true ) ?: __( 'Register', 'reci-media-hub' );
 $registration_url = (string) get_post_meta( $post_id, '_reci_event_registration_url', true );
 
-// Format dates.
-$start_ts      = $start_date_raw ? strtotime( $start_date_raw ) : false;
-$end_ts        = $end_date_raw ? strtotime( $end_date_raw ) : false;
+$start_ts       = $start_date_raw ? strtotime( $start_date_raw ) : false;
+$end_ts         = $end_date_raw ? strtotime( $end_date_raw ) : $start_ts;
 $formatted_date = $start_ts ? wp_date( 'l, F j, Y', $start_ts ) : get_the_date( 'l, F j, Y' );
 $formatted_time = trim( $start_time_raw . ( $timezone_raw ? ' ' . $timezone_raw : '' ) );
 if ( $end_time_raw ) {
-	$formatted_time = trim( $start_time_raw . ' – ' . $end_time_raw . ( $timezone_raw ? ' ' . $timezone_raw : '' ) );
+	$formatted_time = trim( $start_time_raw . ' - ' . $end_time_raw . ( $timezone_raw ? ' ' . $timezone_raw : '' ) );
+}
+
+$status         = 'upcoming';
+$today_midnight = strtotime( 'today midnight' );
+if ( $start_ts && $end_ts && $start_ts <= $today_midnight && $today_midnight <= $end_ts ) {
+	$status = 'live';
+} elseif ( $end_ts && $end_ts < $today_midnight ) {
+	$status = 'past';
+}
+
+$status_label = ucfirst( $status );
+$status_class = 'bg-amber-400 text-neutral-800';
+if ( 'past' === $status ) {
+	$status_class = 'bg-zinc-400 text-white';
+} elseif ( 'live' === $status ) {
+	$status_class = 'bg-green-500 text-white';
 }
 
 // Featured image.
-$thumb_id  = get_post_thumbnail_id( $post_id );
-$image_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://placehold.co/1200x500';
-$image_alt = $thumb_id ? ( (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) ?: get_the_title() ) : get_the_title();
-
-// Status badge colour.
-$status_label = $status ? ucfirst( $status ) : 'Upcoming';
-$status_class = 'bg-amber-400 text-neutral-800';
-if ( 'past' === strtolower( $status ) || 'ended' === strtolower( $status ) ) {
-	$status_class = 'bg-zinc-400 text-white';
-} elseif ( 'live' === strtolower( $status ) || 'ongoing' === strtolower( $status ) ) {
-	$status_class = 'bg-green-500 text-white';
-}
+$thumb_id             = get_post_thumbnail_id( $post_id );
+$image_url            = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://placehold.co/1200x500';
+$image_alt            = $thumb_id ? ( (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) ?: get_the_title() ) : get_the_title();
+$author_card_heading  = __( 'Event Organizer', 'reci-media-hub' );
 
 // Tags / topics.
 $raw_tags = wp_get_post_terms( $post_id, 'reci_topic', [ 'fields' => 'names' ] );
@@ -62,96 +71,104 @@ $related_query  = new WP_Query(
 		'post_status'    => 'publish',
 		'posts_per_page' => 3,
 		'post__not_in'   => [ $post_id ],
-		'meta_key'       => '_reci_event_start_date',
-		'orderby'        => 'meta_value',
-		'order'          => 'ASC',
+		'orderby'        => 'date',
+		'order'          => 'DESC',
 	]
 );
 foreach ( $related_query->posts as $rel_post ) {
 	$rel_id          = (int) $rel_post->ID;
 	$rel_date_raw    = (string) get_post_meta( $rel_id, '_reci_event_start_date', true );
+	$rel_end_date_raw = (string) get_post_meta( $rel_id, '_reci_event_end_date', true );
 	$rel_ts          = $rel_date_raw ? strtotime( $rel_date_raw ) : false;
-	$rel_status      = (string) get_post_meta( $rel_id, '_reci_event_status', true );
+	$rel_end_ts      = $rel_end_date_raw ? strtotime( $rel_end_date_raw ) : $rel_ts;
 	$rel_time_raw    = (string) get_post_meta( $rel_id, '_reci_event_start_time', true );
 	$rel_tz          = (string) get_post_meta( $rel_id, '_reci_event_timezone', true );
+	$rel_registration = (string) get_post_meta( $rel_id, '_reci_event_registration_url', true );
+
+	$rel_status = 'upcoming';
+	$rel_today_midnight = strtotime( 'today midnight' );
+	if ( $rel_ts && $rel_end_ts && $rel_ts <= $rel_today_midnight && $rel_today_midnight <= $rel_end_ts ) {
+		$rel_status = 'live';
+	} elseif ( $rel_end_ts && $rel_end_ts < $rel_today_midnight ) {
+		$rel_status = 'past';
+	}
+
 	$related_events[] = [
-		'title'    => get_the_title( $rel_id ),
-		'link_url' => get_permalink( $rel_id ),
-		'status'   => $rel_status ? ucfirst( $rel_status ) : 'Upcoming',
-		'date'     => $rel_ts ? wp_date( 'M j, Y', $rel_ts ) : get_the_date( 'M j, Y', $rel_id ),
-		'time'     => trim( $rel_time_raw . ( $rel_tz ? ' ' . $rel_tz : '' ) ),
-		'image_url'=> get_the_post_thumbnail_url( $rel_id, 'medium' ) ?: 'https://placehold.co/400x225',
-		'image_alt'=> get_the_title( $rel_id ),
+		'status'       => $rel_status ? ucfirst( $rel_status ) : 'Upcoming',
+		'date'         => $rel_ts ? wp_date( 'M j, Y', $rel_ts ) : get_the_date( 'M j, Y', $rel_id ),
+		'time'         => trim( $rel_time_raw . ( $rel_tz ? ' ' . $rel_tz : '' ) ),
+		'datetime_iso' => $rel_ts ? date( DATE_ATOM, $rel_ts ) : '',
+		'title'        => get_the_title( $rel_id ),
+		'excerpt'      => wp_trim_words( has_excerpt( $rel_id ) ? get_the_excerpt( $rel_id ) : wp_strip_all_tags( $rel_post->post_content ), 14, '...' ),
+		'button_label' => 'View Event',
+		'link_url'     => get_permalink( $rel_id ),
+		'image_url'    => get_the_post_thumbnail_url( $rel_id, 'medium' ) ?: 'https://placehold.co/400x225',
+		'image_alt'    => get_the_title( $rel_id ),
 	];
 }
 
 get_header();
 ?>
 
-<div class="bg-slate-100 min-h-screen font-['SF_Pro_Display']">
-
-	<!-- Hero image -->
-	<div class="relative w-full h-64 sm:h-80 lg:h-[420px] bg-neutral-800 overflow-hidden">
-		<img
-			src="<?php echo esc_url( $image_url ); ?>"
-			alt="<?php echo esc_attr( $image_alt ); ?>"
-			class="absolute inset-0 w-full h-full object-cover opacity-60"
-		/>
-		<div class="absolute inset-0 bg-gradient-to-t from-neutral-900/80 to-transparent"></div>
-		<!-- Status badge -->
-		<div class="absolute bottom-6 left-6 lg:left-20">
-			<span class="px-3 py-1.5 rounded text-sm font-medium font-['SF_Pro_Display'] <?php echo esc_attr( $status_class ); ?>">
-				<?php echo esc_html( $status_label ); ?>
-			</span>
-		</div>
-	</div>
-
-	<div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
-
-		<!-- Breadcrumb -->
-		<nav class="flex items-center gap-2 text-neutral-500 text-sm font-normal pt-6 pb-4" aria-label="<?php esc_attr_e( 'Breadcrumb', 'reci-media-hub' ); ?>">
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="hover:text-neutral-800 transition-colors"><?php esc_html_e( 'Home', 'reci-media-hub' ); ?></a>
-			<span aria-hidden="true">/</span>
-			<a href="<?php echo esc_url( get_post_type_archive_link( 'reci_event' ) ?: home_url( '/events/' ) ); ?>" class="hover:text-neutral-800 transition-colors"><?php esc_html_e( 'Events', 'reci-media-hub' ); ?></a>
-			<span aria-hidden="true">/</span>
-			<span class="text-neutral-800"><?php the_title(); ?></span>
-		</nav>
-
-		<div class="flex flex-col lg:flex-row gap-10 pb-16">
+<main class="layout">
+	<section class="reci-container">
+		<div class="border-l-0 lg:border-l-[0.50px] border-b-[0.50px] border-zinc-300 flex flex-col lg:flex-row justify-start items-start gap-10">
 
 			<!-- ── LEFT: Event content ───────────────────────────────────── -->
-			<div class="flex-1 flex flex-col gap-8">
+			<div class="w-full pl-0 lg:px-10 self-stretch py-14 flex flex-col justify-start items-start gap-10 lg:border-r-[0.50px] border-zinc-300">
 
-				<!-- Title + tags -->
-				<div class="flex flex-col gap-4">
-					<h1 class="text-neutral-800 text-5xl font-bold font-['EB_Garamond'] leading-tight">
-						<?php the_title(); ?>
-					</h1>
+				<div class="self-stretch flex flex-col justify-start items-start gap-5">
+					<div class="self-stretch flex flex-col justify-start items-start gap-2">
+						<div class="self-stretch inline-flex justify-start items-center gap-2.5 flex-wrap">
+							<span class="px-2 py-1 rounded text-xs font-medium <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $status_label ); ?></span>
+							<div class="tag-dot"></div>
+							<span class="text-neutral-500 text-sm font-normal leading-4"><?php echo esc_html( $formatted_date ); ?></span>
+						<?php if ( $formatted_time ) : ?>
+							<div class="tag-dot"></div>
+							<span class="text-neutral-500 text-sm font-normal leading-4"><?php echo esc_html( $formatted_time ); ?></span>
+						<?php endif; ?>
+						<?php if ( ! empty( $display_author['name'] ) ) : ?>
+							<div class="tag-dot"></div>
+							<?php if ( ! empty( $display_author['permalink'] ) ) : ?>
+								<a href="<?php echo esc_url( (string) $display_author['permalink'] ); ?>" class="text-neutral-500 text-sm font-medium leading-4 no-underline hover:underline">
+									<?php echo esc_html( (string) $display_author['name'] ); ?>
+								</a>
+							<?php else : ?>
+								<span class="text-neutral-500 text-sm font-medium leading-4"><?php echo esc_html( (string) $display_author['name'] ); ?></span>
+							<?php endif; ?>
+						<?php endif; ?>
+					</div>
+						<div class="self-stretch flex flex-col justify-start items-start gap-5">
+							<h1 class="self-stretch reci-single-title"><?php the_title(); ?></h1>
+						</div>
+					</div>
 					<?php if ( ! empty( $tags ) ) : ?>
-						<div class="inline-flex gap-2 flex-wrap">
+						<div class="inline-flex justify-start items-center gap-2 flex-wrap">
 							<?php foreach ( $tags as $tag ) : ?>
-								<span class="px-2 py-1 bg-gray-200 rounded text-neutral-500 text-sm font-normal font-['SF_Pro_Display'] leading-4"><?php echo esc_html( $tag ); ?></span>
+								<div class="px-2 py-1 bg-gray-200 rounded flex justify-center items-center gap-2.5">
+									<span class="text-neutral-500 text-sm font-normal leading-4"><?php echo esc_html( $tag ); ?></span>
+								</div>
 							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>
 				</div>
 
-				<div class="h-px bg-zinc-300"></div>
+				<img class="self-stretch rounded-lg w-full h-[350px] object-cover object-center" src="<?php echo esc_url( $image_url ); ?>" alt="<?php echo esc_attr( $image_alt ); ?>" />
 
 				<!-- Event description -->
-				<div class="text-neutral-700 text-base font-normal font-['SF_Pro_Display'] leading-7 reci-post-content">
+				<article class="w-full reci-post-content py-2 flex flex-col gap-6">
 					<?php the_content(); ?>
-				</div>
+				</article>
 
 			</div>
 
 			<!-- ── RIGHT: Event details sidebar ─────────────────────────── -->
-			<div class="w-full lg:w-80 xl:w-96 flex-shrink-0">
+			<aside class="w-full lg:w-1/3 lg:py-14 lg:self-start lg:sticky lg:top-10">
 				<div class="bg-white rounded-lg shadow-sm overflow-hidden border border-zinc-200 sticky top-6">
 
 					<!-- CTA header -->
 					<div class="bg-neutral-800 px-6 py-5">
-						<h2 class="text-white text-xl font-bold font-['EB_Garamond'] leading-6"><?php esc_html_e( 'Event Details', 'reci-media-hub' ); ?></h2>
+						<h2 class="text-white text-2xl font-bold font-serif leading-7"><?php esc_html_e( 'Event Details', 'reci-media-hub' ); ?></h2>
 					</div>
 
 					<div class="px-6 py-6 flex flex-col gap-5">
@@ -160,8 +177,8 @@ get_header();
 						<div class="flex items-start gap-3">
 							<svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
 							<div>
-								<p class="text-neutral-500 text-xs font-medium font-['SF_Pro_Display'] uppercase tracking-wider"><?php esc_html_e( 'Date', 'reci-media-hub' ); ?></p>
-								<p class="text-neutral-800 text-sm font-medium font-['SF_Pro_Display'] mt-0.5"><?php echo esc_html( $formatted_date ); ?></p>
+								<p class="text-neutral-500 text-xs font-medium uppercase tracking-wider"><?php esc_html_e( 'Date', 'reci-media-hub' ); ?></p>
+								<p class="text-neutral-800 text-base font-medium mt-0.5"><?php echo esc_html( $formatted_date ); ?></p>
 							</div>
 						</div>
 
@@ -170,8 +187,8 @@ get_header();
 							<div class="flex items-start gap-3">
 								<svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
 								<div>
-									<p class="text-neutral-500 text-xs font-medium font-['SF_Pro_Display'] uppercase tracking-wider"><?php esc_html_e( 'Time', 'reci-media-hub' ); ?></p>
-									<p class="text-neutral-800 text-sm font-medium font-['SF_Pro_Display'] mt-0.5"><?php echo esc_html( $formatted_time ); ?></p>
+									<p class="text-neutral-500 text-xs font-medium uppercase tracking-wider"><?php esc_html_e( 'Time', 'reci-media-hub' ); ?></p>
+									<p class="text-neutral-800 text-base font-medium mt-0.5"><?php echo esc_html( $formatted_time ); ?></p>
 								</div>
 							</div>
 						<?php endif; ?>
@@ -181,8 +198,8 @@ get_header();
 							<div class="flex items-start gap-3">
 								<svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
 								<div>
-									<p class="text-neutral-500 text-xs font-medium font-['SF_Pro_Display'] uppercase tracking-wider"><?php esc_html_e( 'Location', 'reci-media-hub' ); ?></p>
-									<p class="text-neutral-800 text-sm font-medium font-['SF_Pro_Display'] mt-0.5"><?php echo esc_html( $location ); ?></p>
+									<p class="text-neutral-500 text-xs font-medium uppercase tracking-wider"><?php esc_html_e( 'Location', 'reci-media-hub' ); ?></p>
+									<p class="text-neutral-800 text-base font-medium mt-0.5"><?php echo esc_html( $location ); ?></p>
 								</div>
 							</div>
 						<?php endif; ?>
@@ -195,15 +212,49 @@ get_header();
 								href="<?php echo esc_url( $registration_url ); ?>"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="w-full px-7 py-3.5 bg-amber-400 rounded-lg flex justify-center items-center gap-2 hover:bg-amber-500 transition-colors text-neutral-800 text-base font-medium font-['SF_Pro_Display'] leading-6"
+								class="w-full px-7 py-3.5 bg-amber-400 rounded-lg flex justify-center items-center gap-2 hover:bg-amber-500 transition-colors text-neutral-800 text-base font-medium leading-6"
 							>
 								<?php echo esc_html( $cta_label ); ?>
 								<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
 							</a>
 						<?php elseif ( 'past' !== strtolower( $status ) ) : ?>
-							<p class="text-neutral-500 text-sm font-normal font-['SF_Pro_Display'] text-center"><?php esc_html_e( 'Registration details coming soon.', 'reci-media-hub' ); ?></p>
+							<p class="text-neutral-500 text-sm font-normal text-center"><?php esc_html_e( 'Registration details coming soon.', 'reci-media-hub' ); ?></p>
 						<?php else : ?>
-							<p class="text-neutral-500 text-sm font-normal font-['SF_Pro_Display'] text-center"><?php esc_html_e( 'This event has ended.', 'reci-media-hub' ); ?></p>
+							<p class="text-neutral-500 text-sm font-normal text-center"><?php esc_html_e( 'This event has ended.', 'reci-media-hub' ); ?></p>
+						<?php endif; ?>
+
+						<?php if ( ! empty( $display_author['name'] ) ) : ?>
+							<div class="h-px bg-zinc-200"></div>
+							<div class="flex flex-col gap-4">
+								<h3 class="text-neutral-800 text-xl font-bold font-serif leading-6"><?php echo esc_html( $author_card_heading ); ?></h3>
+								<div class="flex items-start gap-3">
+									<?php if ( ! empty( $display_author['image_url'] ) ) : ?>
+										<?php if ( ! empty( $display_author['permalink'] ) ) : ?>
+											<a href="<?php echo esc_url( (string) $display_author['permalink'] ); ?>" class="flex-shrink-0">
+												<img src="<?php echo esc_url( (string) $display_author['image_url'] ); ?>" alt="<?php echo esc_attr( (string) ( $display_author['image_alt'] ?? $display_author['name'] ) ); ?>" class="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+											</a>
+										<?php else : ?>
+											<img src="<?php echo esc_url( (string) $display_author['image_url'] ); ?>" alt="<?php echo esc_attr( (string) ( $display_author['image_alt'] ?? $display_author['name'] ) ); ?>" class="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+										<?php endif; ?>
+									<?php endif; ?>
+									<div class="flex flex-col gap-1">
+										<?php if ( ! empty( $display_author['permalink'] ) ) : ?>
+											<a href="<?php echo esc_url( (string) $display_author['permalink'] ); ?>" class="text-neutral-800 text-base font-bold hover:underline">
+												<?php echo esc_html( (string) $display_author['name'] ); ?>
+											</a>
+										<?php else : ?>
+											<p class="text-neutral-800 text-base font-bold"><?php echo esc_html( (string) $display_author['name'] ); ?></p>
+										<?php endif; ?>
+										<?php if ( ! empty( $display_author['title'] ) ) : ?>
+											<p class="text-neutral-500 text-sm font-medium"><?php echo esc_html( (string) $display_author['title'] ); ?></p>
+										<?php endif; ?>
+										<?php if ( ! empty( $display_author['bio'] ) ) : ?>
+											<p class="text-neutral-500 text-sm font-normal leading-6"><?php echo esc_html( (string) $display_author['bio'] ); ?></p>
+										<?php endif; ?>
+									</div>
+								</div>
+							</div>
+							<div class="h-px bg-zinc-200"></div>
 						<?php endif; ?>
 
 						<!-- Share -->
@@ -221,7 +272,7 @@ get_header();
 
 					</div>
 				</div>
-			</div>
+			</aside>
 
 		</div>
 
@@ -230,30 +281,17 @@ get_header();
 			<div class="py-10 border-t border-zinc-300">
 				<div class="flex items-center gap-3 mb-8">
 					<div class="w-2 h-2 bg-amber-400 rounded-sm"></div>
-					<h2 class="text-neutral-800 text-3xl font-bold font-['EB_Garamond'] leading-10"><?php esc_html_e( 'More Events', 'reci-media-hub' ); ?></h2>
+					<h2 class="text-neutral-800 text-3xl font-bold font-serif leading-10"><?php esc_html_e( 'More Events', 'reci-media-hub' ); ?></h2>
 				</div>
 				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 					<?php foreach ( $related_events as $rel ) : ?>
-						<a href="<?php echo esc_url( $rel['link_url'] ); ?>" class="bg-white rounded-lg shadow-sm overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-							<div class="relative h-40 bg-neutral-200 overflow-hidden">
-								<img src="<?php echo esc_url( $rel['image_url'] ); ?>" alt="<?php echo esc_attr( $rel['image_alt'] ); ?>" class="w-full h-full object-cover" />
-								<span class="absolute top-3 left-3 px-2 py-1 bg-amber-400 rounded text-neutral-800 text-xs font-medium font-['SF_Pro_Display']"><?php echo esc_html( $rel['status'] ); ?></span>
-							</div>
-							<div class="p-4 flex flex-col gap-2 flex-1">
-								<div class="flex items-center gap-1.5 text-neutral-500 text-xs font-normal font-['SF_Pro_Display']">
-									<svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-									<?php echo esc_html( $rel['date'] ); ?>
-									<?php if ( $rel['time'] ) : ?> · <?php echo esc_html( $rel['time'] ); ?><?php endif; ?>
-								</div>
-								<h3 class="text-neutral-800 text-base font-bold font-['EB_Garamond'] leading-5 line-clamp-2"><?php echo esc_html( $rel['title'] ); ?></h3>
-							</div>
-						</a>
+						<?php get_template_part( 'template-parts/listings/event-archive-card', null, $rel ); ?>
 					<?php endforeach; ?>
 				</div>
 			</div>
 		<?php endif; ?>
 
-	</div><!-- /max-w container -->
-</div>
+	</section><!-- /reci-container -->
+</main>
 
 <?php get_footer(); ?>

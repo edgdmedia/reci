@@ -523,7 +523,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'podcast_archive_card' => 'podcast-archive-card',
 				'podcast_feature'      => 'podcast-feature-card',
 				'video_feature'        => 'videos-featured-overlay-card',
-				'event_card'           => 'event-carousel-card',
+				'event_card'           => 'event-archive-card',
 				'lens_card'            => 'lens-quiz-card',
 				'quote_card'           => 'quote-carousel-item',
 				'community_quote'      => 'community-pulse-slide',
@@ -546,6 +546,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'podcast-compact-card'       => ['template_part' => 'template-parts/listings/podcast-compact-card', 'variant' => 'podcast_compact'],
 				'podcast-archive-card'       => ['template_part' => 'template-parts/listings/podcast-archive-card', 'variant' => 'podcast_compact'],
 				'event-carousel-card'        => ['template_part' => 'template-parts/listings/event-carousel-card', 'variant' => 'event'],
+			'event-archive-card'         => ['template_part' => 'template-parts/listings/event-archive-card', 'variant' => 'event'],
 				'lens-quiz-card'             => ['template_part' => 'template-parts/listings/lens-quiz-card', 'variant' => 'assessment'],
 				'quote-carousel-item'        => ['template_part' => 'template-parts/listings/quote-carousel-item', 'variant' => 'quote'],
 				'community-pulse-slide'      => ['template_part' => 'template-parts/listings/community-pulse-slide', 'variant' => 'community_quote'],
@@ -591,6 +592,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 			$post_type = get_post_type($post_id);
 			$ui        = self::post_type_ui($post_type);
 			$meta      = self::meta_value_for_type($post_id, $post_type);
+			$author    = reci_media_hub_get_display_author($post_id);
 
 			return [
 				'type_label'       => $ui['label'],
@@ -606,6 +608,8 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'image_url'        => self::image($post_id, 'large', (string) $config['fallback_image']),
 				'image_alt'        => self::image_alt($post_id),
 				'link_url'         => get_permalink($post_id),
+				'author_name'      => $author['name'] ?? '',
+				'author_url'       => $author['permalink'] ?? '',
 			];
 		}
 
@@ -664,6 +668,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 		protected static function map_podcast_compact_item(WP_Post $post, array $config): array {
 			$post_id = (int) $post->ID;
 			$meta    = self::meta_value_for_type($post_id, 'reci_podcast');
+			$author  = reci_media_hub_get_display_author($post_id);
 
 			return [
 				'topic_tags'       => self::tags($post_id, 3),
@@ -675,6 +680,8 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'image_alt'        => self::image_alt($post_id),
 				'progress_percent' => 35,
 				'link_url'         => get_permalink($post_id),
+				'author_name'      => $author['name'] ?? '',
+				'author_url'       => $author['permalink'] ?? '',
 			];
 		}
 
@@ -686,27 +693,47 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 		 */
 		protected static function map_event_item(WP_Post $post, array $config): array {
 			$post_id          = (int) $post->ID;
-			$status           = (string) get_post_meta($post_id, '_reci_event_status', true);
+			$ui               = self::post_type_ui('reci_event');
 			$start_date_raw   = (string) get_post_meta($post_id, '_reci_event_start_date', true);
+			$end_date_raw     = (string) get_post_meta($post_id, '_reci_event_end_date', true);
 			$start_time_raw   = (string) get_post_meta($post_id, '_reci_event_start_time', true);
 			$timezone_raw     = (string) get_post_meta($post_id, '_reci_event_timezone', true);
 			$registration_url = (string) get_post_meta($post_id, '_reci_event_registration_url', true);
 			$cta_label        = (string) get_post_meta($post_id, '_reci_event_cta_label', true);
+			$author           = reci_media_hub_get_display_author($post_id);
 
-			$timestamp = $start_date_raw ? strtotime($start_date_raw) : false;
-			$date      = $timestamp ? wp_date('j F, Y', $timestamp) : get_the_date('j F, Y', $post_id);
-			$time      = trim($start_time_raw . ($timezone_raw ? ' ' . $timezone_raw : ''));
+			$timestamp    = $start_date_raw ? strtotime($start_date_raw) : false;
+			$date         = $timestamp ? wp_date('j F, Y', $timestamp) : get_the_date('j F, Y', $post_id);
+			$time         = trim($start_time_raw . ($timezone_raw ? ' ' . $timezone_raw : ''));
+			$today_midnight = strtotime('today midnight');
+
+			$status = 'upcoming';
+			$end_timestamp = $end_date_raw ? strtotime($end_date_raw) : false;
+
+			if ($timestamp && $end_timestamp && $timestamp <= $today_midnight && $today_midnight <= $end_timestamp) {
+				$status = 'live';
+			} elseif ($end_timestamp && $end_timestamp < $today_midnight) {
+				$status = 'past';
+			}
 
 			return [
-				'status'       => $status ? ucfirst($status) : 'Upcoming',
-				'date'         => $date,
-				'time'         => $time,
-				'title'        => get_the_title($post_id),
-				'excerpt'      => self::excerpt($post, 18),
-				'button_label' => $cta_label ?: 'Register',
-				'link_url'     => $registration_url ?: get_permalink($post_id),
-				'image_url'    => self::image($post_id, 'large', (string) $config['fallback_image']),
-				'image_alt'    => self::image_alt($post_id),
+				'type_label'       => $ui['label'],
+				'type_badge_class' => $ui['badge'],
+				'type_text_class'  => $ui['text'],
+				'status'           => $status ? ucfirst($status) : 'Upcoming',
+				'date'             => $date,
+				'meta_icon'        => 'timer',
+				'meta_value'       => $time,
+				'time'             => $time,
+				'title'            => get_the_title($post_id),
+				'excerpt'          => self::excerpt($post, 18),
+				'button_label'     => $cta_label ?: 'Register',
+				'link_url'         => get_permalink( $post_id ),
+				'image_url'        => self::image($post_id, 'large', (string) $config['fallback_image']),
+				'image_alt'        => self::image_alt($post_id),
+				'author_name'      => $author['name'] ?? '',
+				'author_url'       => $author['permalink'] ?? '',
+				'tags'             => self::tags($post_id, 3),
 			];
 		}
 
@@ -759,16 +786,14 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 		protected static function map_community_quote_item(WP_Post $post, array $config): array {
 			$post_id      = (int) $post->ID;
 			$quote_text   = (string) get_post_meta($post_id, '_reci_quote_text', true);
-			$author_name  = (string) get_post_meta($post_id, '_reci_quote_author_name', true);
-			$author_title = (string) get_post_meta($post_id, '_reci_quote_author_title', true);
-			$author_img   = (string) get_post_meta($post_id, '_reci_quote_author_image_url', true);
+			$author       = reci_get_quote_author_data($post_id);
 
 			return [
 				'quote'        => $quote_text ?: self::excerpt($post, 28),
-				'author_name'  => $author_name ?: get_the_title($post_id),
-				'author_role'  => $author_title ?: 'RECI Contributor',
-				'author_image' => $author_img ?: self::image($post_id, 'thumbnail', (string) $config['fallback_image']),
-				'author_alt'   => $author_name ?: get_the_title($post_id),
+				'author_name'  => $author['name'] ?: get_the_title($post_id),
+				'author_role'  => $author['title'] ?: 'RECI Contributor',
+				'author_image' => $author['image_url'] ?: self::image($post_id, 'thumbnail', (string) $config['fallback_image']),
+				'author_alt'   => $author['name'] ?: get_the_title($post_id),
 			];
 		}
 
@@ -1296,7 +1321,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'reci_event'     => ['label' => 'Event',      'badge' => 'bg-amber-400', 'text' => 'text-neutral-800'],
 				'reci_reflection'=> ['label' => 'Reflection', 'badge' => 'bg-neutral-800', 'text' => 'text-white'],
 				'reci_quote'     => ['label' => 'Quote',      'badge' => 'bg-neutral-800', 'text' => 'text-white'],
-				'reci_assessment'=> ['label' => 'Assessment', 'badge' => 'bg-neutral-800', 'text' => 'text-white'],
+				'reci_assessment'=> ['label' => 'Quiz', 'badge' => 'bg-neutral-800', 'text' => 'text-white'],
 				'reci_course'    => ['label' => 'Course',     'badge' => 'bg-neutral-800', 'text' => 'text-white'],
 				'post'           => ['label' => 'Article',    'badge' => 'bg-amber-400', 'text' => 'text-neutral-800'],
 			];
@@ -1331,9 +1356,15 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				];
 			}
 
+				$read_time = (string) get_post_meta($post_id, '_reci_article_read_time_label', true);
+				if (! $read_time) {
+					$word_count = str_word_count(wp_strip_all_tags(get_post_field('post_content', $post_id)));
+					$minutes    = max(1, (int) ceil($word_count / 200));
+					$read_time  = $minutes . ' min read';
+				}
 				return [
 					'icon'  => 'timer',
-					'value' => (string) get_post_meta($post_id, '_reci_article_read_time_label', true) ?: '3 mins',
+					'value' => $read_time,
 				];
 			}
 
