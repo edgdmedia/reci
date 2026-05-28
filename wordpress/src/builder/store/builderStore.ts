@@ -28,6 +28,12 @@ function mergeComponentProps(component: ReflectionSystemComponent, updates: Part
 
 interface BuilderState {
   blueprint: ReflectionSystemBlueprint;
+  selectedChapterId: string | null;
+  lastEditedChapter: ReflectionSystemComponent | null;
+  previewReloadKey: number;
+  setSelectedChapter: (id: string | null) => void;
+  setLastEditedChapter: (chapter: ReflectionSystemComponent | null) => void;
+  notifyStructuralChange: () => void;
   setSettings: (updates: Partial<ReflectionSystemBlueprint['settings']>) => void;
   addChapter: (family: string, variant: string, props?: Record<string, unknown>) => void;
   duplicateChapter: (id: string) => void;
@@ -73,6 +79,13 @@ function reorder<T extends ReflectionSystemComponent>(items: T[], orderedIds: st
 
 export const useBuilderStore = create<BuilderState>((set, get) => ({
   blueprint: normalizeBlueprint(initialBlueprint),
+  selectedChapterId: null,
+  lastEditedChapter: null,
+  previewReloadKey: 0,
+
+  setSelectedChapter: (id) => set({ selectedChapterId: id }),
+  setLastEditedChapter: (chapter) => set({ lastEditedChapter: chapter }),
+  notifyStructuralChange: () => set((s) => ({ previewReloadKey: s.previewReloadKey + 1 })),
 
   setSettings: (updates) =>
     set((state) => ({
@@ -88,21 +101,25 @@ export const useBuilderStore = create<BuilderState>((set, get) => ({
         ...state.blueprint,
         chapters: [...state.blueprint.chapters, { id: uid(), family, variant, props }],
       },
+      previewReloadKey: state.previewReloadKey + 1,
     })),
 
   duplicateChapter: (id) =>
     set((state) => ({
       blueprint: { ...state.blueprint, chapters: insertDuplicate(state.blueprint.chapters, id) },
+      previewReloadKey: state.previewReloadKey + 1,
     })),
 
   removeChapter: (id) =>
     set((state) => ({
       blueprint: { ...state.blueprint, chapters: state.blueprint.chapters.filter((chapter) => chapter.id !== id) },
+      previewReloadKey: state.previewReloadKey + 1,
     })),
 
   reorderChapters: (orderedIds) =>
     set((state) => ({
       blueprint: { ...state.blueprint, chapters: reorder(state.blueprint.chapters, orderedIds) },
+      previewReloadKey: state.previewReloadKey + 1,
     })),
 
   updateChapter: (id, updates) =>

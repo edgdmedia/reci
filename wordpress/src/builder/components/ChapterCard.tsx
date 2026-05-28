@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ColorField from './fields/ColorField';
 import Field from './fields/Field';
 import MediaField from './fields/MediaField';
+import RangeField from './fields/RangeField';
 import RepeaterField from './fields/RepeaterField';
 import SelectField from './fields/SelectField';
 import TextareaField from './fields/TextareaField';
 import type { BuilderConfig, ReflectionSystemComponent, ReflectionSystemFieldDefinition } from '../../types/blueprint';
+import { useBuilderStore } from '../store/builderStore';
 
 declare global {
   interface Window {
@@ -33,6 +36,7 @@ function chapterSummary(chapter: ReflectionSystemComponent): string {
 
 export default function ChapterCard({ chapter, onUpdate, onDuplicate, onRemove }: Props) {
   const [open, setOpen] = useState(false);
+  const setSelectedChapter = useBuilderStore((s) => s.setSelectedChapter);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: chapter.id });
   const registry = window.RECIReflectionBuilderConfig?.registry ?? {};
   const definition = registry[chapter.family];
@@ -41,6 +45,11 @@ export default function ChapterCard({ chapter, onUpdate, onDuplicate, onRemove }
 
   function updateProp(key: string, value: unknown) {
     onUpdate({ props: { [key]: value } });
+    const state = useBuilderStore.getState();
+    const updated = state.blueprint.chapters.find((c) => c.id === chapter.id);
+    if (updated) {
+      state.setLastEditedChapter(updated);
+    }
   }
 
   function renderField(key: string, field: ReflectionSystemFieldDefinition) {
@@ -89,6 +98,28 @@ export default function ChapterCard({ chapter, onUpdate, onDuplicate, onRemove }
         />
       );
     }
+    if (field.type === 'range') {
+      return (
+        <RangeField
+          key={key}
+          label={field.label}
+          value={typeof value === 'number' ? value : 72}
+          min={0}
+          max={100}
+          onChange={(next) => updateProp(key, next)}
+        />
+      );
+    }
+    if (field.type === 'color') {
+      return (
+        <ColorField
+          key={key}
+          label={field.label}
+          value={typeof value === 'string' ? value : ''}
+          onChange={(next) => updateProp(key, next)}
+        />
+      );
+    }
     return (
       <Field
         key={key}
@@ -106,7 +137,7 @@ export default function ChapterCard({ chapter, onUpdate, onDuplicate, onRemove }
       className="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
     >
       <div
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => { setOpen((value) => { const next = !value; setSelectedChapter(next ? chapter.id : null); return next; }); }}
         className={`cursor-pointer p-3 ${open ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
         style={open ? { borderLeft: '3px solid #2563eb' } : { borderLeft: '3px solid transparent' }}
       >

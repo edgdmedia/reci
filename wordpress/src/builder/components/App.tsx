@@ -5,7 +5,7 @@ import LeftPanel from './layout/LeftPanel';
 import PreviewPane from './PreviewPane';
 
 export default function App() {
-  const { blueprint, setSettings, addChapter, duplicateChapter, removeChapter, reorderChapters, updateChapter, serialise } = useBuilderStore();
+  const { blueprint, setSettings, addChapter, duplicateChapter, removeChapter, reorderChapters, updateChapter, serialise, selectedChapterId, lastEditedChapter, previewReloadKey } = useBuilderStore();
   const { chapters = [], settings } = blueprint;
 
   useEffect(() => {
@@ -30,7 +30,12 @@ export default function App() {
             onReorderComponents={reorderChapters}
           />
         </section>
-        <PreviewPane blueprint={blueprint} />
+        <PreviewPane
+          blueprint={blueprint}
+          selectedChapterId={selectedChapterId}
+          lastEditedChapter={lastEditedChapter}
+          previewReloadKey={previewReloadKey}
+        />
       </main>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { BuilderConfig, ReflectionSystemBlueprint } from '../../types/blueprint';
+import type { BuilderConfig, ReflectionSystemBlueprint, ReflectionSystemComponent } from '../../types/blueprint';
 
 declare global {
   interface Window {
@@ -9,28 +9,41 @@ declare global {
 
 interface Props {
   blueprint: ReflectionSystemBlueprint;
+  selectedChapterId?: string | null;
+  lastEditedChapter?: ReflectionSystemComponent | null;
+  previewReloadKey?: number;
 }
 
-export default function PreviewPane({ blueprint }: Props) {
+interface PreviewMessage {
+  type: 'preview-ready';
+}
+
+export default function PreviewPane({ blueprint, selectedChapterId, lastEditedChapter, previewReloadKey = 0 }: Props) {
   const config = window.RECIReflectionBuilderConfig;
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [status, setStatus] = useState<'idle' | 'syncing' | 'ready' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const iframeReadyRef = useRef(false);
   const timerRef = useRef<number | null>(null);
 
+  // Full load for initial render and structural changes.
   useEffect(() => {
     if (!config?.postId || !config.previewEndpoint || !config.previewNonce) {
       return;
     }
 
-    if (timerRef.current) {
-      window.clearTimeout(timerRef.current);
-    }
-
-    timerRef.current = window.setTimeout(async () => {
+    const doFullLoad = async () => {
       setStatus('syncing');
       setErrorMessage('');
       try {
+        const body: Record<string, unknown> = {
+          post_id: config.postId,
+          blueprint,
+        };
+        if (selectedChapterId) {
+          body.selected_chapter_id = selectedChapterId;
+        }
         const response = await fetch(config.previewEndpoint, {
           method: 'POST',
           headers: {
@@ -38,22 +51,86 @@ export default function PreviewPane({ blueprint }: Props) {
             'X-WP-Nonce': config.previewNonce,
           },
           credentials: 'same-origin',
-          body: JSON.stringify({
-            post_id: config.postId,
-            blueprint,
-          }),
+          body: JSON.stringify(body),
         });
-
         const data = await response.json();
         if (!response.ok || !data?.preview_url) {
           throw new Error(data?.message || 'Unable to generate preview.');
         }
-
         setPreviewUrl(data.preview_url);
+        iframeReadyRef.current = false;
         setStatus('ready');
       } catch (error) {
         setStatus('error');
         setErrorMessage(error instanceof Error ? error.message : 'Unable to generate preview.');
+      }
+    };
+
+    doFullLoad();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewReloadKey]);
+
+  // Listen for postMessage from preview iframe.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      const data = event.data as PreviewMessage;
+      if (data?.type === 'preview-ready') {
+        iframeReadyRef.current = true;
+      }
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
+  // Send scroll-to-chapter via postMessage (no server call).
+  useEffect(() => {
+    if (!selectedChapterId || !iframeReadyRef.current) return;
+    const iframe = iframeRef.current;
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage({ type: 'scroll-to-chapter', chapterId: selectedChapterId }, '*');
+    }
+  }, [selectedChapterId]);
+
+  // Debounced surgical update for chapter props changes.
+  useEffect(() => {
+    if (!lastEditedChapter || !iframeReadyRef.current) return;
+    if (!config?.postId || !config.previewEndpoint || !config.previewNonce) return;
+
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+    }
+
+    timerRef.current = window.setTimeout(async () => {
+      setStatus('syncing');
+      try {
+        const response = await fetch('/wp-json/reci/v1/render-chapter', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-WP-Nonce': config.previewNonce,
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            chapter: lastEditedChapter,
+            post_id: config.postId,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok || typeof data?.html !== 'string') {
+          throw new Error(data?.message || 'Unable to render chapter.');
+        }
+
+        const chapterId = lastEditedChapter.props?.id || lastEditedChapter.id;
+        if (chapterId) {
+          const iframe = iframeRef.current;
+          if (iframe?.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'update-chapter', chapterId, html: data.html }, '*');
+          }
+        }
+        setStatus('ready');
+      } catch (error) {
+        setStatus('error');
+        setErrorMessage(error instanceof Error ? error.message : 'Unable to render chapter.');
       }
     }, 450);
 
@@ -62,7 +139,8 @@ export default function PreviewPane({ blueprint }: Props) {
         window.clearTimeout(timerRef.current);
       }
     };
-  }, [blueprint, config?.postId, config?.previewEndpoint, config?.previewNonce]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEditedChapter]);
 
   return (
     <aside className="flex w-[42rem] max-w-[48%] shrink-0 flex-col overflow-hidden bg-gray-950 text-white">
@@ -83,7 +161,12 @@ export default function PreviewPane({ blueprint }: Props) {
       ) : null}
       <div className="flex-1 overflow-hidden bg-white">
         {previewUrl ? (
-          <iframe title="Reflection preview" src={previewUrl} className="h-full w-full border-0 bg-white" />
+          <iframe
+            ref={iframeRef}
+            title="Reflection preview"
+            src={previewUrl}
+            className="h-full w-full border-0 bg-white"
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-gray-500">Preview will appear here.</div>
         )}
