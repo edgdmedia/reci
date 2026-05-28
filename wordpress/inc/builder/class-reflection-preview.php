@@ -3,7 +3,7 @@
  * Reflection Preview REST endpoint.
  *
  * POST /wp-json/reci/v1/reflection-preview
- * Body: { post_id: int, blueprint: object }
+ * Body: { post_id: int, blueprint: object, selected_chapter_id?: string|null }
  *
  * Temporarily stores the blueprint in a transient and returns a
  * preview URL for the post with ?reci_preview=<key>.
@@ -37,6 +37,10 @@ if (! class_exists('RECI_Reflection_Preview')) {
                         'required' => true,
                         'type'     => 'object',
                     ],
+                    'selected_chapter_id' => [
+                        'required' => false,
+                        'type'     => 'string',
+                    ],
                 ],
             ]);
         }
@@ -45,6 +49,7 @@ if (! class_exists('RECI_Reflection_Preview')) {
         {
             $post_id   = (int) $request->get_param('post_id');
             $blueprint = $request->get_param('blueprint');
+            $selected  = $request->get_param('selected_chapter_id');
 
             if (! get_post($post_id)) {
                 return new WP_Error('not_found', __('Post not found.', 'reci-media-hub'), ['status' => 404]);
@@ -58,6 +63,20 @@ if (! class_exists('RECI_Reflection_Preview')) {
             set_transient($key, wp_json_encode($blueprint), 15 * MINUTE_IN_SECONDS);
 
             $preview_url = add_query_arg('reci_preview', $key, get_permalink($post_id));
+
+            // Resolve the selected chapter's html id from the blueprint chapters.
+            if (is_string($selected) && $selected !== '') {
+                $chapters = is_array($blueprint['chapters'] ?? null) ? $blueprint['chapters'] : [];
+                foreach ($chapters as $chapter) {
+                    if (is_array($chapter) && ($chapter['id'] ?? '') === $selected) {
+                        $chapter_id = (string) ($chapter['props']['id'] ?? '');
+                        if ($chapter_id !== '') {
+                            $preview_url .= '#' . sanitize_title($chapter_id);
+                        }
+                        break;
+                    }
+                }
+            }
 
             return new WP_REST_Response(['preview_url' => $preview_url], 200);
         }
@@ -98,3 +117,59 @@ add_action('template_redirect', static function (): void {
         3
     );
 });
+
+/**
+ * Inject postMessage listener for live preview updates.
+ * Allows the builder to surgically update individual chapter DOM nodes
+ * without reloading the entire iframe.
+ */
+add_action('wp_footer', static function (): void {
+    if (! is_singular('reci_reflection') || empty($_GET['reci_preview'])) {
+        return;
+    }
+    ?>
+    <script>
+    (function() {
+        'use strict';
+        function sendToParent(msg) {
+            if (window.parent !== window) {
+                window.parent.postMessage(msg, '*');
+            }
+        }
+        function handleMessage(event) {
+            var data = event.data;
+            if (!data || typeof data !== 'object') return;
+            switch (data.type) {
+                case 'scroll-to-chapter': {
+                    var el = document.getElementById(data.chapterId);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    break;
+                }
+                case 'update-chapter': {
+                    var target = document.getElementById(data.chapterId);
+                    if (target && data.html) {
+                        var temp = document.createElement('div');
+                        temp.innerHTML = data.html;
+                        var newEl = temp.firstElementChild;
+                        if (newEl) {
+                            target.replaceWith(newEl);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        window.addEventListener('message', handleMessage);
+        if (document.readyState === 'complete') {
+            sendToParent({ type: 'preview-ready' });
+        } else {
+            window.addEventListener('load', function() {
+                sendToParent({ type: 'preview-ready' });
+            });
+        }
+    })();
+    </script>
+    <?php
+}, 100);
