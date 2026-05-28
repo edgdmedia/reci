@@ -34,6 +34,7 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
     }
 
     const doFullLoad = async () => {
+      console.log('[builder] full preview load, reloadKey:', previewReloadKey);
       setStatus('syncing');
       setErrorMessage('');
       try {
@@ -75,6 +76,7 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
     function onMessage(event: MessageEvent) {
       const data = event.data as PreviewMessage;
       if (data?.type === 'preview-ready') {
+        console.log('[builder] preview-ready received');
         iframeReadyRef.current = true;
       }
     }
@@ -85,6 +87,7 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
   // Send scroll-to-chapter via postMessage (no server call).
   useEffect(() => {
     if (!selectedChapterId || !iframeReadyRef.current) return;
+    console.log('[builder] sending scroll-to-chapter:', selectedChapterId);
     const iframe = iframeRef.current;
     if (iframe?.contentWindow) {
       iframe.contentWindow.postMessage({ type: 'scroll-to-chapter', chapterId: selectedChapterId }, '*');
@@ -101,6 +104,7 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
     }
 
     timerRef.current = window.setTimeout(async () => {
+      console.log('[builder] rendering chapter:', lastEditedChapter?.id);
       setStatus('syncing');
       try {
         const response = await fetch('/wp-json/reci/v1/render-chapter', {
@@ -120,7 +124,8 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
           throw new Error(data?.message || 'Unable to render chapter.');
         }
 
-        const chapterId = lastEditedChapter.props?.id || lastEditedChapter.id;
+        const chapterId = lastEditedChapter.id;
+        console.log('[builder] sending update-chapter:', chapterId);
         if (chapterId) {
           const iframe = iframeRef.current;
           if (iframe?.contentWindow) {
@@ -129,6 +134,7 @@ export default function PreviewPane({ blueprint, selectedChapterId, lastEditedCh
         }
         setStatus('ready');
       } catch (error) {
+        console.error('[builder] chapter render failed:', error);
         setStatus('error');
         setErrorMessage(error instanceof Error ? error.message : 'Unable to render chapter.');
       }

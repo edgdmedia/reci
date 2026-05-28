@@ -139,23 +139,33 @@ add_action('wp_footer', static function (): void {
         function handleMessage(event) {
             var data = event.data;
             if (!data || typeof data !== 'object') return;
+            console.log('[preview] received:', data.type, data.chapterId);
             switch (data.type) {
                 case 'scroll-to-chapter': {
-                    var el = document.getElementById(data.chapterId);
+                    var el = document.getElementById(data.chapterId) || document.querySelector('[data-chapter-id="' + data.chapterId + '"]');
                     if (el) {
+                        console.log('[preview] scrolling to:', data.chapterId);
                         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        console.warn('[preview] scroll target not found:', data.chapterId);
                     }
                     break;
                 }
                 case 'update-chapter': {
-                    var target = document.getElementById(data.chapterId);
+                    var target = document.getElementById(data.chapterId) || document.querySelector('[data-chapter-id="' + data.chapterId + '"]');
                     if (target && data.html) {
+                        console.log('[preview] replacing chapter:', data.chapterId);
                         var temp = document.createElement('div');
                         temp.innerHTML = data.html;
                         var newEl = temp.firstElementChild;
                         if (newEl) {
                             target.replaceWith(newEl);
+                            console.log('[preview] replaced successfully');
+                        } else {
+                            console.warn('[preview] no firstElementChild in rendered HTML');
                         }
+                    } else {
+                        console.warn('[preview] update target not found:', data.chapterId);
                     }
                     break;
                 }
@@ -164,9 +174,11 @@ add_action('wp_footer', static function (): void {
         window.addEventListener('message', handleMessage);
         if (document.readyState === 'complete') {
             sendToParent({ type: 'preview-ready' });
+            console.log('[preview] ready signal sent');
         } else {
             window.addEventListener('load', function() {
                 sendToParent({ type: 'preview-ready' });
+                console.log('[preview] ready signal sent (on load)');
             });
         }
     })();
