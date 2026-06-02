@@ -60,8 +60,8 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'recognizing-racial-oppression',
 				'num'           => '01',
-				'awareness'     => 'Recognizing Racial Oppression',
-				'action'        => 'Advancing Racial Liberation',
+				'awareness'     => 'Recognizing Racial Oppression and Advancing Racial Liberation',
+				'action'        => '',
 				'color'         => '#5875FF',
 				'gradient'      => 'linear-gradient(135deg, #5875FF, #8AA0FF)',
 				'image_file'    => 'Sphere 1 Recognizing Racial Oppression and Advancing Racial Liberation.png',
@@ -77,10 +77,10 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'examining-racial-identities',
 				'num'           => '02',
-				'awareness'     => 'Examining Racial Identities',
-				'action'        => 'Addressing Racial Biases',
-				'color'         => '#E5B13B',
-				'gradient'      => 'linear-gradient(135deg, #E5B13B, #F2D184)',
+				'awareness'     => 'Examining Racial Identities and Addressing Racial Biases',
+				'action'        => '',
+				'color'         => '#9966FF',
+				'gradient'      => 'linear-gradient(135deg, #9966FF, #C2A3FF)',
 				'image_file'    => 'Sphere 2 Examining Racial Identities and Addressing Racial Biases.png',
 				'desc'          => 'Content that supports deep examination of racial identity formation and the biases that emerge from socialization—and that provides tools for confronting and transforming those biases.',
 				'guideQuestions' => [
@@ -94,10 +94,10 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'embracing-racial-diversity',
 				'num'           => '03',
-				'awareness'     => 'Embracing Racial Diversity',
-				'action'        => 'Growing Racial Literacy',
-				'color'         => '#66B570',
-				'gradient'      => 'linear-gradient(135deg, #66B570, #95D29C)',
+				'awareness'     => 'Embracing Racial Diversity and Growing Racial Literacy',
+				'action'        => '',
+				'color'         => '#E65555',
+				'gradient'      => 'linear-gradient(135deg, #E65555, #FF8F8F)',
 				'image_file'    => 'Sphere 3 Embracing Racial Diversity and Growing Racial Literacy.png',
 				'desc'          => 'Content that celebrates and engages with the richness of racial diversity while building the knowledge and competencies needed to navigate racial dynamics with skill and understanding.',
 				'guideQuestions' => [
@@ -111,10 +111,10 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'building-racial-empathy',
 				'num'           => '04',
-				'awareness'     => 'Building Racial Empathy',
-				'action'        => 'Enhancing Racial Stamina',
-				'color'         => '#6099B1',
-				'gradient'      => 'linear-gradient(135deg, #6099B1, #8ABBCF)',
+				'awareness'     => 'Building Racial Empathy and Enhancing Racial Stamina',
+				'action'        => '',
+				'color'         => '#F38D3C',
+				'gradient'      => 'linear-gradient(135deg, #F38D3C, #FFB87A)',
 				'image_file'    => 'Sphere 4 Building Racial Empathy and Enhancing Racial Stamina.png',
 				'desc'          => "Content that cultivates the capacity to understand and share in the racial experiences of others, and that builds the endurance needed to sustain engagement with difficult racial realities over time.",
 				'guideQuestions' => [
@@ -128,10 +128,10 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'acknowledging-racial-trauma',
 				'num'           => '05',
-				'awareness'     => 'Acknowledging Racial Trauma',
-				'action'        => 'Fostering Racial Healing',
-				'color'         => '#9368AC',
-				'gradient'      => 'linear-gradient(135deg, #9368AC, #B896CC)',
+				'awareness'     => 'Acknowledging Racial Trauma and Fostering Racial Healing',
+				'action'        => '',
+				'color'         => '#FFDB5E',
+				'gradient'      => 'linear-gradient(135deg, #FFDB5E, #FFE9A1)',
 				'image_file'    => 'Sphere 5 Acknowledging Racial Trauma and Fostering Racial Healing.png',
 				'desc'          => 'Content that names and validates the individual and collective trauma caused by racism, and that offers evidence-based or culturally grounded pathways toward healing and restoration.',
 				'guideQuestions' => [
@@ -145,10 +145,10 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'gauging-racial-inequities',
 				'num'           => '06',
-				'awareness'     => 'Gauging Racial Inequities',
-				'action'        => 'Championing Racial Justice',
-				'color'         => '#45938D',
-				'gradient'      => 'linear-gradient(135deg, #45938D, #72B8B3)',
+				'awareness'     => 'Gauging Racial Inequities and Championing Racial Justice',
+				'action'        => '',
+				'color'         => '#008000',
+				'gradient'      => 'linear-gradient(135deg, #008000, #3EAD3E)',
 				'image_file'    => 'Sphere 6 Gauging Racial Inequity and Championing Racial Justice.png',
 				'desc'          => 'Content that measures, documents, and analyzes racial inequities with rigor—and that champions concrete actions, policies, and movements advancing racial justice.',
 				'guideQuestions' => [
@@ -371,9 +371,6 @@ if (! function_exists('reci_media_hub_seed_default_spheres')) {
 			];
 
 			foreach ($default_values as $meta_key => $default_value) {
-				if ($default_value === '') {
-					continue;
-				}
 				$current_value = (string) get_term_meta($term_id, $meta_key, true);
 				if ($current_value === '' || $current_value !== $default_value) {
 					update_term_meta($term_id, $meta_key, $default_value);
