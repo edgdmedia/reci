@@ -60,6 +60,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'recognizing-racial-oppression',
 				'num'           => '01',
+				'name'          => 'Recognizing Racial Oppression',
 				'awareness'     => 'Recognizing Racial Oppression and Advancing Racial Liberation',
 				'action'        => '',
 				'color'         => '#5875FF',
@@ -77,6 +78,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'examining-racial-identities',
 				'num'           => '02',
+				'name'          => 'Examining Racial Identities',
 				'awareness'     => 'Examining Racial Identities and Addressing Racial Biases',
 				'action'        => '',
 				'color'         => '#9966FF',
@@ -94,6 +96,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'embracing-racial-diversity',
 				'num'           => '03',
+				'name'          => 'Embracing Racial Diversity',
 				'awareness'     => 'Embracing Racial Diversity and Growing Racial Literacy',
 				'action'        => '',
 				'color'         => '#E65555',
@@ -111,6 +114,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'building-racial-empathy',
 				'num'           => '04',
+				'name'          => 'Building Racial Empathy',
 				'awareness'     => 'Building Racial Empathy and Enhancing Racial Stamina',
 				'action'        => '',
 				'color'         => '#F38D3C',
@@ -128,6 +132,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'acknowledging-racial-trauma',
 				'num'           => '05',
+				'name'          => 'Acknowledging Racial Trauma',
 				'awareness'     => 'Acknowledging Racial Trauma and Fostering Racial Healing',
 				'action'        => '',
 				'color'         => '#FFDB5E',
@@ -145,6 +150,7 @@ if (! function_exists('reci_media_hub_default_spheres')) {
 			[
 				'slug'          => 'gauging-racial-inequities',
 				'num'           => '06',
+				'name'          => 'Gauging Racial Inequities',
 				'awareness'     => 'Gauging Racial Inequities and Championing Racial Justice',
 				'action'        => '',
 				'color'         => '#008000',
@@ -346,7 +352,7 @@ if (! function_exists('reci_media_hub_seed_default_spheres')) {
 
 			if ($term_id <= 0) {
 				$inserted = wp_insert_term(
-					$awareness,
+					$sphere['name'] ?? $awareness,
 					'reci_sphere',
 					[
 						'slug'        => $slug,
@@ -357,6 +363,11 @@ if (! function_exists('reci_media_hub_seed_default_spheres')) {
 					continue;
 				}
 				$term_id = (int) $inserted['term_id'];
+			} else {
+				// Update term name if short name is specified
+				if (!empty($sphere['name'])) {
+					wp_update_term($term_id, 'reci_sphere', ['name' => $sphere['name']]);
+				}
 			}
 
 			$default_values = [
