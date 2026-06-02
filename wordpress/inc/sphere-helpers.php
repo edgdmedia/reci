@@ -15,15 +15,16 @@ if (! function_exists('reci_get_post_spheres')) {
         foreach ($terms as $term) {
             $default = reci_media_hub_get_sphere_default_by_slug($term->slug) ?? [];
             $color   = (string) get_term_meta($term->term_id, 'reci_sphere_color', true);
-            $name    = (string) get_term_meta($term->term_id, 'reci_sphere_awareness', true);
+            $full_name = (string) get_term_meta($term->term_id, 'reci_sphere_awareness', true);
+            $name    = $term->name; // Use term name for short version
             $num     = (string) get_term_meta($term->term_id, 'reci_sphere_num', true);
             $action  = (string) get_term_meta($term->term_id, 'reci_sphere_action', true);
 
             if ($color === '') {
                 $color = (string) ($default['color'] ?? '#9B4D3A');
             }
-            if ($name === '') {
-                $name = $term->name;
+            if ($full_name === '') {
+                $full_name = $term->name;
             }
             if ($num === '') {
                 $num = (string) ($default['num'] ?? '');
@@ -49,6 +50,7 @@ if (! function_exists('reci_get_post_spheres')) {
                 'term_id'           => $term->term_id,
                 'slug'              => $term->slug,
                 'name'              => $name,
+                'full_name'         => $full_name,
                 'num'               => $num,
                 'action'            => $action,
                 'color'             => $color,
