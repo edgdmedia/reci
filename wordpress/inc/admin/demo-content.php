@@ -1,0 +1,2624 @@
+<?php
+
+/**
+ * RECI Media Hub — Demo Content Installer.
+ *
+ * Provides a one-click demo content importer available in
+ * Appearance → RECI Settings → Demo.
+ *
+ * - Idempotent: skips posts that already exist (matched by slug).
+ * - Attaches theme-bundled images to posts as featured images.
+ * - Creates taxonomy terms (topics, locations) before posts.
+ * - Provides a reset handler that removes only demo-flagged posts.
+ *
+ * @package reci-media-hub
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// ---------------------------------------------------------------------------
+// Admin-post handlers
+// ---------------------------------------------------------------------------
+
+add_action( 'admin_post_reci_install_demo', 'reci_handle_install_demo' );
+add_action( 'admin_post_reci_reset_demo',   'reci_handle_reset_demo' );
+add_action( 'wp_ajax_reci_demo_start_import', 'reci_demo_ajax_start_import' );
+add_action( 'wp_ajax_reci_demo_process_step', 'reci_demo_ajax_process_step' );
+
+if ( ! function_exists( 'reci_demo_content_types' ) ) {
+	function reci_demo_content_types(): array {
+		$image_groups = function_exists( 'reci_demo_image_groups' ) ? reci_demo_image_groups() : [];
+		return [
+			'reci_demo_images_reflections' => [ 'label' => 'Reflection Images', 'count' => count( $image_groups['reci_demo_images_reflections'] ?? [] ) ],
+			'reci_demo_images_articles'    => [ 'label' => 'Article Images',    'count' => count( $image_groups['reci_demo_images_articles'] ?? [] ) ],
+			'reci_demo_images_events'      => [ 'label' => 'Event Images',      'count' => count( $image_groups['reci_demo_images_events'] ?? [] ) ],
+			'reci_demo_images_courses'     => [ 'label' => 'Course Images',     'count' => count( $image_groups['reci_demo_images_courses'] ?? [] ) ],
+			'reci_demo_images_misc'        => [ 'label' => 'Shared / Misc Images', 'count' => count( $image_groups['reci_demo_images_misc'] ?? [] ) ],
+			'post'   => [ 'label' => 'Articles',     'count' => 15 ],
+			'reci_podcast'   => [ 'label' => 'Podcasts',     'count' => 3 ],
+			'reci_video'     => [ 'label' => 'Videos',       'count' => 3 ],
+			'reci_event'     => [ 'label' => 'Events',       'count' => 5 ],
+			'reci_reflection'=> [ 'label' => 'Reflections',  'count' => 6 ],
+			'reci_quote'     => [ 'label' => 'Quotes',       'count' => 3 ],
+			'reci_assessment'=> [ 'label' => 'Quizzes',      'count' => 5 ],
+			'reci_course'    => [ 'label' => 'Courses',      'count' => 17 ],
+			'reci_testimonial'    => [ 'label' => 'Testimonials',     'count' => 4 ],
+			'reci_glossary_term' => [ 'label' => 'Glossary Terms',  'count' => 42 ],
+			'reci_author'        => [ 'label' => 'Author Profiles', 'count' => 1 ],
+			'reci_page'          => [ 'label' => 'Core Pages',      'count' => 18 ],
+		];
+	}
+}
+
+function reci_handle_install_demo(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'Unauthorized.' );
+	}
+	check_admin_referer( 'reci_demo_action' );
+
+	$selected = isset( $_POST['reci_demo_types'] ) && is_array( $_POST['reci_demo_types'] )
+		? array_map( 'sanitize_key', $_POST['reci_demo_types'] )
+		: [];
+
+	reci_install_demo_content( $selected );
+
+	wp_safe_redirect( add_query_arg( [
+		'page'         => 'reci-settings',
+		'tab'          => 'demo',
+		'demo_notice'  => 'installed',
+	], admin_url( 'admin.php' ) ) );
+	exit;
+}
+
+function reci_handle_reset_demo(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'Unauthorized.' );
+	}
+	check_admin_referer( 'reci_demo_action' );
+
+	reci_reset_demo_content();
+
+	wp_safe_redirect( add_query_arg( [
+		'page'         => 'reci-settings',
+		'tab'          => 'demo',
+		'demo_notice'  => 'reset',
+	], admin_url( 'admin.php' ) ) );
+	exit;
+}
+
+// ---------------------------------------------------------------------------
+// Async import state
+// ---------------------------------------------------------------------------
+
+function reci_demo_job_option_key(): string {
+	return 'reci_demo_import_job';
+}
+
+function reci_demo_asset_registry_option_key(): string {
+	return 'reci_demo_asset_registry';
+}
+
+function reci_demo_get_job(): array {
+	$job = get_option( reci_demo_job_option_key(), [] );
+	return is_array( $job ) ? $job : [];
+}
+
+function reci_demo_set_job( array $job ): void {
+	update_option( reci_demo_job_option_key(), $job, false );
+}
+
+function reci_demo_clear_job(): void {
+	delete_option( reci_demo_job_option_key() );
+}
+
+function reci_demo_get_asset_registry(): array {
+	$registry = get_option( reci_demo_asset_registry_option_key(), [] );
+	return is_array( $registry ) ? $registry : [];
+}
+
+function reci_demo_set_asset_registry( array $registry ): void {
+	update_option( reci_demo_asset_registry_option_key(), $registry, false );
+}
+
+function reci_demo_append_activity( array $job, string $message ): array {
+	$activity   = is_array( $job['activity'] ?? null ) ? $job['activity'] : [];
+	$activity[] = $message;
+	$job['activity'] = array_slice( $activity, -30 );
+	return $job;
+}
+
+function reci_demo_present_job_state( array $job ): array {
+	if ( empty( $job ) ) {
+		return [];
+	}
+
+	$total     = count( $job['queue'] ?? [] );
+	$cursor    = (int) ( $job['cursor'] ?? 0 );
+	$processed = min( $cursor, $total );
+	$percent   = $total > 0 ? (int) round( ( $processed / $total ) * 100 ) : 0;
+	$running   = ! empty( $job['running'] ) && empty( $job['finished'] );
+
+	return [
+		'job_id'        => (string) ( $job['id'] ?? '' ),
+		'running'       => $running,
+		'finished'      => ! empty( $job['finished'] ),
+		'current_label' => (string) ( $job['current_label'] ?? ( $running ? 'Running import…' : 'Idle' ) ),
+		'progress_text' => sprintf( 'Processed %1$d of %2$d steps', $processed, $total ),
+		'percent'       => $percent,
+		'activity'      => array_values( is_array( $job['activity'] ?? null ) ? $job['activity'] : [] ),
+		'completed'     => array_values( is_array( $job['completed'] ?? null ) ? $job['completed'] : [] ),
+		'failed'        => array_values( is_array( $job['failed'] ?? null ) ? $job['failed'] : [] ),
+		'skipped'       => array_values( is_array( $job['skipped'] ?? null ) ? $job['skipped'] : [] ),
+	];
+}
+
+function reci_demo_result_entry( string $status, string $label, string $message, array $extra = [] ): array {
+	return array_merge(
+		[
+			'status'  => $status,
+			'label'   => $label,
+			'message' => $message,
+		],
+		$extra
+	);
+}
+
+function reci_demo_collect_image_paths_from_directory( string $relative_dir ): array {
+	$base_dir = trailingslashit( get_template_directory() . '/assets/images/' . trim( $relative_dir, '/' ) );
+	if ( ! is_dir( $base_dir ) ) {
+		return [];
+	}
+
+	$paths    = [];
+	$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $base_dir, FilesystemIterator::SKIP_DOTS ) );
+	foreach ( $iterator as $file ) {
+		if ( ! $file instanceof SplFileInfo || ! $file->isFile() ) {
+			continue;
+		}
+		$extension = strtolower( $file->getExtension() );
+		if ( ! in_array( $extension, [ 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif' ], true ) ) {
+			continue;
+		}
+		$relative = str_replace( trailingslashit( get_template_directory() . '/assets/images/' ), '', $file->getPathname() );
+		$paths[]  = str_replace( DIRECTORY_SEPARATOR, '/', $relative );
+	}
+
+	sort( $paths );
+	return $paths;
+}
+
+function reci_demo_misc_image_paths(): array {
+	$base_dir = trailingslashit( get_template_directory() . '/assets/images' );
+	$items    = [];
+	foreach ( [ 'Image.png', 'Image1.png', 'Image2.png', 'Image3.png', 'Image4.png', 'Image5.png' ] as $file ) {
+		if ( file_exists( $base_dir . $file ) ) {
+			$items[] = $file;
+		}
+	}
+	return $items;
+}
+
+function reci_demo_image_groups(): array {
+	return [
+		'reci_demo_images_reflections' => reci_demo_collect_image_paths_from_directory( 'site/reflections' ),
+		'reci_demo_images_articles'    => reci_demo_collect_image_paths_from_directory( 'site/articles' ),
+		'reci_demo_images_events'      => reci_demo_collect_image_paths_from_directory( 'site/events' ),
+		'reci_demo_images_courses'     => reci_demo_collect_image_paths_from_directory( 'site/learn' ),
+		'reci_demo_images_misc'        => reci_demo_misc_image_paths(),
+	];
+}
+
+function reci_demo_load_php_dataset( string $name ): array {
+	static $cache = [];
+
+	if ( array_key_exists( $name, $cache ) ) {
+		return $cache[ $name ];
+	}
+
+	$file = get_template_directory() . '/demo-content/' . $name . '.php';
+	if ( ! file_exists( $file ) ) {
+		$cache[ $name ] = [];
+		return $cache[ $name ];
+	}
+
+	$data = require $file;
+	$cache[ $name ] = is_array( $data ) ? $data : [];
+
+	return $cache[ $name ];
+}
+
+function reci_demo_reflection_queue_items(): array {
+	$dataset = reci_demo_load_php_dataset( 'reflections' );
+	return array_values( (array) ( $dataset['items'] ?? [] ) );
+}
+
+function reci_demo_bootstrap_taxonomies(): array {
+	$topics = reci_demo_ensure_terms( 'reci_topic', [
+		'Systemic Racism',
+		'Intersectionality',
+		'Cultural Identity',
+		'Workplace Equity',
+		'Community Action',
+		'Education',
+		'Health Disparities',
+		'Criminal Justice',
+		'Indigenous Rights',
+		'Technology & Equity',
+		'Public Service',
+		'Rural Equity',
+		'Health Determinants',
+		'Inclusion',
+		'Access',
+		'Economic Stability',
+		'Cultural Competence',
+	] );
+
+	foreach ( [
+		'Systemic Racism', 'Public Service', 'Rural Equity', 'Health Determinants',
+		'Health Disparities', 'Inclusion', 'Cultural Competence', 'Education',
+		'Workplace Equity', 'Access', 'Economic Stability', 'Technology & Equity',
+	] as $name ) {
+		$term = term_exists( $name, 'category' );
+		if ( ! $term ) {
+			wp_insert_term( $name, 'category' );
+		}
+	}
+
+	$locations = reci_demo_ensure_terms( 'reci_location', [ 'Pittsburgh', 'Allegheny County', 'Pennsylvania', 'National' ] );
+	reci_demo_ensure_terms( 'reci_sphere', [ 'Recognizing Racial Oppression', 'Gauging Racial Inequities', 'Embracing Racial Diversity', 'Building Racial Empathy' ] );
+	reci_demo_ensure_terms( 'reci_practice_focus', [ 'Framework / Model', 'Community-Based Approach', 'Policy / Legislation', 'Curriculum / Training', 'Practice / Intervention', 'Research / Evaluation', 'Organizational Strategy', 'Other' ] );
+	reci_demo_ensure_terms( 'reci_show', [ 'Healing Overflow with Dr Toy' ] );
+	reci_media_hub_seed_default_shows();
+
+	return [ 'topics' => $topics, 'locations' => $locations ];
+}
+
+function reci_demo_build_import_queue( array $selected ): array {
+	$queue = [];
+	$image_groups = reci_demo_image_groups();
+
+	foreach ( $selected as $group ) {
+		if ( isset( $image_groups[ $group ] ) ) {
+			foreach ( $image_groups[ $group ] as $path ) {
+				$queue[] = [ 'type' => 'import_image', 'group' => $group, 'path' => $path ];
+			}
+			continue;
+		}
+
+		if ( 'reci_reflection' === $group ) {
+			foreach ( reci_demo_reflection_queue_items() as $item ) {
+				$queue[] = [ 'type' => 'import_reflection', 'group' => $group, 'item' => $item ];
+			}
+			continue;
+		}
+
+		$queue[] = [ 'type' => 'import_legacy_group', 'group' => $group ];
+	}
+
+	return $queue;
+}
+
+function reci_demo_get_registered_asset( string $path ): array {
+	$registry = reci_demo_get_asset_registry();
+	$entry = $registry[ $path ] ?? [];
+	return is_array( $entry ) ? $entry : [];
+}
+
+function reci_demo_import_image_asset( string $path ): array {
+	$existing = reci_demo_get_registered_asset( $path );
+	if ( ! empty( $existing['attachment_id'] ) ) {
+		return reci_demo_result_entry( 'skipped', $path, 'Image already imported.', [ 'path' => $path ] );
+	}
+
+	$imgs = [];
+	$error_message = '';
+	$attachment_id = reci_demo_sideload_image( $path, 0, $imgs, $error_message );
+	if ( ! $attachment_id ) {
+		return reci_demo_result_entry( 'failed', $path, 'Image import failed.' . ( '' !== $error_message ? ' ' . $error_message : '' ), [ 'path' => $path ] );
+	}
+
+	$entry = [
+		'attachment_id' => $attachment_id,
+		'url'           => wp_get_attachment_url( $attachment_id ) ?: '',
+		'path'          => $path,
+		'imported_at'   => time(),
+	];
+
+	$registry = reci_demo_get_asset_registry();
+	$registry[ $path ] = $entry;
+	reci_demo_set_asset_registry( $registry );
+
+	return reci_demo_result_entry( 'completed', $path, 'Image imported successfully.', [ 'path' => $path ] );
+}
+
+function reci_demo_resolve_registry_url( string $path ): string {
+	$entry = reci_demo_get_registered_asset( $path );
+	return (string) ( $entry['url'] ?? '' );
+}
+
+function reci_demo_attach_registry_thumbnail( int $post_id, string $path ): bool {
+	$entry = reci_demo_get_registered_asset( $path );
+
+	$attachment_id = (int) ( $entry['attachment_id'] ?? 0 );
+	if ( $attachment_id > 0 ) {
+		delete_post_meta( $post_id, '_reci_reflection_background_image_url' );
+		update_post_meta( $post_id, '_reci_reflection_background_image_id', $attachment_id );
+		return (bool) set_post_thumbnail( $post_id, $attachment_id );
+	}
+
+	return false;
+}
+
+function reci_demo_validate_required_assets( array $paths ): array {
+	$missing = [];
+	foreach ( $paths as $path ) {
+		$entry = reci_demo_get_registered_asset( $path );
+		if ( empty( $entry['attachment_id'] ) ) {
+			$missing[] = $path;
+		}
+	}
+	return $missing;
+}
+
+function reci_demo_import_reflection_item( array $item ): array {
+	$slug = (string) ( $item['slug'] ?? '' );
+	$title = (string) ( $item['title'] ?? $slug );
+	$activity = [ 'Validating reflection assets' ];
+	if ( '' === $slug ) {
+		return reci_demo_result_entry( 'failed', 'Reflection', 'Missing reflection slug.' );
+	}
+	if ( get_page_by_path( $slug, OBJECT, 'reci_reflection' ) ) {
+		return reci_demo_result_entry( 'skipped', $title, 'Reflection already exists.', [ 'slug' => $slug ] );
+	}
+
+	$required = [];
+	if ( 'style' === ( $item['kind'] ?? '' ) ) {
+		$folder = (string) ( $item['folder'] ?? '' );
+		if ( $folder !== '' && ! empty( $item['featured'] ) ) {
+			$required[] = 'site/reflections/' . $folder . '/' . $item['featured'];
+		}
+		foreach ( (array) ( $item['inner'] ?? [] ) as $file ) {
+			$required[] = 'site/reflections/' . $folder . '/' . $file;
+		}
+	} else {
+		$required = array_values( (array) ( $item['assets'] ?? [] ) );
+	}
+
+	$missing = reci_demo_validate_required_assets( $required );
+	if ( ! empty( $missing ) ) {
+		return reci_demo_result_entry( 'failed', $title, 'Missing required reflection assets: ' . implode( ', ', $missing ), [ 'slug' => $slug, 'activity' => $activity ] );
+	}
+
+	$bootstrap = reci_demo_bootstrap_taxonomies();
+	$imgs = [];
+	$activity[] = 'Creating reflection post';
+	reci_demo_insert_post( 'reci_reflection', [
+		'slug'     => $slug,
+		'title'    => $title,
+		'excerpt'  => (string) ( $item['excerpt'] ?? '' ),
+		'content'  => '',
+		'category' => (string) ( $item['category'] ?? '' ),
+		'topics'   => (array) ( $item['topics'] ?? [] ),
+		'spheres'  => (array) ( $item['spheres'] ?? [] ),
+		'meta'     => [],
+	], $bootstrap['topics'], $bootstrap['locations'], $imgs );
+
+	$post = get_page_by_path( $slug, OBJECT, 'reci_reflection' );
+	if ( ! $post ) {
+		return reci_demo_result_entry( 'failed', $title, 'Could not create reflection post.', [ 'slug' => $slug, 'activity' => $activity ] );
+	}
+
+	$featured_path = 'style' === ( $item['kind'] ?? '' )
+		? 'site/reflections/' . (string) ( $item['folder'] ?? '' ) . '/' . (string) ( $item['featured'] ?? '' )
+		: (string) ( $item['featured'] ?? '' );
+
+	$activity[] = 'Attaching featured image';
+	if ( '' === $featured_path || ! reci_demo_attach_registry_thumbnail( (int) $post->ID, $featured_path ) ) {
+		wp_delete_post( $post->ID, true );
+		return reci_demo_result_entry( 'failed', $title, 'Could not attach featured image from imported assets.', [ 'slug' => $slug, 'activity' => $activity ] );
+	}
+
+	if ( 'style' === ( $item['kind'] ?? '' ) ) {
+		$urls = [];
+		foreach ( (array) ( $item['inner'] ?? [] ) as $file ) {
+			$urls[] = reci_demo_resolve_registry_url( 'site/reflections/' . (string) ( $item['folder'] ?? '' ) . '/' . $file );
+		}
+		$blueprint = reci_demo_blueprint_inject_images( reci_demo_blueprint_from_style( (string) ( $item['style'] ?? '' ) ), array_values( array_filter( $urls ) ) );
+	} elseif ( 'black-wall' === ( $item['kind'] ?? '' ) ) {
+		$img = [];
+		foreach ( (array) ( $item['assets'] ?? [] ) as $path ) {
+			$img[ basename( $path ) ] = reci_demo_resolve_registry_url( $path );
+		}
+		$blueprint = reci_demo_black_wall_street_blueprint( $img );
+	} else {
+		$img = [];
+		foreach ( (array) ( $item['assets'] ?? [] ) as $path ) {
+			$img[ basename( $path ) ] = reci_demo_resolve_registry_url( $path );
+		}
+		$blueprint = reci_demo_we_humans_blueprint( $img );
+	}
+
+	$activity[] = 'Writing reflection blueprint';
+	update_post_meta( $post->ID, '_reci_reflection_blueprint', wp_slash( wp_json_encode( $blueprint, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) ) );
+	if ( class_exists( 'RECI_Reflection_Content_Service' ) ) {
+		RECI_Reflection_Content_Service::invalidate_cache( (int) $post->ID );
+	}
+	update_option( 'reci_demo_installed', true );
+
+	return reci_demo_result_entry( 'completed', $title, 'Reflection imported successfully.', [ 'slug' => $slug, 'activity' => $activity ] );
+}
+
+function reci_demo_process_next_job_step( array $job ): array {
+	$queue = array_values( is_array( $job['queue'] ?? null ) ? $job['queue'] : [] );
+	$cursor = (int) ( $job['cursor'] ?? 0 );
+	$total = count( $queue );
+
+	if ( $cursor >= $total ) {
+		$job['finished'] = true;
+		$job['running'] = false;
+		$job['current_label'] = 'Import complete';
+		$job = reci_demo_append_activity( $job, 'Import complete.' );
+		return $job;
+	}
+
+	$step = $queue[ $cursor ];
+	$result = reci_demo_result_entry( 'failed', 'Import step', 'Unknown step.' );
+
+	if ( 'import_image' === ( $step['type'] ?? '' ) ) {
+		$path = (string) ( $step['path'] ?? '' );
+		$job['current_label'] = 'Importing image: ' . $path;
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_image_asset( $path );
+	} elseif ( 'import_reflection' === ( $step['type'] ?? '' ) ) {
+		$item = is_array( $step['item'] ?? null ) ? $step['item'] : [];
+		$job['current_label'] = 'Creating reflection: ' . (string) ( $item['title'] ?? $item['slug'] ?? 'Reflection' );
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_reflection_item( $item );
+	} elseif ( 'import_legacy_group' === ( $step['type'] ?? '' ) ) {
+		$group = (string) ( $step['group'] ?? '' );
+		$label = (string) ( reci_demo_content_types()[ $group ]['label'] ?? $group );
+		$job['current_label'] = 'Installing group: ' . $label;
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		reci_install_demo_content( [ $group ] );
+		$result = reci_demo_result_entry( 'completed', $label, 'Legacy content group imported.' );
+	}
+
+	$bucket = 'failed';
+	if ( 'completed' === $result['status'] ) {
+		$bucket = 'completed';
+	} elseif ( 'skipped' === $result['status'] ) {
+		$bucket = 'skipped';
+	}
+	$job[ $bucket ][] = $result;
+	foreach ( (array) ( $result['activity'] ?? [] ) as $activity_message ) {
+		$job = reci_demo_append_activity( $job, (string) $activity_message );
+	}
+	$job = reci_demo_append_activity( $job, $result['label'] . ': ' . $result['message'] );
+	$job['cursor'] = $cursor + 1;
+	$job['updated'] = time();
+	$job['running'] = $job['cursor'] < $total;
+	$job['finished'] = ! $job['running'];
+	if ( $job['finished'] ) {
+		$job['current_label'] = 'Import complete';
+	}
+
+	return $job;
+}
+
+function reci_demo_ajax_start_import(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( [ 'message' => 'Unauthorized.' ], 403 );
+	}
+
+	check_ajax_referer( 'reci_demo_action', 'nonce' );
+
+	$selected = isset( $_POST['selected'] ) && is_array( $_POST['selected'] )
+		? array_values( array_unique( array_map( 'sanitize_key', wp_unslash( $_POST['selected'] ) ) ) )
+		: [];
+
+	if ( empty( $selected ) ) {
+		wp_send_json_error( [ 'message' => 'Select at least one import group.' ], 400 );
+	}
+
+	$job = [
+		'id'          => wp_generate_uuid4(),
+		'selected'    => $selected,
+		'queue'       => reci_demo_build_import_queue( $selected ),
+		'cursor'      => 0,
+		'completed'   => [],
+		'failed'      => [],
+		'skipped'     => [],
+		'activity'    => [],
+		'current_label' => 'Preparing import queue…',
+		'running'     => true,
+		'finished'    => false,
+		'started'     => time(),
+		'updated'     => time(),
+	];
+	$job = reci_demo_append_activity( $job, 'Import job created.' );
+	if ( empty( $job['queue'] ) ) {
+		$job['running'] = false;
+		$job['finished'] = true;
+		$job['current_label'] = 'Nothing to import';
+		$job = reci_demo_append_activity( $job, 'No import steps were generated.' );
+	}
+
+	reci_demo_set_job( $job );
+	wp_send_json_success( reci_demo_present_job_state( $job ) );
+}
+
+function reci_demo_ajax_process_step(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( [ 'message' => 'Unauthorized.' ], 403 );
+	}
+
+	check_ajax_referer( 'reci_demo_action', 'nonce' );
+
+	$job = reci_demo_get_job();
+	if ( empty( $job ) ) {
+		wp_send_json_error( [ 'message' => 'No active import job.' ], 404 );
+	}
+
+	$job = reci_demo_process_next_job_step( $job );
+	reci_demo_set_job( $job );
+	wp_send_json_success( reci_demo_present_job_state( $job ) );
+}
+
+// ---------------------------------------------------------------------------
+// Core installer
+// ---------------------------------------------------------------------------
+
+function reci_install_demo_content( array $only_types = [] ): void {
+	$all  = array_keys( reci_demo_content_types() );
+	$want = $only_types ? array_intersect( $only_types, $all ) : $all;
+	if ( empty( $want ) ) {
+		return;
+	}
+
+	$do_all = $want === $all;
+
+	// Taxonomy terms first.
+	$topics = reci_demo_ensure_terms( 'reci_topic', [
+		'Systemic Racism',
+		'Intersectionality',
+		'Cultural Identity',
+		'Workplace Equity',
+		'Community Action',
+		'Education',
+		'Health Disparities',
+		'Criminal Justice',
+		'Indigenous Rights',
+		'Technology & Equity',
+		'Public Service',
+		'Rural Equity',
+		'Health Determinants',
+		'Inclusion',
+		'Access',
+		'Economic Stability',
+		'Cultural Competence',
+	] );
+
+	$category_names = [
+		'Systemic Racism', 'Public Service', 'Rural Equity', 'Health Determinants',
+		'Health Disparities', 'Inclusion', 'Cultural Competence', 'Education',
+		'Workplace Equity', 'Access', 'Economic Stability', 'Technology & Equity',
+	];
+	$categories = [];
+	foreach ( $category_names as $name ) {
+		$term = term_exists( $name, 'category' );
+		if ( ! $term ) {
+			$term = wp_insert_term( $name, 'category' );
+		}
+		if ( ! is_wp_error( $term ) ) {
+			$categories[ $name ] = (int) ( $term['term_id'] ?? $term );
+		}
+	}
+
+	$locations = reci_demo_ensure_terms( 'reci_location', [
+		'Pittsburgh',
+		'Allegheny County',
+		'Pennsylvania',
+		'National',
+	] );
+
+	reci_demo_ensure_terms( 'reci_sphere', [
+		'Recognizing Racial Oppression',
+		'Gauging Racial Inequities',
+		'Embracing Racial Diversity',
+		'Building Racial Empathy',
+	] );
+
+	reci_demo_ensure_terms( 'reci_practice_focus', [
+		'Framework / Model',
+		'Community-Based Approach',
+		'Policy / Legislation',
+		'Curriculum / Training',
+		'Practice / Intervention',
+		'Research / Evaluation',
+		'Organizational Strategy',
+		'Other',
+	] );
+
+	reci_demo_ensure_terms( 'reci_show', [
+		'Healing Overflow with Dr Toy',
+	] );
+	reci_media_hub_seed_default_shows();
+
+	// Image map: file basename (in assets/images/) => attachment ID (lazily sideloaded).
+	$imgs = [];
+
+	$article_asset_url = static function ( string $path ): string {
+		return get_template_directory_uri() . '/assets/images/' . ltrim( $path, '/' );
+	};
+
+	$article_figure = static function ( string $path, string $alt, string $caption = '' ) use ( $article_asset_url ): string {
+		$html  = '<figure class="wp-block-image size-large">';
+		$html .= '<img src="' . esc_url( $article_asset_url( $path ) ) . '" alt="' . esc_attr( $alt ) . '" />';
+		if ( $caption !== '' ) {
+			$html .= '<figcaption>' . esc_html( $caption ) . '</figcaption>';
+		}
+		$html .= '</figure>';
+
+		return $html;
+	};
+
+	$article_content = static function ( string $title, string $figure_path = '', string $figure_alt = '', string $figure_caption = '' ) use ( $article_figure ): string {
+		$figure_html = $figure_path !== '' ? $article_figure( $figure_path, $figure_alt, $figure_caption ) : '';
+		return reci_demo_render_markdown_article( $title, $figure_html );
+	};
+
+	$article_excerpt = static function ( string $title ): string {
+		return reci_demo_get_markdown_article_excerpt( $title );
+	};
+
+	// Articles.
+	$articles = [
+		[
+			'slug'     => 'aging-racism-equity-consciousness-pittsburgh',
+			'title'    => 'Aging, Racism, and Equity Consciousness in Pittsburgh',
+			'author_name' => 'Anuj Peri',
+			'excerpt'  => $article_excerpt( 'Aging, Racism, and Equity Consciousness in Pittsburgh' ),
+			'content'  => $article_content( 'Aging, Racism, and Equity Consciousness in Pittsburgh', 'site/articles/aging-racism-equity-consciousness-pittsburgh/community.jpg', 'Community members gathered during a racial healing event.', 'Intergenerational spaces can help translate racial equity principles into lived community care.' ),
+			'category' => 'Health Disparities',
+			'topics'   => [ 'Health Disparities', 'Community Action', 'Cultural Competence' ],
+			'tags'     => [ 'racialized aging', 'intergenerational wellness', 'Hill District', 'elder equity' ],
+			'spheres'  => [ 'Building Racial Empathy' ],
+			'image'    => 'site/articles/aging-racism-equity-consciousness-pittsburgh/featured.jpg',
+			'post_date'=> '2025-01-17 10:00:00',
+			'meta'     => [ '_post_read_time_label' => '6 min read' ],
+		],
+		[
+			'slug'     => 'freedom-house',
+			'title'    => 'Freedom House',
+			'author_name' => 'Alexia Wagurak',
+			'excerpt'  => $article_excerpt( 'Freedom House' ),
+			'content'  => $article_content( 'Freedom House', 'site/articles/freedom-house/community.jpg', 'Community gathering connected to public service and healing.', 'Freedom House became trusted because it served Black communities with speed, dignity, and care.' ),
+			'category' => 'Public Service',
+			'topics'   => [ 'Public Service', 'Health Disparities', 'Community Action' ],
+			'tags'     => [ 'Freedom House', 'EMS history', 'Hill District', 'emergency medicine' ],
+			'spheres'  => [ 'Recognizing Racial Oppression' ],
+			'image'    => 'site/articles/freedom-house/featured.jpg',
+			'post_date'=> '2025-02-04 09:30:00',
+			'meta'     => [ '_post_read_time_label' => '7 min read' ],
+		],
+		[
+			'slug'     => 'recmh-origin',
+			'title'    => 'RECMH Origin',
+			'excerpt'  => $article_excerpt( 'RECMH Origin' ),
+			'content'  => $article_content( 'RECMH Origin', 'site/articles/recmh-origin/collaboration.jpeg', 'Collaborative RECI event with participants in discussion.', 'The media hub emerged from a collaborative attempt to make racial equity research more usable and visible.' ),
+			'category' => 'Technology & Equity',
+			'topics'   => [ 'Technology & Equity', 'Education', 'Community Action' ],
+			'tags'     => [ 'media hub', 'RECI history', 'UN forum', 'knowledge sharing' ],
+			'spheres'  => [ 'Embracing Racial Diversity' ],
+			'image'    => 'site/articles/recmh-origin/featured.jpeg',
+			'post_date'=> '2025-02-21 14:15:00',
+			'meta'     => [ '_post_read_time_label' => '4 min read' ],
+		],
+		[
+			'slug'     => 'minority-language-genocide-cultural-awareness',
+			'title'    => 'Minority Language Genocide and Cultural Awareness',
+			'author_name' => 'Tracy Wang',
+			'excerpt'  => $article_excerpt( 'Minority Language Genocide and Cultural Awarness' ),
+			'content'  => $article_content( 'Minority Language Genocide and Cultural Awarness', 'site/articles/minority-language-genocide-cultural-awareness/global-dialogue.JPG', 'International conference gathering focused on cross-cultural dialogue.', 'Language justice is inseparable from cultural survival and equitable participation.' ),
+			'category' => 'Cultural Competence',
+			'topics'   => [ 'Cultural Identity', 'Education', 'Inclusion' ],
+			'tags'     => [ 'language justice', 'cultural erasure', 'assimilation policy', 'indigenous languages' ],
+			'spheres'  => [ 'Recognizing Racial Oppression' ],
+			'image'    => 'site/articles/minority-language-genocide-cultural-awareness/featured.JPG',
+			'post_date'=> '2025-03-12 11:45:00',
+			'meta'     => [ '_post_read_time_label' => '7 min read' ],
+		],
+		[
+			'slug'     => 'the-pennsylvania-black-maternal-health-caucus',
+			'title'    => 'The Pennsylvania Black Maternal Health Caucus: What It Is and Why You Should Care',
+			'author_name' => 'Vivian Greenwood',
+			'excerpt'  => $article_excerpt( 'The Pennsylvania Black Maternal Health Caucus: What It Is and Why You Should Care' ),
+			'content'  => $article_content( 'The Pennsylvania Black Maternal Health Caucus: What It Is and Why You Should Care', 'site/articles/pennsylvania-black-maternal-health-caucus/advocacy.JPG', 'Community and advocacy gathering connected to health equity organizing.', 'Maternal health equity depends on policy, public awareness, and community-rooted advocacy.' ),
+			'category' => 'Health Disparities',
+			'topics'   => [ 'Health Disparities', 'Public Service', 'Community Action' ],
+			'tags'     => [ 'maternal health', 'Pennsylvania policy', 'doula access', 'birth equity' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'image'    => 'site/articles/pennsylvania-black-maternal-health-caucus/featured.JPG',
+			'post_date'=> '2025-04-09 08:20:00',
+			'meta'     => [ '_post_read_time_label' => '8 min read' ],
+		],
+		[
+			'slug'     => 'how-neuroscience-and-community-based-practices-advance-racial-equity',
+			'title'    => 'How Neuroscience and Community-Based Practices Advance Racial Equity in Research',
+			'author_name' => 'Arshia Sista',
+			'excerpt'  => $article_excerpt( 'How can Neuroscience and Community-Based Practices Advance Racial Equity in Research' ),
+			'content'  => $article_content( 'How can Neuroscience and Community-Based Practices Advance Racial Equity in Research', 'site/articles/neuroscience-community-based-practices-racial-equity-research/lab-dialogue.jpg', 'Participants in discussion during a research-oriented event.', 'Equity-centered neuroscience requires accountability to communities, not just better lab instruments.' ),
+			'category' => 'Technology & Equity',
+			'topics'   => [ 'Technology & Equity', 'Education', 'Health Disparities' ],
+			'tags'     => [ 'neuroscience', 'CBPR', 'SCBT', 'research ethics' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'image'    => 'site/articles/neuroscience-community-based-practices-racial-equity-research/featured.jpg',
+			'post_date'=> '2025-05-06 13:10:00',
+			'meta'     => [ '_post_read_time_label' => '7 min read' ],
+		],
+		[
+			'slug'     => 'neuroscience-cant-fix-racism-right-questions',
+			'title'    => 'Neuroscience Can’t Fix Racism—But It Can Help If We Start Asking the Right Questions',
+			'author_name' => 'Arshia Sista',
+			'excerpt'  => $article_excerpt( 'Neuroscience Can’t Fix Racism—But It Can Help If We Start Asking the Right Questions' ),
+			'content'  => $article_content( 'Neuroscience Can’t Fix Racism—But It Can Help If We Start Asking the Right Questions', 'site/articles/neuroscience-cant-fix-racism-right-questions/research-community.jpg', 'Researchers and participants in a collaborative event space.', 'Equity-centered neuroscience asks who is represented, who benefits, and what structural change the research supports.' ),
+			'category' => 'Technology & Equity',
+			'topics'   => [ 'Technology & Equity', 'Systemic Racism', 'Education' ],
+			'tags'     => [ 'implicit bias', 'fMRI', 'racial anxiety', 'community research' ],
+			'spheres'  => [ 'Recognizing Racial Oppression' ],
+			'image'    => 'site/articles/neuroscience-cant-fix-racism-right-questions/featured.jpg',
+			'post_date'=> '2025-05-28 16:40:00',
+			'meta'     => [ '_post_read_time_label' => '6 min read' ],
+		],
+		[
+			'slug'     => 'understanding-systemic-racism-comprehensive-overview',
+			'title'    => 'Understanding Systemic Racism: A Comprehensive Overview',
+			'excerpt'  => $article_excerpt( 'Understanding Systemic Racism: A Comprehensive Overview' ),
+			'content'  => $article_content( 'Understanding Systemic Racism: A Comprehensive Overview', 'site/articles/understanding-systemic-racism-comprehensive-overview/community.jpg', 'Community members in conversation during a public event.', 'Systemic racism becomes clearer when policy, data, and lived experience are viewed together.' ),
+			'category' => 'Systemic Racism',
+			'topics'   => [ 'Systemic Racism', 'Education', 'Community Action' ],
+			'tags'     => [ 'systems change', 'equity framework', 'institutional racism', 'community knowledge' ],
+			'spheres'  => [ 'Recognizing Racial Oppression' ],
+			'image'    => 'site/articles/understanding-systemic-racism-comprehensive-overview/featured.jpg',
+			'post_date'=> '2024-06-02 09:15:00',
+			'meta'     => [ '_post_read_time_label' => '4 min read' ],
+		],
+		[
+			'slug'     => 'exploring-engagement-insights-racial-equity-consciousness-institute',
+			'title'    => 'Exploring Engagement And Insights From The Racial Equity Consciousness Institute',
+			'excerpt'  => $article_excerpt( 'Exploring Engagement And Insights From The Racial Equity Consciousness Institute' ),
+			'content'  => $article_content( 'Exploring Engagement And Insights From The Racial Equity Consciousness Institute', 'site/articles/exploring-engagement-insights-racial-equity-consciousness-institute/community.jpg', 'Participants gathered in a reflection-centered RECI event.', 'Student engagement with RECI highlights the role of reflection, dialogue, and practical application.' ),
+			'category' => 'Education',
+			'topics'   => [ 'Education', 'Community Action', 'Cultural Competence' ],
+			'tags'     => [ 'student engagement', 'qualitative research', 'RECI cohorts', 'equity learning' ],
+			'spheres'  => [ 'Building Racial Empathy' ],
+			'image'    => 'site/articles/exploring-engagement-insights-racial-equity-consciousness-institute/featured.jpg',
+			'post_date'=> '2024-06-07 12:05:00',
+			'meta'     => [ '_post_read_time_label' => '3 min read' ],
+		],
+		[
+			'slug'     => 'cultivating-equity-minded-leaders-every-level',
+			'title'    => 'Cultivating Equity-Minded Leaders At Every Level',
+			'excerpt'  => $article_excerpt( 'Cultivating Equity-Minded Leaders At Every Level' ),
+			'content'  => $article_content( 'Cultivating Equity-Minded Leaders At Every Level', 'site/articles/cultivating-equity-minded-leaders-every-level/community.jpg', 'Participants in a leadership and equity gathering.', 'Equity-minded leadership requires structure, trust, and long-term accountability.' ),
+			'category' => 'Workplace Equity',
+			'topics'   => [ 'Workplace Equity', 'Education', 'Community Action' ],
+			'tags'     => [ 'leadership development', 'equity practice', 'institutional culture', 'shared accountability' ],
+			'spheres'  => [ 'Embracing Racial Diversity' ],
+			'image'    => 'site/articles/cultivating-equity-minded-leaders-every-level/featured.jpeg',
+			'post_date'=> '2024-06-10 08:45:00',
+			'meta'     => [ '_post_read_time_label' => '3 min read' ],
+		],
+		[
+			'slug'     => 'new-research-highlights-health-disparities-allegheny-county',
+			'title'    => 'New Research Highlights Health Disparities Across Allegheny County',
+			'excerpt'  => $article_excerpt( 'New Research Highlights Health Disparities Across Allegheny County' ),
+			'content'  => $article_content( 'New Research Highlights Health Disparities Across Allegheny County', 'site/articles/new-research-highlights-health-disparities-allegheny-county/community.jpg', 'Public-facing health equity event in community space.', 'Health disparities research matters most when it drives action in the places most affected.' ),
+			'category' => 'Health Disparities',
+			'topics'   => [ 'Health Disparities', 'Technology & Equity', 'Public Service' ],
+			'tags'     => [ 'Allegheny County', 'public health data', 'equity research', 'policy response' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'image'    => 'site/articles/new-research-highlights-health-disparities-allegheny-county/featured.jpg',
+			'post_date'=> '2024-06-14 15:30:00',
+			'meta'     => [ '_post_read_time_label' => '3 min read' ],
+		],
+		[
+			'slug'     => 'community-pulse-pittsburgh-racial-justice-landscape-2025',
+			'title'    => 'Community Pulse: Pittsburgh’s Racial Justice Landscape In 2025',
+			'excerpt'  => $article_excerpt( 'Community Pulse: Pittsburgh’s Racial Justice Landscape In 2025' ),
+			'content'  => $article_content( 'Community Pulse: Pittsburgh’s Racial Justice Landscape In 2025', 'site/articles/community-pulse-pittsburgh-racial-justice-landscape-2025/community.jpg', 'Community members gathered in a racial justice event.', 'Community pulse reporting is strongest when data is grounded in everyday lived realities.' ),
+			'category' => 'Technology & Equity',
+			'topics'   => [ 'Community Action', 'Technology & Equity', 'Access' ],
+			'tags'     => [ 'Pittsburgh data', 'racial justice indicators', 'community pulse', 'civic accountability' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'image'    => 'site/articles/community-pulse-pittsburgh-racial-justice-landscape-2025/featured.jpg',
+			'post_date'=> '2024-06-18 10:25:00',
+			'meta'     => [ '_post_read_time_label' => '4 min read' ],
+		],
+		[
+			'slug'     => 'pennsylvania-black-maternal-health-caucus',
+			'title'    => 'The Pennsylvania Black Maternal Health Caucus',
+			'author_name' => reci_demo_get_markdown_article_author( 'The Pennsylvania Black Maternal Health Caucus' ),
+			'excerpt'  => $article_excerpt( 'The Pennsylvania Black Maternal Health Caucus' ),
+			'content'  => $article_content( 'The Pennsylvania Black Maternal Health Caucus', 'site/articles/pennsylvania-black-maternal-health-caucus-overview/community.jpg', 'Community members engaged in maternal health advocacy.', 'Legislative caucuses matter when they connect structural problems to concrete support and accountability.' ),
+			'category' => 'Health Disparities',
+			'topics'   => [ 'Health Disparities', 'Public Service', 'Education' ],
+			'tags'     => [ 'maternal health caucus', 'Pennsylvania legislature', 'health equity', 'advocacy' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'sdgs'     => [ 'Good Health and Well-being' ],
+			'image'    => 'site/articles/pennsylvania-black-maternal-health-caucus-overview/featured.jpg',
+			'post_date'=> '2024-06-21 11:35:00',
+			'meta'     => [ '_post_read_time_label' => '5 min read' ],
+		],
+		[
+			'slug'     => 'arts-culture-community-healing-racial-trauma',
+			'title'    => 'Arts, Culture, And Community Healing After Racial Trauma',
+			'excerpt'  => $article_excerpt( 'Arts, Culture, And Community Healing After Racial Trauma' ),
+			'content'  => $article_content( 'Arts, Culture, And Community Healing After Racial Trauma', 'site/articles/arts-culture-community-healing-racial-trauma/community.jpg', 'Racial healing day gathering with shared cultural practice.', 'Creative practice and cultural expression can become tools for collective racial healing.' ),
+			'category' => 'Cultural Competence',
+			'topics'   => [ 'Cultural Identity', 'Community Action', 'Inclusion' ],
+			'tags'     => [ 'racial healing', 'arts and culture', 'collective memory', 'community care' ],
+			'spheres'  => [ 'Building Racial Empathy' ],
+			'image'    => 'site/articles/arts-culture-community-healing-racial-trauma/featured.jpg',
+			'post_date'=> '2024-06-24 14:50:00',
+			'meta'     => [ '_post_read_time_label' => '3 min read' ],
+		],
+		[
+			'slug'     => 'building-equity-centered-education-pipeline',
+			'title'    => 'Building An Equity-Centered Education Pipeline',
+			'excerpt'  => $article_excerpt( 'Building An Equity-Centered Education Pipeline' ),
+			'content'  => $article_content( 'Building An Equity-Centered Education Pipeline', 'site/articles/building-equity-centered-education-pipeline/community.jpg', 'Education-focused gathering with community participants.', 'Equity-centered education pipelines depend on trust, strategy, and long-term collaboration across systems.' ),
+			'category' => 'Education',
+			'topics'   => [ 'Education', 'Workplace Equity', 'Access' ],
+			'tags'     => [ 'education pipeline', 'student opportunity', 'institutional partnership', 'equity access' ],
+			'spheres'  => [ 'Embracing Racial Diversity' ],
+			'sdgs'     => [ 'Quality Education' ],
+			'image'    => 'site/articles/building-equity-centered-education-pipeline/featured.jpg',
+			'post_date'=> '2024-06-27 09:05:00',
+			'meta'     => [ '_post_read_time_label' => '3 min read' ],
+		],
+	];
+
+	if ( in_array( 'post', $want, true ) ) {
+		foreach ( $articles as $d ) {
+			reci_demo_insert_post( 'post', $d, $topics, $locations, $imgs );
+		}
+	}
+
+	if ( in_array( 'reci_podcast', $want, true ) ) {
+		$podcasts = reci_demo_load_php_dataset( 'podcasts' );
+		foreach ( $podcasts as $d ) {
+			reci_demo_insert_post( 'reci_podcast', $d, $topics, $locations, $imgs );
+		}
+	}
+
+	if ( in_array( 'reci_video', $want, true ) ) {
+		$videos = reci_demo_load_php_dataset( 'videos' );
+		foreach ( $videos as $d ) {
+			reci_demo_insert_post( 'reci_video', $d, $topics, $locations, $imgs );
+		}
+	}
+
+	if ( in_array( 'reci_event', $want, true ) ) {
+		$events = reci_demo_load_php_dataset( 'events' );
+		foreach ( $events as $d ) {
+			reci_demo_insert_post( 'reci_event', $d, $topics, $locations, $imgs );
+		}
+	}
+
+	// Reflections.
+	// One demo reflection per registry template ("style"), each built from that
+	// template so it can be reviewed end-to-end. Featured images are left empty
+	// for now — add real imagery in the builder per reflection.
+	$reflections = [
+		[
+			'slug'     => 'reci-demo-reflection-voices-of-resistance',
+			'title'    => 'Voices of Resistance',
+			'excerpt'  => 'An immersive testimony template — first-person voices remembering the moment they decided enough was enough.',
+			'category' => 'Racial Justice',
+			'topics'   => [ 'Community Action', 'Cultural Identity' ],
+			'spheres'  => [ 'Building Racial Empathy' ],
+			'style'    => 'voices-of-resistance',
+			'folder'   => 'voices-of-resistance',
+			'featured' => 'pexels-alfomedeiros-11662107.jpg',
+			'inner'    => [
+				'wikiimages-speech-67628 copy.jpg',               // hero background (RFK at megaphone)
+				'pexels-zeeshaanshabbir-9746518.jpg',             // hotspot-stage background (street march)
+				'pexels-guimaraesm-8547571.jpg',                  // panel 1 (megaphone + raised fists)
+				'pexels-mohammed-abubakr-201794886-19488923.jpg', // panel 2 (flags crowd at dusk)
+				'wikiimages-speech-67628.jpg',                    // panel 3 (RFK portrait)
+			],
+		],
+		[
+			'slug'     => 'reci-demo-reflection-breaking-chains',
+			'title'    => 'Breaking Chains',
+			'excerpt'  => 'A parallax journey exploring mass incarceration, systemic justice, and visions for reform.',
+			'category' => 'Racial Justice',
+			'topics'   => [ 'Systemic Racism' ],
+			'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
+			'style'    => 'breaking-chains',
+			'folder'   => 'breaking-chains',
+			'featured' => 'pexels-charles-awelewa-2147613783-29676620.jpg',
+			'inner'    => [ '360_F_696348926_NB7rL1amh93OtY0mHkjLpiMZ6jP0Q6tq.jpg', 'pexels-wal_-172619-2156618639-35930741.jpg' ],
+		],
+		[
+			'slug'     => 'reci-demo-reflection-march-toward-justice',
+			'title'    => 'The March Toward Justice',
+			'excerpt'  => 'A documentary-march template tracing the 1965 fight for the ballot — step by step toward the soul of democracy.',
+			'category' => 'Racial Justice',
+			'topics'   => [ 'Community Action', 'Public Service' ],
+			'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
+			'style'    => 'march-toward-justice',
+			'folder'   => 'march-towards-justice',
+			'featured' => 'Dr-Martin-Luther-King-Jr-in-the-midst-at-the-March-on-Washington.jpg',
+			'inner'    => [ 'Civil-Rights-Leaders-in-Selma-600x428.jpg', 'GettyImages-525580854-1.jpg', 'images.jpeg', 'pexels-airamdphoto-9751037.jpg' ],
+		],
+		[
+			'slug'     => 'reci-demo-reflection-racial-disparities',
+			'title'    => 'Racial Disparities',
+			'excerpt'  => 'An analytical template that turns the data of inequity into an interactive, card-based exploration.',
+			'category' => 'Racial Justice',
+			'topics'   => [ 'Health Disparities', 'Systemic Racism' ],
+			'spheres'  => [ 'Gauging Racial Inequities' ],
+			'style'    => 'racial-disparities',
+			'folder'   => 'racial-disparities',
+			'featured' => 'pexels-anna-nekrashevich-8058540.jpg',
+			'inner'    => ['Diversity_2-1024x844.jpg'],
+		],
+	];
+
+	if ( in_array( 'reci_reflection', $want, true ) ) {
+		// Each template reflection: insert the post, then build its blueprint from
+		// the registry style and inject any sideloaded images (in chapter order).
+		foreach ( $reflections as $d ) {
+			if ( get_page_by_path( $d['slug'], OBJECT, 'reci_reflection' ) ) {
+				continue;
+			}
+			$folder = $d['folder'] ?? '';
+			$insert = [
+				'slug'     => $d['slug'],
+				'title'    => $d['title'],
+				'excerpt'  => $d['excerpt'],
+				'content'  => '',
+				'category' => $d['category'] ?? '',
+				'topics'   => $d['topics'] ?? [],
+				'focus'    => $d['focus'] ?? [],
+				'spheres'  => $d['spheres'] ?? [],
+				'meta'     => [],
+			];
+			if ( $folder && ! empty( $d['featured'] ) ) {
+				$insert['image'] = 'site/reflections/' . $folder . '/' . $d['featured'];
+			}
+			reci_demo_insert_post( 'reci_reflection', $insert, $topics, $locations, $imgs );
+
+			$post = get_page_by_path( $d['slug'], OBJECT, 'reci_reflection' );
+			if ( ! $post ) {
+				continue;
+			}
+			$bp = reci_demo_blueprint_from_style( $d['style'] );
+			if ( $folder && ! empty( $d['inner'] ) ) {
+				$urls = [];
+				foreach ( $d['inner'] as $file ) {
+					$theme_url = reci_demo_theme_image_url( 'site/reflections/' . $folder . '/' . $file );
+					if ( '' !== $theme_url ) {
+						$urls[] = $theme_url;
+					}
+				}
+				if ( $urls ) {
+					$bp = reci_demo_blueprint_inject_images( $bp, $urls );
+				}
+			}
+			update_post_meta(
+				$post->ID,
+				'_reci_reflection_blueprint',
+				wp_slash( wp_json_encode( $bp, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) )
+			);
+		}
+
+		// Black Wall Street — a full immersive reflection built from existing chapters.
+		// Only build it once; the blueprint embeds sideloaded image URLs that need the
+		// post (and media library) to exist first, so we set the meta after insertion.
+		if ( ! get_page_by_path( 'reci-demo-black-wall-street', OBJECT, 'reci_reflection' ) ) {
+			reci_demo_insert_post( 'reci_reflection', [
+				'slug'    => 'reci-demo-black-wall-street',
+				'title'   => 'Black Wall Street',
+				'excerpt' => 'An immersive reflection on Greenwood: its rise, the 1921 Tulsa Race Massacre, the cover-up, and the rebuilding.',
+				'content'  => '',
+				'category' => 'Racial Justice',
+				'topics'   => [ 'Community Action', 'Systemic Racism' ],
+				'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
+				'image'    => 'site/reflections/black-wall/main.jpg', // featured image
+				'meta'     => [],
+			], $topics, $locations, $imgs );
+
+			$bws = get_page_by_path( 'reci-demo-black-wall-street', OBJECT, 'reci_reflection' );
+			if ( $bws ) {
+				// Sideload every image the blueprint references and build a
+				// filename => attachment-URL map keyed by the bare filename.
+				$bws_files = [
+					'main.jpg', 'Blackwall-street.jpg',
+					'bws-07.png', 'bws-08.png', 'bws-09.png', 'bws-12.png', 'bws-13.png',
+					'bws-14.png', 'bws-15.png', 'bws-16.png', 'bws-18.png', 'bws-19.png',
+				];
+				$bws_img = [];
+				foreach ( $bws_files as $file ) {
+					$theme_url = reci_demo_theme_image_url( 'site/reflections/black-wall/' . $file );
+					if ( '' !== $theme_url ) {
+						$bws_img[ $file ] = $theme_url;
+					}
+				}
+
+				update_post_meta(
+					$bws->ID,
+					'_reci_reflection_blueprint',
+					wp_slash( wp_json_encode(
+						reci_demo_black_wall_street_blueprint( $bws_img ),
+						JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+					) )
+				);
+			}
+		}
+
+		// We Humans — a light/documentary museum exhibit built from existing chapters.
+		if ( ! get_page_by_path( 'reci-demo-we-humans', OBJECT, 'reci_reflection' ) ) {
+			reci_demo_insert_post( 'reci_reflection', [
+				'slug'     => 'reci-demo-we-humans',
+				'title'    => '"We Humans": Educating Pittsburgh on Race in the 1950s',
+				'excerpt'  => 'A digital exhibit on the 1955 Carnegie Museum "We Humans" exhibit — how Pittsburgh civic, labor, and education leaders taught about race in the 1950s, and what its ambitions and shortcomings teach us now.',
+				'content'  => '',
+				'category' => 'History',
+				'topics'   => [ 'Education', 'Systemic Racism' ],
+				'focus'    => [ 'Curriculum / Training' ],
+				'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
+				'image'    => 'site/reflections/we-humans/students-1959.jpg',
+				'meta'     => [],
+			], $topics, $locations, $imgs );
+
+			$wh = get_page_by_path( 'reci-demo-we-humans', OBJECT, 'reci_reflection' );
+			if ( $wh ) {
+				$wh_files = [
+					'students-1959.jpg', 'are-you-ethnocentric.jpg', 'ethnocentric.jpg', 'teacher-1959.jpg',
+					'courier-1956.jpg', 'sf-library-1959.jpg', 'indianapolis-1.jpg', 'indianapolis-2.jpg',
+					'panel-1a.jpg', 'panel-1b.jpg', 'panel-2a.jpg', 'panel-2b.jpg',
+					'panel-3a.jpg', 'panel-3b.jpg', 'panel-4a.jpg', 'panel-4b.jpg', 'about.jpg',
+				];
+				$wh_img = [];
+				foreach ( $wh_files as $file ) {
+					$theme_url = reci_demo_theme_image_url( 'site/reflections/we-humans/' . $file );
+					if ( '' !== $theme_url ) {
+						$wh_img[ $file ] = $theme_url;
+					}
+				}
+
+				update_post_meta(
+					$wh->ID,
+					'_reci_reflection_blueprint',
+					wp_slash( wp_json_encode(
+						reci_demo_we_humans_blueprint( $wh_img ),
+						JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+					) )
+				);
+			}
+		}
+	}
+
+	if ( in_array( 'reci_quote', $want, true ) ) {
+		$quotes = reci_demo_load_php_dataset( 'quotes' );
+		foreach ( $quotes as $d ) {
+			reci_demo_insert_quote( $d );
+		}
+	}
+
+	if ( in_array( 'reci_assessment', $want, true ) ) {
+		$assessments = reci_demo_load_php_dataset( 'assessments' );
+		foreach ( $assessments as $d ) {
+			reci_demo_insert_post( 'reci_assessment', $d, $topics, $locations, $imgs );
+		}
+	}
+	
+
+	if ( in_array( 'reci_course', $want, true ) ) {
+		$courses = reci_demo_load_php_dataset( 'courses' );
+		foreach ( $courses as $d ) {
+			reci_demo_insert_post( 'reci_course', $d, $topics, $locations, $imgs );
+		}
+	}
+	
+
+	if ( in_array( 'reci_testimonial', $want, true ) ) {
+		$testimonials = reci_demo_load_php_dataset( 'testimonials' );
+		foreach ( $testimonials as $d ) {
+			reci_demo_insert_testimonial( $d );
+		}
+	}
+
+	if ( in_array( 'reci_glossary_term', $want, true ) ) {
+		$glossary_terms = reci_demo_load_php_dataset( 'glossary' );
+		foreach ( $glossary_terms as $d ) {
+			reci_demo_insert_glossary_term( $d );
+		}
+	}
+
+	if ( in_array( 'reci_author', $want, true ) ) {
+		$authors = reci_demo_load_php_dataset( 'authors' );
+		foreach ( $authors as $d ) {
+			reci_demo_insert_author( $d );
+		}
+	}
+
+	// Core pages.
+	if ( in_array( 'reci_page', $want, true ) ) {
+		$page_dataset = reci_demo_load_php_dataset( 'pages' );
+		$core_pages   = (array) ( $page_dataset['core'] ?? [] );
+		foreach ( $core_pages as $slug => $cfg ) {
+			$page_id = reci_demo_ensure_page( $slug, $cfg['title'], $cfg['template'] );
+			if ( $page_id ) {
+				$slugs   = get_option( 'reci_demo_slugs', [] );
+				$slugs[] = $slug;
+				update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+			}
+		}
+
+		// Dashboard — parent first, then children with parent ID.
+		$dashboard_parent = (array) ( $page_dataset['dashboard']['parent'] ?? [] );
+		$dashboard_id = reci_demo_ensure_page(
+			(string) ( $dashboard_parent['slug'] ?? 'dashboard' ),
+			(string) ( $dashboard_parent['title'] ?? 'Dashboard' ),
+			(string) ( $dashboard_parent['template'] ?? 'page-templates/dashboard/template-dashboard.php' )
+		);
+		if ( $dashboard_id ) {
+			$dashboard_slugs = get_option( 'reci_demo_slugs', [] );
+			$dashboard_slugs[] = 'dashboard';
+			update_option( 'reci_demo_slugs', array_unique( $dashboard_slugs ) );
+
+			$dashboard_subpages = (array) ( $page_dataset['dashboard']['children'] ?? [] );
+			foreach ( $dashboard_subpages as $slug => $cfg ) {
+				$child_id = reci_demo_ensure_page( $slug, $cfg['title'], $cfg['template'], $dashboard_id );
+				if ( $child_id ) {
+					$slugs = get_option( 'reci_demo_slugs', [] );
+					$slugs[] = 'dashboard/' . $slug;
+					update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+				}
+			}
+		}
+	}
+
+	update_option( 'reci_demo_installed', true );
+}
+
+// ---------------------------------------------------------------------------
+// Reset handler
+// ---------------------------------------------------------------------------
+
+function reci_reset_demo_content(): void {
+	$slugs = get_option( 'reci_demo_slugs', [] );
+	foreach ( $slugs as $slug ) {
+		$post = get_page_by_path( $slug, OBJECT, [
+			'post', 'reci_podcast', 'reci_video', 'reci_event',
+			'reci_reflection', 'reci_quote', 'reci_assessment', 'reci_course',
+			'reci_testimonial', 'reci_glossary_term', 'reci_author', 'page',
+		] );
+		if ( ! $post && str_contains( $slug, '/' ) ) {
+			$post = get_page_by_path( $slug, OBJECT, 'page' );
+		}
+		if ( $post ) {
+			wp_delete_post( $post->ID, true );
+		}
+	}
+
+	$registry = reci_demo_get_asset_registry();
+	foreach ( $registry as $entry ) {
+		$attachment_id = (int) ( $entry['attachment_id'] ?? 0 );
+		if ( $attachment_id > 0 ) {
+			wp_delete_attachment( $attachment_id, true );
+		}
+	}
+
+	delete_option( 'reci_demo_installed' );
+	delete_option( 'reci_demo_slugs' );
+	delete_option( reci_demo_asset_registry_option_key() );
+	delete_option( reci_demo_job_option_key() );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Ensure a WordPress page exists with the given slug and template.
+ *
+ * Skips if the slug already exists. Flagged as demo content.
+ *
+ * @param string $slug     Page slug.
+ * @param string $title    Page title.
+ * @param string $template Template filename (without path).
+ * @return int|false Page ID on success, false on failure.
+ */
+function reci_demo_ensure_page( string $slug, string $title, string $template, int $parent_id = 0 ) {
+	$existing = null;
+
+	if ( $parent_id > 0 ) {
+		$existing_pages = get_posts( [
+			'post_type'      => 'page',
+			'post_status'    => [ 'publish', 'draft', 'pending', 'private' ],
+			'name'           => $slug,
+			'post_parent'    => $parent_id,
+			'posts_per_page' => 1,
+		] );
+		$existing = $existing_pages[0] ?? null;
+	} else {
+		$existing = get_page_by_path( $slug, OBJECT, 'page' );
+	}
+
+	if ( $existing ) {
+		if ( $template !== '' ) {
+			update_post_meta( $existing->ID, '_wp_page_template', $template );
+		}
+		if ( $parent_id && (int) $existing->post_parent !== $parent_id ) {
+			wp_update_post( [ 'ID' => $existing->ID, 'post_parent' => $parent_id ] );
+		}
+		update_post_meta( $existing->ID, '_reci_demo', '1' );
+		return $existing->ID;
+	}
+
+	$page_id = wp_insert_post( [
+		'post_type'    => 'page',
+		'post_status'  => 'publish',
+		'post_name'    => $slug,
+		'post_title'   => $title,
+		'post_content' => '',
+		'post_parent'  => $parent_id,
+	] );
+
+	if ( is_wp_error( $page_id ) || ! $page_id ) {
+		return false;
+	}
+
+	if ( $template !== '' ) {
+		update_post_meta( $page_id, '_wp_page_template', $template );
+	}
+	update_post_meta( $page_id, '_reci_demo', '1' );
+
+	return $page_id;
+}
+
+/**
+ * Insert a demo testimonial post.
+ */
+function reci_demo_insert_testimonial( array $data ): void {
+	$existing = get_page_by_path( $data['slug'], OBJECT, 'reci_testimonial' );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_id = wp_insert_post( [
+		'post_type'    => 'reci_testimonial',
+		'post_status'  => 'publish',
+		'post_name'    => $data['slug'],
+		'post_title'   => $data['title'],
+		'post_content' => '',
+	] );
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_reci_testimonial_text', $data['text'] );
+	update_post_meta( $post_id, '_reci_testimonial_full_name', $data['name'] );
+	update_post_meta( $post_id, '_reci_testimonial_role', $data['role'] );
+	update_post_meta( $post_id, '_reci_testimonial_organization', $data['org'] );
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $data['slug'];
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+}
+
+/**
+ * Insert a demo glossary term.
+ */
+function reci_demo_insert_glossary_term( array $data ): void {
+	$existing = get_page_by_path( $data['slug'], OBJECT, 'reci_glossary_term' );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_id = wp_insert_post( [
+		'post_type'    => 'reci_glossary_term',
+		'post_status'  => 'publish',
+		'post_name'    => $data['slug'],
+		'post_title'   => $data['title'],
+		'post_content' => $data['content'],
+	] );
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $data['slug'];
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+}
+
+/**
+ * Insert a demo author profile.
+ */
+function reci_demo_insert_author( array $data ): void {
+	reci_demo_ensure_author_profile( $data );
+}
+
+function reci_demo_ensure_author_profile( array $data ): int {
+	$existing = get_page_by_path( $data['slug'], OBJECT, 'reci_author' );
+	if ( $existing ) {
+		if ( ! empty( $data['title'] ) ) {
+			update_post_meta( $existing->ID, '_reci_author_profile_title', $data['title'] );
+		}
+		update_post_meta( $existing->ID, '_reci_demo', '1' );
+		$slugs   = get_option( 'reci_demo_slugs', [] );
+		$slugs[] = $data['slug'];
+		update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+		return (int) $existing->ID;
+	}
+
+	$post_id = wp_insert_post( [
+		'post_type'    => 'reci_author',
+		'post_status'  => 'publish',
+		'post_name'    => $data['slug'],
+		'post_title'   => $data['name'],
+		'post_excerpt' => $data['bio'],
+		'post_content' => $data['content'],
+	] );
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return 0;
+	}
+
+	update_post_meta( $post_id, '_reci_author_profile_title', $data['title'] );
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $data['slug'];
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+
+	return (int) $post_id;
+}
+
+function reci_demo_get_markdown_articles(): array {
+	static $articles = null;
+
+	if ( is_array( $articles ) ) {
+		return $articles;
+	}
+
+	$dir = get_template_directory() . '/demo-content/articles';
+	if ( ! is_dir( $dir ) ) {
+		$articles = [];
+		return $articles;
+	}
+	$articles = [];
+	$files = glob( $dir . '/*.md' ) ?: [];
+
+	foreach ( $files as $file ) {
+		$title = basename( $file, '.md' );
+		$raw   = (string) file_get_contents( $file );
+		$body  = trim( preg_replace( '/^#\s+.+$(\r\n|\n|\r)?/m', '', $raw, 1 ) ?? $raw );
+		$author = '';
+
+		if ( preg_match( '/^Author:\s*(.+)$/mi', $body, $author_matches ) ) {
+			$author = trim( (string) $author_matches[1] );
+			$body   = preg_replace( '/^Author:\s*.+$(\n+)?/mi', '', $body, 1 ) ?? $body;
+		}
+
+		$articles[ $title ] = [
+			'author' => $author,
+			'body'   => trim( $body ),
+		];
+	}
+
+	return $articles;
+}
+
+function reci_demo_get_markdown_article_author( string $title ): string {
+	$articles = reci_demo_get_markdown_articles();
+	return (string) ( $articles[ $title ]['author'] ?? '' );
+}
+
+function reci_demo_get_markdown_article_excerpt( string $title ): string {
+	$articles = reci_demo_get_markdown_articles();
+	$body     = (string) ( $articles[ $title ]['body'] ?? '' );
+
+	if ( $body === '' ) {
+		return '';
+	}
+
+	$body       = preg_replace( '/!\[[^\]]*\]\([^\)]+\)/', '', $body ) ?? $body;
+	$paragraphs = preg_split( '/\n\s*\n/', trim( $body ) );
+
+	foreach ( $paragraphs as $paragraph ) {
+		$text = trim( preg_replace( '/^#+\s+/', '', $paragraph ) ?? $paragraph );
+		if ( $text === '' || preg_match( '/^(\*|Sources?$)/i', $text ) ) {
+			continue;
+		}
+
+		$text = wp_strip_all_tags( reci_demo_markdown_inline( $text ) );
+		if ( $text !== '' ) {
+			return wp_trim_words( $text, 28, '...' );
+		}
+	}
+
+	return '';
+}
+
+function reci_demo_render_markdown_article( string $title, string $figure_html = '' ): string {
+	$articles = reci_demo_get_markdown_articles();
+	$body     = (string) ( $articles[ $title ]['body'] ?? '' );
+
+	if ( $body === '' ) {
+		return '';
+	}
+
+	$lines           = preg_split( "/\r\n|\n|\r/", $body );
+	$blocks          = [];
+	$paragraph       = [];
+	$in_list         = false;
+	$figure_inserted = false;
+	$paragraph_count = 0;
+
+	$flush_paragraph = static function () use ( &$paragraph, &$blocks, &$figure_inserted, &$paragraph_count, $figure_html ): void {
+		if ( empty( $paragraph ) ) {
+			return;
+		}
+
+		$text     = implode( ' ', array_map( 'trim', $paragraph ) );
+		$blocks[] = '<p>' . reci_demo_markdown_inline( $text ) . '</p>';
+		$paragraph = [];
+		$paragraph_count++;
+
+		if ( ! $figure_inserted && $figure_html !== '' && $paragraph_count >= 3 ) {
+			$blocks[]         = $figure_html;
+			$figure_inserted = true;
+		}
+	};
+
+	$close_list = static function () use ( &$in_list, &$blocks ): void {
+		if ( $in_list ) {
+			$blocks[] = '</ul>';
+			$in_list  = false;
+		}
+	};
+
+	foreach ( $lines as $line ) {
+		$trimmed = trim( (string) $line );
+
+		if ( $trimmed === '' ) {
+			$flush_paragraph();
+			$close_list();
+			continue;
+		}
+
+		if ( preg_match( '/^!\[[^\]]*\]\([^\)]+\)$/', $trimmed ) ) {
+			$flush_paragraph();
+			$close_list();
+			if ( ! $figure_inserted && $figure_html !== '' ) {
+				$blocks[]         = $figure_html;
+				$figure_inserted = true;
+			}
+			continue;
+		}
+
+		if ( preg_match( '/^(#{2,4})\s+(.+)$/', $trimmed, $matches ) ) {
+			$flush_paragraph();
+			$close_list();
+			$level    = strlen( $matches[1] );
+			$blocks[] = '<h' . $level . '>' . reci_demo_markdown_inline( trim( (string) $matches[2] ) ) . '</h' . $level . '>';
+			continue;
+		}
+
+		if ( preg_match( '/^\*\s+(.+)$/', $trimmed, $matches ) ) {
+			$flush_paragraph();
+			if ( ! $in_list ) {
+				$blocks[] = '<ul>';
+				$in_list  = true;
+			}
+			$blocks[] = '<li>' . reci_demo_markdown_inline( trim( (string) $matches[1] ) ) . '</li>';
+			continue;
+		}
+
+		$close_list();
+		$paragraph[] = $trimmed;
+	}
+
+	$flush_paragraph();
+	$close_list();
+
+	if ( ! $figure_inserted && $figure_html !== '' ) {
+		$blocks[] = $figure_html;
+	}
+
+	return implode( '', $blocks );
+}
+
+function reci_demo_markdown_inline( string $text ): string {
+	$text = preg_replace_callback(
+		'/\[([^\]]+)\]\(([^\)]+)\)/',
+		static function ( array $matches ): string {
+			return '<a href="' . esc_url( trim( (string) $matches[2] ) ) . '">' . esc_html( trim( (string) $matches[1] ) ) . '</a>';
+		},
+		$text
+	) ?? $text;
+
+	$text = preg_replace( '/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $text ) ?? $text;
+
+	return $text;
+}
+
+/**
+ * Build a reflection blueprint from a registry template ("style").
+ *
+ * Produces exactly what the builder would create when you pick the template:
+ * the template's colours as global settings plus its chapters verbatim. Image
+ * slots come from whatever the template defines (placeholder / gallery refs).
+ *
+ * @return array<string,mixed> Empty array if the style is unknown.
+ */
+function reci_demo_blueprint_from_style( string $style_key ): array {
+	if ( ! function_exists( 'reci_reflection_system_styles' ) ) {
+		return [];
+	}
+	$styles = reci_reflection_system_styles();
+	$style  = $styles[ $style_key ] ?? null;
+	if ( ! is_array( $style ) ) {
+		return [];
+	}
+	$c = $style['colors'] ?? [];
+
+	$chapters = array_values( (array) ( $style['chapters'] ?? [] ) );
+	foreach ( $chapters as &$chapter ) {
+		if ( empty( $chapter['id'] ) ) {
+			$chapter['id'] = ! empty( $chapter['props']['id'] ) ? $chapter['props']['id'] : uniqid();
+		}
+	}
+	unset( $chapter );
+
+	return [
+		'version'  => 2,
+		'system'   => 'reflections',
+		'settings' => [
+			'mode'          => 'immersive',
+			'global_style'  => $style_key,
+			'color_primary' => $c['primary'] ?? '',
+			'color_bg'      => $c['bg'] ?? '',
+			'color_heading' => $c['heading'] ?? '',
+			'color_body'    => $c['body'] ?? '',
+			'color_accent'  => $c['accent'] ?? '',
+			'menu_enabled'  => false,
+			'nav_enabled'   => false,
+		],
+		'chapters' => $chapters,
+	];
+}
+
+/**
+ * Inject image URLs into a blueprint's image slots, in chapter order.
+ *
+ * Walks chapters top-to-bottom and consumes $urls one per slot:
+ *   hero → background image, hotspot-stage → background, feature-split → image,
+ *   horizontal-panels → each item background, parallax-stage → each layer src.
+ * Slots beyond the supplied URLs are left untouched (keep their placeholder).
+ *
+ * @param array<string,mixed> $bp
+ * @param string[]            $urls
+ * @return array<string,mixed>
+ */
+function reci_demo_blueprint_inject_images( array $bp, array $urls ): array {
+	$i = 0;
+	$next = static function () use ( &$urls, &$i ) {
+		return $urls[ $i++ ] ?? null;
+	};
+
+	foreach ( $bp['chapters'] as &$chapter ) {
+		$family = $chapter['family'] ?? '';
+		if ( ! isset( $chapter['props'] ) || ! is_array( $chapter['props'] ) ) {
+			continue;
+		}
+		$props = &$chapter['props'];
+
+		if ( 'hero' === $family ) {
+			$u = $next();
+			if ( $u ) {
+				$props['use_background_image'] = '1';
+				$props['background_image']     = $u;
+			}
+		} elseif ( 'hotspot-stage' === $family ) {
+			$u = $next();
+			if ( $u ) {
+				$props['background_image'] = $u;
+			}
+		} elseif ( 'feature-split' === $family ) {
+			$u = $next();
+			if ( $u ) {
+				$props['image'] = $u;
+			}
+		} elseif ( 'horizontal-panels' === $family ) {
+			if ( ! empty( $props['items'] ) && is_array( $props['items'] ) ) {
+				foreach ( $props['items'] as &$item ) {
+					$u = $next();
+					if ( $u ) {
+						$item['background_image'] = $u;
+					}
+				}
+				unset( $item );
+			}
+		} elseif ( 'parallax-stage' === $family ) {
+			if ( ! empty( $props['layers'] ) && is_array( $props['layers'] ) ) {
+				foreach ( $props['layers'] as &$layer ) {
+					$u = $next();
+					if ( $u ) {
+						$layer['src'] = $u;
+					}
+				}
+				unset( $layer );
+			}
+		}
+
+		unset( $props );
+	}
+	unset( $chapter );
+
+	return $bp;
+}
+
+/**
+ * Blueprint for the "Black Wall Street" demo reflection.
+ *
+ * Built entirely from existing chapter families/variants — no new templates.
+ * Image slots use the bundled placeholder; replace them with real Greenwood
+ * imagery in the builder after import.
+ *
+ * @return array<string,mixed>
+ */
+function reci_demo_black_wall_street_blueprint( array $img = [] ): array {
+	$ph = function_exists( 'reci_reflection_placeholder_image' ) ? reci_reflection_placeholder_image() : '';
+	// Resolve an image URL by key, falling back to the neutral placeholder.
+	$im = static function ( string $key ) use ( $img, $ph ): string {
+		return ! empty( $img[ $key ] ) ? $img[ $key ] : $ph;
+	};
+
+	return [
+		'version'  => 2,
+		'system'   => 'reflections',
+		'settings' => [
+			'mode'          => 'immersive',
+			'global_style'  => 'immersive-dark',
+			'color_primary' => '#D4AF37',
+			'color_bg'      => '#140f0a',
+			'color_heading' => '#f0e6d2',
+			'color_body'    => '#c9c0b0',
+			'color_accent'  => '#D4AF37',
+			'color_muted'   => '#9a8f7a',
+			'menu_enabled'  => false,
+			'nav_enabled'   => false,
+		],
+		'chapters' => [
+			// 1. Hero / Title.
+			[
+				'id'      => 'bws-title',
+				'family'  => 'hero',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'                   => 'bws-title',
+					'eyebrow'              => 'Tulsa, Oklahoma · Greenwood District',
+					'title'                => 'Black Wall',
+					'title_accent'         => 'Street',
+					'subtitle'             => 'The Rise, Destruction, and Resilience of Tulsa\'s Greenwood District',
+					'use_background_image' => '1',
+					'background_image'     => $im( 'main.jpg' ),
+					'actions'              => [ [ 'label' => 'Enter the Story', 'href' => 'bws-beacon' ] ],
+				],
+			],
+			// 2. A Beacon of Black Excellence (text + image).
+			[
+				'id'      => 'bws-beacon',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-beacon',
+					'eyebrow'         => 'A Beacon of Black Excellence',
+					'title'           => 'A Declaration',
+					'body'            => '<p>In the early 20th century, while Jim Crow laws strangled opportunity across America, an extraordinary community flourished in Tulsa, Oklahoma. The Greenwood District, known as "Black Wall Street," stood as a testament to what Black Americans could achieve despite systemic racism.</p><p>This wasn\'t just a neighborhood. It was a declaration of independence — a 35-block sanctuary where Black excellence wasn\'t the exception, it was the rule.</p>',
+					'image'           => $im( 'bws-15.png' ),
+					'image_alt'       => 'Greenwood Avenue in its prosperity',
+					'media_side'      => 'right',
+					'continue_label'  => 'Hear from a resident →',
+					'continue_target' => 'bws-quote-1',
+				],
+			],
+			// 3. Quote — James Homer Johnson.
+			[
+				'id'      => 'bws-quote-1',
+				'family'  => 'quote',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'               => 'bws-quote-1',
+					'quote'            => 'What Greenwood meant to the Black community was the very center of activity — commercial, social, religious. Every conceivable type of business was on Greenwood. I didn\'t really feel the full effects of segregation because we were living in this self-contained environment where we didn\'t have to go outside for anything.',
+					'attribution'      => 'James Homer Johnson',
+					'background_image' => $im( 'bws-09.png' ),
+					'button_label'     => 'Continue',
+					'continue_target'  => 'bws-prosperity-stats',
+				],
+			],
+			// 4. Prosperity stats.
+			[
+				'id'      => 'bws-prosperity-stats',
+				'family'  => 'data-cards',
+				'variant' => 'analytical',
+				'props'   => [
+					'id'              => 'bws-prosperity-stats',
+					'title'           => 'A Self-Made Economy',
+					'intro'           => 'By 1921, Greenwood was one of the wealthiest Black communities in America.',
+					'cards'           => [
+						[ 'icon' => '🏪', 'eyebrow' => 'Enterprise', 'stat' => '600+', 'unit' => 'Black-Owned Businesses', 'summary' => 'Grocers, hotels, theaters, salons, and law offices lined Greenwood Avenue.' ],
+						[ 'icon' => '⚕️', 'eyebrow' => 'Medicine', 'stat' => '15+', 'unit' => 'Black Physicians', 'summary' => 'Including the surgeon Dr. A.C. Jackson, called "the most able Negro surgeon in America."' ],
+						[ 'icon' => '⛪', 'eyebrow' => 'Faith', 'stat' => '21', 'unit' => 'Churches', 'summary' => 'Anchors of community life, several of them grand brick sanctuaries.' ],
+						[ 'icon' => '💵', 'eyebrow' => 'Wealth', 'stat' => '$1M+', 'unit' => 'in Black Wealth', 'summary' => 'A dollar circulated within Greenwood dozens of times before it ever left.' ],
+					],
+					'continue_label'  => 'Continue',
+					'continue_target' => 'bws-economy',
+				],
+			],
+			// 5. The community that built it (text + image).
+			[
+				'id'      => 'bws-economy',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-economy',
+					'eyebrow'         => 'Survival Became Prosperity',
+					'title'           => 'A Multiplier of Wealth',
+					'body'            => '<p>Greenwood was home to Black doctors who had studied at prestigious universities, lawyers who defended their community\'s rights, entrepreneurs who built hotels and theaters, and educators who shaped young minds in their own schools.</p><p>Segregation forced Black Tulsans to create their own economy — but what began as survival became prosperity. Money circulated within the community dozens of times before leaving, creating a multiplier effect that built generational wealth.</p>',
+					'image'           => $im( 'Blackwall-street.jpg' ),
+					'image_alt'       => 'Greenwood professionals and business district',
+					'media_side'      => 'left',
+					'continue_label'  => 'Then came the spark →',
+					'continue_target' => 'bws-spark',
+				],
+			],
+			// 6. May 30, 1921: A Spark (progressive reveal).
+			[
+				'id'      => 'bws-spark',
+				'family'  => 'progressive-text',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-spark',
+					'title'           => 'May 30, 1921: A Spark',
+					'paragraphs'      => [
+						[ 'text' => 'On a spring morning, 19-year-old Dick Rowland, a Black shoe shiner, stepped into an elevator in downtown Tulsa. Sarah Page, a white elevator operator, was inside. What happened next remains uncertain — perhaps he stumbled, perhaps he stepped on her foot. The details were never clear.' ],
+						[ 'text' => 'But in 1921 Oklahoma, details didn\'t matter. The accusation alone was enough.' ],
+						[ 'text' => 'By the next day, an inflammatory article in the Tulsa Tribune had transformed an incident into ammunition. A white mob gathered at the courthouse where police held Rowland. The city teetered on the edge.' ],
+					],
+					'prompt'          => 'Tap to reveal',
+					'button_label'    => '↓',
+					'continue_label'  => 'The night it began →',
+					'continue_target' => 'bws-night',
+				],
+			],
+			// 7. The night of the massacre — timeline (May 31 9PM, 10PM, June 1 Dawn).
+			[
+				'id'      => 'bws-night',
+				'family'  => 'timeline-world',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'bws-night',
+					'eyebrow'         => 'The Night It Began',
+					'title'           => 'May 31 – June 1, 1921',
+					'items'           => [
+						[
+							'date'  => 'May 31 · 9:00 PM',
+							'title' => 'A Stand at the Courthouse',
+							'body'  => 'Twenty-five armed Black men, many of them World War I veterans, arrived at the courthouse to protect Dick Rowland from lynching. They knew the law wouldn\'t. After the sheriff refused their help, they left — but the rumor of an "uprising" spread like wildfire.',
+						],
+						[
+							'date'  => 'May 31 · 10:00 PM',
+							'title' => 'The First Shot',
+							'body'  => 'About 75 Black men returned to the courthouse, now facing 1,500 white men. Someone fired a shot. Chaos erupted. Outnumbered, the Black defenders retreated to Greenwood to protect their homes and families.',
+						],
+						[
+							'date'  => 'June 1 · Dawn',
+							'title' => 'The Invasion',
+							'body'  => 'Thousands of white Tulsans — some deputized by city officials and armed by police — invaded Greenwood. They didn\'t come to restore order. They came to destroy.',
+							'media' => [
+								[ 'src' => $im( 'bws-14.png' ), 'alt' => 'Black Tulsans rounded up and marched to internment centers', 'caption' => 'Residents rounded up at gunpoint and marched to internment centers.' ],
+							],
+						],
+					],
+					'continue_label'  => 'What followed →',
+					'continue_target' => 'bws-massacre',
+				],
+			],
+			// 8. The Massacre (text + image).
+			[
+				'id'      => 'bws-massacre',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-massacre',
+					'eyebrow'         => 'May 31 – June 1, 1921',
+					'title'           => 'The Massacre',
+					'body'            => '<p>What followed was systematic annihilation. Homes were looted and burned. Businesses were reduced to ash. A hospital, a library, schools, and churches — all destroyed. When firefighters arrived to help, white rioters turned them away at gunpoint.</p><p>Some attackers used airplanes to drop incendiary devices and shoot at fleeing residents from above. Black Tulsans who tried to defend their property were shot. Those who surrendered were rounded up at gunpoint and marched to internment centers.</p>',
+					'image'           => $im( 'bws-08.png' ),
+					'image_alt'       => 'Greenwood burning during the massacre',
+					'media_side'      => 'left',
+					'continue_label'  => 'Count the cost →',
+					'continue_target' => 'bws-toll',
+				],
+			],
+			// 9. The toll (text + image).
+			[
+				'id'      => 'bws-toll',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-toll',
+					'eyebrow'         => '18 Hours',
+					'title'           => 'Everything, Gone',
+					'body'            => '<p>By noon on June 1, 1921, 35 city blocks lay in ruins. Over 1,256 homes burned. Everything Black Tulsans had built was gone in 18 hours.</p>',
+					'image'           => $im( 'bws-19.png' ),
+					'image_alt'       => 'The gutted ruins of Greenwood',
+					'media_side'      => 'right',
+					'continue_label'  => 'The full toll →',
+					'continue_target' => 'bws-toll-stats',
+				],
+			],
+			// 10. Toll stats.
+			[
+				'id'      => 'bws-toll-stats',
+				'family'  => 'data-cards',
+				'variant' => 'analytical-dark',
+				'props'   => [
+					'id'              => 'bws-toll-stats',
+					'title'           => 'The Cost of 18 Hours',
+					'cards'           => [
+						[ 'icon' => '🏚️', 'eyebrow' => 'Destroyed', 'stat' => '35', 'unit' => 'Blocks Destroyed', 'summary' => 'The entire Greenwood District reduced to ruins.' ],
+						[ 'icon' => '🔥', 'eyebrow' => 'Burned', 'stat' => '1,256', 'unit' => 'Homes Burned', 'summary' => 'Along with a hospital, a library, schools, and churches.' ],
+						[ 'icon' => '⛓️', 'eyebrow' => 'Detained', 'stat' => '6,000+', 'unit' => 'People Detained', 'summary' => 'Black Tulsans held at gunpoint in internment centers.' ],
+						[ 'icon' => '🕯️', 'eyebrow' => 'Lost', 'stat' => '100–300', 'unit' => 'Estimated Deaths', 'summary' => 'Many buried in unmarked graves, still being searched for today.' ],
+					],
+					'continue_label'  => 'And then —',
+					'continue_target' => 'bws-coverup',
+				],
+			],
+			// 11. The Cover-Up (progressive reveal).
+			[
+				'id'      => 'bws-coverup',
+				'family'  => 'progressive-text',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-coverup',
+					'title'           => 'The Cover-Up',
+					'paragraphs'      => [
+						[ 'text' => 'Not one person was ever prosecuted for the violence. Not one. Instead, city officials blamed Black Tulsans for defending themselves. Insurance companies refused to pay out, calling it a "riot" rather than what it was: domestic terrorism.' ],
+						[ 'text' => 'The Tulsa Tribune removed its inflammatory article from its archives. Police records disappeared. State militia documents vanished. For decades, this massacre was erased from textbooks, from public memory, from history itself.' ],
+						[ 'text' => 'Children grew up in Tulsa not knowing that their city had once been a war zone. Families who lost everything were silenced. The dead remained in unmarked graves, their names forgotten.' ],
+					],
+					'prompt'          => 'Tap to reveal',
+					'button_label'    => '↓',
+					'continue_label'  => 'A survivor speaks →',
+					'continue_target' => 'bws-quote-2',
+				],
+			],
+			// 12. Quote — Vanessa Hall-Harper.
+			[
+				'id'      => 'bws-quote-2',
+				'family'  => 'quote',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'               => 'bws-quote-2',
+					'quote'            => 'It wasn\'t a riot. It was a massacre. Back in 1921, they used the fact that it was a "riot" technically to not pay insurance claims. It was only because of our own strength — of saying "no, we\'re not going anywhere, we\'re going to come back and we\'re going to rebuild." But the government did not help with that. The business community did not help with that. It was our own strength and belief in ourselves that rebuilt Greenwood.',
+					'attribution'      => 'Vanessa Hall-Harper',
+					'background_image' => $im( 'bws-13.png' ),
+					'button_label'     => 'Continue',
+					'continue_target'  => 'bws-ashes',
+				],
+			],
+			// 13. Rising from the Ashes (text + image).
+			[
+				'id'      => 'bws-ashes',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-ashes',
+					'eyebrow'         => 'Resilience',
+					'title'           => 'Rising from the Ashes',
+					'body'            => '<p>But Black Tulsans did what they had always done: they survived. They rebuilt. Without government assistance. Without insurance payouts. With their bare hands and unbreakable will.</p><p>Within five years, they had reconstructed much of Greenwood. The same doctors reopened their practices. The same lawyers returned to fight for justice. New businesses emerged from the rubble. The community that had been targeted for extinction refused to die.</p><p>The resilience wasn\'t just physical reconstruction — it was spiritual defiance. Every brick laid, every business reopened, every child educated was an act of resistance against those who wanted to erase them.</p>',
+					'image'           => $im( 'bws-12.png' ),
+					'image_alt'       => 'Black Tulsans rebuilding Greenwood',
+					'media_side'      => 'left',
+					'continue_label'  => 'The reckoning →',
+					'continue_target' => 'bws-reckoning',
+				],
+			],
+			// 14. The Reckoning — timeline of acknowledgement (1996, 2001, 2020, today).
+			[
+				'id'      => 'bws-reckoning',
+				'family'  => 'timeline-world',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'bws-reckoning',
+					'eyebrow'         => 'The Reckoning',
+					'title'           => 'A Truth Uncovered',
+					'items'           => [
+						[
+							'date'  => '1996',
+							'title' => 'A Memorial, at Last',
+							'body'  => 'It took 75 years for Tulsa to begin acknowledging what happened. A memorial service was finally held for the victims of the massacre.',
+							'media' => [
+								[ 'src' => $im( 'bws-18.png' ), 'alt' => '1921 Black Wall Street Memorial', 'caption' => 'The 1921 Black Wall Street Memorial in Greenwood.' ],
+							],
+						],
+						[
+							'date'  => '2001',
+							'title' => 'The Commission Confirms',
+							'body'  => 'The Oklahoma Commission released its report, confirming what survivors had always known: this was a massacre, not a riot.',
+						],
+						[
+							'date'  => '2020',
+							'title' => 'A Nation Looks Back',
+							'body'  => 'As America confronted its racial history anew, searches for the Tulsa Race Massacre surged. Survivors in their 100s finally had their stories heard on national stages.',
+							'media' => [
+								[ 'src' => $im( 'bws-16.png' ), 'alt' => 'A candlelight vigil in Greenwood', 'caption' => 'A candlelight vigil marking the centennial.' ],
+							],
+						],
+						[
+							'date'  => 'Today',
+							'title' => 'Still Uncovering',
+							'body'  => 'Excavations continue, searching for mass graves — the truth still being uncovered, one exhumation at a time.',
+						],
+					],
+					'continue_label'  => 'What it means →',
+					'continue_target' => 'bws-legacy',
+				],
+			],
+			// 15. An Undefeated Legacy (text + image).
+			[
+				'id'      => 'bws-legacy',
+				'family'  => 'feature-split',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'              => 'bws-legacy',
+					'eyebrow'         => 'Legacy',
+					'title'           => 'Undefeated',
+					'body'            => '<p>The story of the Tulsa Race Massacre isn\'t just about destruction. It\'s about what Black Americans built against impossible odds, what was stolen from them through racist violence, and how they refused to be broken.</p><p>It\'s about doctors and lawyers and teachers and entrepreneurs who dared to thrive — a community that created its own prosperity in a nation that tried to deny them everything.</p><p>Black Wall Street may have been destroyed, but its legacy — of Black excellence, self-determination, and unshakeable resilience — remains undefeated.</p>',
+					'image'           => $im( 'bws-07.png' ),
+					'image_alt'       => 'The Black Wall Street mural in modern Greenwood',
+					'media_side'      => 'right',
+					'continue_label'  => 'Reflect →',
+					'continue_target' => 'bws-reflect',
+				],
+			],
+			// 16. Closing reflection prompt.
+			[
+				'id'      => 'bws-reflect',
+				'family'  => 'reflection-prompt',
+				'variant' => 'immersive-dark',
+				'props'   => [
+					'id'           => 'bws-reflect',
+					'title'        => 'Reflect',
+					'prompt'       => '"What does remembering Black Wall Street ask of us today?"',
+					'button_label' => 'Return to Gallery',
+					'button_href'  => '/reflections/',
+				],
+			],
+		],
+	];
+}
+
+/**
+ * Blueprint for the "We Humans" demo reflection (light / documentary).
+ *
+ * Built from existing chapter families (documentary variants) + a light palette.
+ * @return array<string,mixed>
+ */
+function reci_demo_we_humans_blueprint( array $img = [] ): array {
+	$ph = function_exists( 'reci_reflection_placeholder_image' ) ? reci_reflection_placeholder_image() : '';
+	$im = static function ( string $key ) use ( $img, $ph ): string {
+		return ! empty( $img[ $key ] ) ? $img[ $key ] : $ph;
+	};
+
+	return [
+		'version'  => 2,
+		'system'   => 'reflections',
+		'settings' => [
+			'mode'             => 'immersive',
+			'global_style'     => 'documentary',
+			// Light "Hillman exhibit" palette — drives the documentary variants.
+			'color_bg'           => '#D9E3C7', // Ambrosia (light green) overall
+			'color_text'         => '#3F4446', // documentary titles
+			'color_heading'      => '#3F4446',
+			'color_body'         => '#4A4E50',
+			'color_soft_text'    => '#4A4E50', // documentary body copy
+			'color_surface'      => '#EDEFE8', // panel/card cream
+			'color_surface_text' => '#3F4446',
+			'color_card'         => '#EDEFE8',
+			'color_card_strong'  => '#E3E7DD',
+			'color_primary'      => '#5E7048',
+			'color_accent'       => '#5E7048', // darkened Nile Green for contrast
+			'color_muted'        => '#7E8478',
+			'color_border'       => 'rgba(63,68,70,0.22)',
+			'color_border_soft'  => 'rgba(63,68,70,0.12)',
+			'color_hotspot_ring' => 'rgba(94,112,72,0.40)',
+			'menu_enabled'     => true,
+			'nav_enabled'      => true,
+			'nav_back_label'   => '← RECI Media Hub',
+			'nav_back_url'     => '/',
+		],
+		'chapters' => [
+			// 1. Title / Hero — light text overlaid on the period photo (dark overlay).
+			[
+				'id'              => 'wh-title',
+					'include_in_menu' => '1',
+				'family'  => 'hero',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-title',
+					'include_in_menu' => '1',
+					'override_colors'      => true,
+					'color_text'           => '#F4F6EF',
+					'color_soft_text'      => '#E7ECE0',
+					'color_accent'         => '#C9D6B0',
+					'eyebrow'              => 'A Digital Exhibit',
+					'title'                => '"We Humans"',
+					'subtitle'             => 'Educating Pittsburgh on Race in the 1950s',
+					'body'                 => 'In the years following World War II, global shock over the Holocaust, growing demands to end race-based discrimination, and shifting ideas in science created a charged and consequential environment for social change. This digital exhibit shares one story of how civic, labor, and education leaders in Pittsburgh responded to that moment.',
+					'caption'              => 'Students hearing the "We Humans" curriculum, Monongahela High School, 1959. Photograph by Michel Chalufour. Courtesy of Carnegie Museum of Natural History, Library & Archives.',
+					'use_background_image' => '1',
+					'background_image'     => $im( 'students-1959.jpg' ),
+					'overlay_rgb'          => '47,50,52',
+					'overlay_opacity'      => 0.62,
+					'actions'         => [
+						[ 'label' => 'Introduction', 'href' => 'wh-intro' ],
+						[ 'label' => 'The Original Panels', 'href' => 'wh-panels-intro' ],
+					],
+				],
+			],
+			// 2. Introduction — overview.
+			[
+				'id'              => 'wh-intro',
+					'include_in_menu' => '1',
+				'family'  => 'feature-split',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-intro',
+					'include_in_menu' => '1',
+					'eyebrow'         => 'Introduction',
+					'title'           => 'What feels familiar and unfamiliar about this story?',
+					'body'            => '"We Humans" was an exhibit on race and racism developed by two curators of anthropology at the Carnegie Museum, James Swauger and Don Dragoo. Through punchy rhetoric informed by the science of the day, they encouraged workers, students, and citizens to question their assumptions about race and to value the lives and contributions of all people. It debuted in downtown Pittsburgh in 1955 and later reached a national audience through portable versions and publications. The exhibit was jointly planned by the museum, the United Steelworkers of America, Mayor David L. Lawrence\'s Civic Unity Council, and Pittsburgh Public Schools.' . "\n\n" . '"We Humans" shows how a version of anti-racism was made an urgent public priority across the United States in the 1950s — but it also reveals the pitfalls of the institutional and scientific tactics of the time. As you explore, ask yourself what its ambitions and shortcomings might teach people today.' . "\n\n" . '*Please note that this exhibit includes racial terminology and imagery that are outdated and offensive.*',
+					'image'           => $im( 'students-1959.jpg' ),
+					'media_side'      => 'right',
+					'actions'         => [
+						[ 'label' => 'Origins', 'href' => 'wh-origins' ],
+						[ 'label' => 'Display & Reception', 'href' => 'wh-display' ],
+						[ 'label' => 'The Original Panels', 'href' => 'wh-panels-intro' ],
+						[ 'label' => 'Conclusion & Reflection', 'href' => 'wh-reflect' ],
+						[ 'label' => 'About', 'href' => 'wh-about' ],
+					],
+				],
+			],
+			// 4. Origins (dossier: USW + UNESCO).
+			[
+				'id'              => 'wh-origins',
+					'include_in_menu' => '1',
+				'family'  => 'documentary-dossier',
+				'variant' => 'archival',
+				'props'   => [
+					'id'              => 'wh-origins',
+					'include_in_menu' => '1',
+					'eyebrow'  => 'How did "We Humans" come to be?',
+					'title'    => 'Origins',
+					'intro'    => [
+						[ 'text' => '"We Humans" emerged as one of many responses to local, national, and global conversations about race and discrimination in the 1950s. Civic, labor, religious, and community leaders, alongside academics, collaborated to counter both anti-semitism and Nazi race science, and anti-Black racism and segregation.' ],
+						[ 'text' => 'Of particular relevance were discussions convened by the Committee on Civil Rights of the United Steelworkers of America, and the first UNESCO Statement on Race of 1950.' ],
+					],
+					'sections' => [
+						[
+							'title'      => 'United Steelworkers of America',
+							'paragraphs' => [
+								[ 'text' => 'The Civil Rights Committee of the United Steelworkers (USW), established in 1948, organized seminars where leaders in labor, education, religion, and the social sciences debated how to mitigate prejudice in the workplace and in society.' ],
+								[ 'text' => 'Carnegie Museum curator James Swauger was invited to a USW "Seminar on Human Relations" in 1951. He brought museum artifacts made by diverse cultural groups and — presenting them without identifying information — challenged participants to racially label or judge them. That collaboration eventually created the opportunity for "We Humans."' ],
+							],
+							'links'      => [],
+						],
+						[
+							'title'      => 'UNESCO Statements on Race',
+							'paragraphs' => [
+								[ 'text' => 'In 1949, mostly anthropologists gathered in Paris to draft the first UNESCO Statement on Race (1950), aiming to eliminate racial prejudice through knowledge. The status of racial categorization in anthropology was shifting, even as many scholars still clung to now-discredited practices of physical anthropology.' ],
+								[ 'text' => 'Core messages — shared later by "We Humans" — held that humans are one species and that "races" were not pure, superior, or inferior, and did not determine intelligence or culture. Yet the statement also asserted three racial groups, combining progressive ideas about equality with biological categories now understood as inaccurate and offensive.' ],
+							],
+							'links'      => [
+								[ 'label' => 'Read the 2019 AABA statement on race', 'href' => 'https://onlinelibrary.wiley.com/doi/10.1002/ajpa.23882' ],
+								[ 'label' => 'Read "What is Race?" (UNESCO, 1952)', 'href' => 'https://unesdoc.unesco.org/ark:/48223/pf0000067867' ],
+							],
+						],
+					],
+					'continue_label'  => 'Display & Reception',
+					'continue_target' => 'wh-display',
+				],
+			],
+			// 5. Display & Reception (timeline).
+			[
+				'id'              => 'wh-display',
+					'include_in_menu' => '1',
+				'family'  => 'timeline-world',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-display',
+					'include_in_menu' => '1',
+					'eyebrow' => 'Display & Reception',
+					'title'   => 'Where was it shown, and what did people say?',
+					'items'   => [
+						[
+							'date'  => 'February 1955',
+							'title' => 'On view downtown',
+							'body'  => '"We Humans" goes on view in the City-County Building in downtown Pittsburgh. Four display cases arrived on a staggered schedule to keep visitors returning.',
+							'link'  => [ [ 'label' => 'See the first case (Teenie Harris, Pittsburgh Courier)', 'href' => 'https://collection.carnegieart.org/objects/2708a0a3-4fac-432f-9239-7613c333c102' ] ],
+						],
+						[
+							'date'  => 'July 1955',
+							'title' => '"Are You Ethnocentric?"',
+							'body'  => 'A Pittsburgh Sun-Telegraph editorial praised the exhibit for challenging the belief that one\'s own group is superior. Some readers doubled down on their sense of superiority — one even claimed the anti-ethnocentric message would lead to Communism.',
+							'media' => [
+								[ 'src' => $im( 'are-you-ethnocentric.jpg' ), 'alt' => 'Are You Ethnocentric? editorial', 'caption' => '"Are You Ethnocentric?," Pittsburgh Sun-Telegraph, July 8, 1955.' ],
+								[ 'src' => $im( 'ethnocentric.jpg' ), 'alt' => 'Ethnocentric reader responses', 'caption' => '"Ethnocentric," Pittsburgh Sun-Telegraph, July 15, 1955.' ],
+							],
+						],
+						[
+							'date'  => 'February 1956',
+							'title' => 'Into the schools',
+							'body'  => 'A modified, portable version tours Pittsburgh Public, parochial, and regional schools as a social-studies module. A USW-funded booklet circulated the content more broadly; the tour continued at least through 1959.',
+							'media' => [ [ 'src' => $im( 'teacher-1959.jpg' ), 'alt' => 'Teacher with a portable We Humans panel', 'caption' => 'A teacher at Monongahela High School with a portable "We Humans" panel, 1959.' ] ],
+						],
+						[
+							'date'  => 'March 1956',
+							'title' => 'Eleanor Roosevelt praises it',
+							'body'  => 'First Lady Eleanor Roosevelt received a copy of the booklet from Swauger and praised it in her column "My Day," writing that "North and South alike must learn to evaluate human beings as such." Her column drew further interest.',
+						],
+						[
+							'date'  => 'June 1956',
+							'title' => 'In the Courier',
+							'body'  => 'Ric Roberts wrote about the exhibit and its school tour in The Pittsburgh Courier. Its message — that humans differed by "type" but were fundamentally united and equal — resonated.',
+							'media' => [ [ 'src' => $im( 'courier-1956.jpg' ), 'alt' => 'Pittsburgh Courier article', 'caption' => 'Ric Roberts, "School, Churchmen Agree \'Race\' is Mythical," Pittsburgh Courier, June 2, 1956.' ] ],
+						],
+						[
+							'date'  => 'November 1959',
+							'title' => 'A national tour',
+							'body'  => 'With support from the American Jewish Committee and USW, a second portable version toured libraries nationwide. This month it opened at the San Francisco Public Library.',
+							'media' => [ [ 'src' => $im( 'sf-library-1959.jpg' ), 'alt' => 'We Humans at the San Francisco Public Library', 'caption' => 'The temporary installation of "We Humans" at the San Francisco Public Library, 1959.' ] ],
+						],
+						[
+							'date'  => 'October 1963',
+							'title' => 'The Indiana Centennial',
+							'body'  => '"We Humans" is displayed at the Indiana Centennial in Indianapolis, one of many stops — including Miami, Connecticut, and Detroit — on its long national journey.',
+							'media' => [
+								[ 'src' => $im( 'indianapolis-1.jpg' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.' ],
+								[ 'src' => $im( 'indianapolis-2.jpg' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.' ],
+							],
+						],
+					],
+					'continue_label'  => 'The Original Panels',
+					'continue_target' => 'wh-panels-intro',
+				],
+			],
+			// 6. Panels intro.
+			[
+				'id'              => 'wh-panels-intro',
+					'include_in_menu' => '1',
+				'family'  => 'feature-split',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-panels-intro',
+					'include_in_menu' => '1',
+					'eyebrow'         => 'What was actually in "We Humans"?',
+					'title'           => 'The Original Panels',
+					'body'            => '"We Humans" consisted of eight panels displayed in four double-sided cases. Each case paired one panel ("Panel A") about human biology and genetics with another ("Panel B") about human culture.' . "\n\n" . 'Using bold rhetoric, museum artifacts, and mannequin heads, Swauger and Dragoo tried to unsettle assumptions about race — in ways that today appear outdated, inaccurate, and offensive, awkwardly shifting between racial division and harmony.',
+					'image'           => $im( 'panel-1a.jpg' ),
+					'image_alt'       => 'We Humans, Case I, Panel A',
+					'media_side'      => 'right',
+					'continue_label'  => 'Explore the panels',
+					'continue_target' => 'wh-panels',
+				],
+			],
+			// 7. The Original Panels (gallery).
+			[
+				'id'              => 'wh-panels',
+					'include_in_menu' => '1',
+				'family'  => 'panel-explorer',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-panels',
+					'include_in_menu' => '1',
+					'eyebrow' => 'The Original Panels',
+					'title'   => 'Eight Panels, Four Cases',
+					'intro'   => 'Click any panel to enlarge. "Panel A" addressed human biology; "Panel B" addressed human culture.',
+					'items'   => [
+						[ 'title' => 'Case I, Panel A', 'src' => $im( 'panel-1a.jpg' ), 'alt' => 'Case I, Panel A', 'description' => 'Challenges viewers to identify three mannequins by "race," implying difference is hard to see — while still presenting the era\'s now-invalid racial "types" as real and knowable.' ],
+						[ 'title' => 'Case I, Panel B', 'src' => $im( 'panel-1b.jpg' ), 'alt' => 'Case I, Panel B', 'description' => 'Argues "ethnocentrism" is human but can be overcome by knowledge — quoting figures from a pharaoh and Euripides to Hitler, Jesus, and Jefferson, while privileging Western voices.' ],
+						[ 'title' => 'Case II, Panel A', 'src' => $im( 'panel-2a.jpg' ), 'alt' => 'Case II, Panel A', 'description' => 'The mannequin heads return wearing headdresses from the museum\'s collection — meant to show we read cultural, not racial, cues, but mislabeling and decontextualizing the objects.' ],
+						[ 'title' => 'Case II, Panel B', 'src' => $im( 'panel-2b.jpg' ), 'alt' => 'Case II, Panel B', 'description' => 'Similar objects from different regions, pinned unmarked. "Are you a wizard?" it asks. It closes: "If you needed one of these baskets... would it really matter who made it?"' ],
+						[ 'title' => 'Case III, Panel A', 'src' => $im( 'panel-3a.jpg' ), 'alt' => 'Case III, Panel A', 'description' => 'A world map and color-coded figurines illustrate variation from geographic isolation — but wrongly frame it as "racial" and place humanity\'s origin in Asia rather than Africa.' ],
+						[ 'title' => 'Case III, Panel B', 'src' => $im( 'panel-3b.jpg' ), 'alt' => 'Case III, Panel B', 'description' => 'A man before a hearty breakfast of globally sourced foods shows racism\'s incoherence. Notably, "the waitress" is the only feminized person mentioned in all of "We Humans."' ],
+						[ 'title' => 'Case IV, Panel A', 'src' => $im( 'panel-4a.jpg' ), 'alt' => 'Case IV, Panel A', 'description' => 'A concluding biology panel, drawing together the exhibit\'s claims about human variation and unity.' ],
+						[ 'title' => 'Case IV, Panel B', 'src' => $im( 'panel-4b.jpg' ), 'alt' => 'Case IV, Panel B', 'description' => 'A concluding culture panel, closing the paired sequence of "We Humans."' ],
+					],
+					'continue_label'  => 'Conclusion & Reflection',
+					'continue_target' => 'wh-reflect',
+				],
+			],
+			// 8. Conclusion & Reflection.
+			[
+				'id'              => 'wh-reflect',
+					'include_in_menu' => '1',
+				'family'  => 'reflection-prompt',
+				'variant' => 'journal',
+				'props'   => [
+					'id'              => 'wh-reflect',
+					'include_in_menu' => '1',
+					'eyebrow'         => 'How should we think and feel about "We Humans" today?',
+					'title'           => 'Conclusion & Reflection',
+					'prompt'          => '"We Humans" made anti-racism an urgent public priority in the 1950s — yet leaned on scientific and institutional tactics we now recognize as flawed. What might its ambitions, and its shortcomings, teach us today?',
+					'continue_label'  => 'About this exhibit',
+					'continue_target' => 'wh-about',
+				],
+			],
+			// 9. About — curator.
+			[
+				'id'              => 'wh-about',
+					'include_in_menu' => '1',
+				'family'  => 'feature-split',
+				'variant' => 'documentary',
+				'props'   => [
+					'id'              => 'wh-about',
+					'include_in_menu' => '1',
+					'eyebrow'         => 'About',
+					'title'           => 'About this exhibit',
+					'body'            => 'This exhibit was developed in 2025–2026 by Deirdre Madeleine Smith, a Teaching Assistant Professor in the History of Art and Architecture Department at the University of Pittsburgh and Curator of Museum Studies and Art at Carnegie Museum of Natural History. An earlier version was hosted in the Hyland Gallery at Hillman Library, co-curated by student intern Lindsey Kenny with University of Pittsburgh Library System staff Megan Massanelli and Madeleine Chesek-Welch.',
+					'image'           => $im( 'about.jpg' ),
+					'image_alt'       => 'Curator Deirdre Madeleine Smith in front of the We Humans exhibit, 2025',
+					'caption'         => 'Curator Deirdre Madeleine Smith in front of the "We Humans" exhibit in Hyland Gallery, 2025. Photograph by Ron Idoko.',
+					'media_side'      => 'left',
+					'continue_label'  => 'Credits & Sources',
+					'continue_target' => 'wh-credits',
+				],
+			],
+			// 10. Credits, Acknowledgements & Sources.
+			[
+				'id'              => 'wh-credits',
+					'include_in_menu' => '1',
+				'family'  => 'documentary-dossier',
+				'variant' => 'archival',
+				'props'   => [
+					'id'              => 'wh-credits',
+					'include_in_menu' => '1',
+					'eyebrow'  => 'About',
+					'title'    => 'Credits, Acknowledgements & Sources',
+					'intro'    => [],
+					'sections' => [
+						[
+							'title'      => 'Acknowledgments',
+							'paragraphs' => [
+								[ 'text' => 'Thanks to the following individuals for their support in the development of this project:' ],
+								[ 'text' => 'Gretchen Baker, Jenise Brown, Marie Corrado, Amy Covell-Murthy, Sarah Crawford, Sydney Dominick, Christopher Fleisher, Kristina Gaugler, Laurie Giarratani, Ron Idoko, Morgan Riggenbach, Keirstin Rotharmel, Ellen Sanin, Rachel Thomas-Beckel, Breann Thompson, Annick Vuissoz, Amy Whipple, Ginger White, Gina Winstead.' ],
+							],
+							'links'      => [],
+						],
+						[
+							'title'      => 'Sources consulted and recommended',
+							'paragraphs' => [
+								[ 'text' => 'Archives: Carnegie Museum of Natural History Section of Anthropology Archives; CMNH Library & Archives; Heinz History Center (Pittsburgh Public Schools Records); University of Pittsburgh Library System Archives & Special Collections (Francis C. Shane Papers, 1942–1969).' ],
+								[ 'text' => 'Books & articles: Anthony Hazard, Postwar Anti-racism (Palgrave, 2012); James B. Stewart, "Civil Rights and Organized Labor" (2005); Tracy Teslow, Constructing Race (Cambridge, 2014); Joe W. Trotter Jr. & Jared N. Day, Race and Renaissance (Pittsburgh, 2010).' ],
+							],
+							'links'      => [
+								[ 'label' => 'Curator: Deirdre Madeleine Smith (Pitt)', 'href' => 'https://www.haa.pitt.edu/people/deirdre-madeleine-smith' ],
+							],
+						],
+					],
+				],
+			],
+		],
+	];
+}
+
+/**
+ * Insert a demo quote post.
+ */
+function reci_demo_insert_quote( array $data ): void {
+	$existing = get_page_by_path( $data['slug'], OBJECT, 'reci_quote' );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_id = wp_insert_post( [
+		'post_type'    => 'reci_quote',
+		'post_status'  => 'publish',
+		'post_name'    => $data['slug'],
+		'post_title'   => $data['title'],
+		'post_content' => '',
+	] );
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_reci_quote_text', $data['text'] );
+	update_post_meta( $post_id, '_reci_quote_author_name', $data['author_name'] );
+	update_post_meta( $post_id, '_reci_quote_author_title', $data['author_title'] );
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $data['slug'];
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+}
+
+/**
+ * Ensure taxonomy terms exist; returns slug → term_id map.
+ */
+function reci_demo_ensure_terms( string $taxonomy, array $names ): array {
+	$map = [];
+	foreach ( $names as $name ) {
+		$term = term_exists( $name, $taxonomy );
+		if ( ! $term ) {
+			$term = wp_insert_term( $name, $taxonomy );
+		}
+		if ( ! is_wp_error( $term ) ) {
+			$map[ $name ] = (int) ( $term['term_id'] ?? $term );
+		}
+	}
+	return $map;
+}
+
+/**
+ * Insert a demo post if its slug doesn't already exist.
+ */
+function reci_demo_insert_post(
+	string $post_type,
+	array $data,
+	array $topics,
+	array $locations,
+	array &$imgs
+): void {
+	$existing = get_page_by_path( $data['slug'], OBJECT, $post_type );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_args = [
+		'post_type'    => $post_type,
+		'post_status'  => 'publish',
+		'post_name'    => $data['slug'],
+		'post_title'   => $data['title'],
+		'post_excerpt' => $data['excerpt'],
+		'post_content' => $data['content'],
+	];
+
+	if ( ! empty( $data['post_date'] ) ) {
+		$post_args['post_date']     = (string) $data['post_date'];
+		$post_args['post_date_gmt'] = get_gmt_from_date( (string) $data['post_date'] );
+	}
+
+	if ( 'reci_event' === $post_type && ! empty( $data['meta']['_reci_event_start_date'] ) ) {
+		$event_date = $data['meta']['_reci_event_start_date'];
+		$post_args['post_date']     = $event_date . ' 12:00:00';
+		$post_args['post_date_gmt'] = $event_date . ' 12:00:00';
+	}
+
+	$post_id = wp_insert_post( $post_args );
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	foreach ( ( $data['meta'] ?? [] ) as $key => $val ) {
+		update_post_meta( $post_id, $key, $val );
+	}
+
+	if ( ! empty( $data['show'] ) ) {
+		$term = term_exists( $data['show'], 'reci_show' );
+		if ( ! $term ) {
+			$term = wp_insert_term( $data['show'], 'reci_show' );
+		}
+		if ( ! is_wp_error( $term ) ) {
+			$show_id = is_array( $term ) ? $term['term_id'] : $term;
+			wp_set_object_terms( $post_id, [ $show_id ], 'reci_show', false );
+		}
+	}
+
+	if ( ! empty( $data['author_name'] ) ) {
+		$author_profile_id = reci_demo_ensure_author_profile([
+			'slug'    => sanitize_title( (string) $data['author_name'] ),
+			'name'    => (string) $data['author_name'],
+			'title'   => (string) ( $data['author_title'] ?? 'RECI Contributor' ),
+			'bio'     => (string) ( $data['author_bio'] ?? '' ),
+			'content' => (string) ( $data['author_content'] ?? '' ),
+		]);
+
+		if ( $author_profile_id > 0 ) {
+			update_post_meta( $post_id, '_reci_display_author_profile_id', $author_profile_id );
+		}
+	}
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	// Assign category terms. The `category` taxonomy is distinct from `topics`
+	// (reci_topic) and `focus` (reci_practice_focus): only an explicit
+	// `category` is used here, and the term is created if it does not exist.
+	if ( ! empty( $data['category'] ) ) {
+		$cat_ids = [];
+		foreach ( (array) $data['category'] as $cat_name ) {
+			$term = term_exists( $cat_name, 'category' );
+			if ( ! $term ) {
+				$term = wp_insert_term( $cat_name, 'category' );
+			}
+			if ( ! is_wp_error( $term ) ) {
+				$cat_ids[] = (int) ( $term['term_id'] ?? $term );
+			}
+		}
+		if ( ! empty( $cat_ids ) ) {
+			wp_set_post_categories( $post_id, $cat_ids, false );
+		}
+	}
+
+	// Assign post_tags.
+	if ( ! empty( $data['tags'] ) ) {
+		wp_set_post_tags( $post_id, $data['tags'], true );
+	}
+
+	$topic_ids = [];
+	foreach ( ( $data['topics'] ?? [] ) as $topic_name ) {
+		if ( isset( $topics[ $topic_name ] ) ) {
+			$topic_ids[] = $topics[ $topic_name ];
+		}
+	}
+	if ( $topic_ids ) {
+		wp_set_object_terms( $post_id, $topic_ids, 'reci_topic', false );
+	}
+
+	$sphere_ids = [];
+	foreach ( ( $data['spheres'] ?? [] ) as $sphere_name ) {
+		$term = term_exists( $sphere_name, 'reci_sphere' );
+		if ( $term ) {
+			$sphere_ids[] = (int) ( $term['term_id'] ?? $term );
+		}
+	}
+	if ( $sphere_ids ) {
+		wp_set_object_terms( $post_id, $sphere_ids, 'reci_sphere', false );
+	}
+
+	if ( ! empty( $data['sdgs'] ) ) {
+		$sdg_ids = [];
+		foreach ( (array) $data['sdgs'] as $sdg_name ) {
+			$term = term_exists( $sdg_name, 'sdgs' );
+			if ( ! $term ) {
+				$term = wp_insert_term( $sdg_name, 'sdgs' );
+			}
+			if ( ! is_wp_error( $term ) ) {
+				$sdg_ids[] = (int) ( $term['term_id'] ?? $term );
+			}
+		}
+		if ( ! empty( $sdg_ids ) ) {
+			wp_set_object_terms( $post_id, $sdg_ids, 'sdgs', false );
+		}
+	}
+
+	if ( isset( $locations['Pittsburgh'] ) ) {
+		wp_set_object_terms( $post_id, [ $locations['Pittsburgh'] ], 'reci_location', false );
+	}
+
+	if ( ! empty( $data['image'] ) ) {
+		$attachment_id = reci_demo_sideload_image( $data['image'], $post_id, $imgs );
+		if ( $attachment_id ) {
+			set_post_thumbnail( $post_id, $attachment_id );
+		}
+	}
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $data['slug'];
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
+}
+
+/**
+ * Sideload an image from theme's assets/images/ directory into the media library.
+ */
+function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs, string &$error_message = '' ): int {
+	if ( isset( $imgs[ $filename ] ) ) {
+		return $imgs[ $filename ];
+	}
+
+	$file_path = get_template_directory() . '/assets/images/' . ltrim( $filename, '/' );
+
+	if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+		$error_message = 'Source file is missing or unreadable.';
+		return 0;
+	}
+
+	$filesize = filesize( $file_path );
+	if ( false === $filesize || $filesize <= 0 ) {
+		$error_message = 'Source file is empty.';
+		return 0;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+
+	$file_contents = file_get_contents( $file_path );
+	if ( false === $file_contents ) {
+		wp_die( "<h1>Critical Import Error</h1><p>Your server is blocking PHP from reading local files. <br>Path: $file_path</p><p>You must either use HTTP sideloading or change your server's open_basedir/read permissions.</p>" );
+	}
+
+	$upload = wp_upload_bits( wp_basename( $file_path ), null, $file_contents );
+	if ( ! empty( $upload['error'] ) ) {
+		$error_message = 'Upload failed: ' . $upload['error'];
+		return 0;
+	}
+
+	$check = wp_check_filetype( wp_basename( $file_path ) );
+	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/jpeg';
+
+	$attachment_id = wp_insert_attachment(
+		[
+			'post_mime_type' => $mime_type,
+			'post_title'     => pathinfo( wp_basename( $file_path ), PATHINFO_FILENAME ),
+			'post_status'    => 'inherit',
+			'post_parent'    => $post_id,
+		],
+		$upload['file'],
+		$post_id
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		$error_message = 'Attachment creation failed' . ( is_wp_error( $attachment_id ) ? ': ' . $attachment_id->get_error_message() : '.' );
+		if ( ! empty( $upload['file'] ) && file_exists( $upload['file'] ) ) {
+			wp_delete_file( $upload['file'] );
+		}
+		return 0;
+	}
+
+	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	if ( is_wp_error( $metadata ) ) {
+		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
+		wp_delete_attachment( $attachment_id, true );
+		return 0;
+	}
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+
+	$imgs[ $filename ] = $attachment_id;
+	return $attachment_id;
+}
+
+/**
+ * Return a bundled demo image URL when the file exists.
+ */
+function reci_demo_theme_image_url( string $filename ): string {
+	$relative_path = ltrim( $filename, '/' );
+	$file_path     = get_template_directory() . '/assets/images/' . $relative_path;
+
+	if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+		return '';
+	}
+
+	return get_template_directory_uri() . '/assets/images/' . $relative_path;
+}
+
+/**
+ * Generate placeholder body copy.
+ */
+function reci_demo_lorem( int $paragraphs = 2 ): string {
+	$p   = 'Racial equity work requires sustained commitment, community partnership, and an unflinching willingness to examine systems — not just individual behaviors. Over decades of research, scholars and practitioners have demonstrated that disparities in education, health, housing, and economic opportunity are not the result of individual failings, but of policies and structures designed to produce unequal outcomes. Understanding this is the first step toward changing it.';
+	$p2  = 'The path forward demands both urgency and patience. Urgency because lives and livelihoods hang in the balance every day that inequitable systems remain in place. Patience because lasting systemic change is never quick, and meaningful progress requires building trust across communities, institutions, and generations. RECI is committed to both, bridging rigorous scholarship with community-driven action.';
+	$p3  = 'Communities most impacted by racial inequity are not simply problems to be solved — they are sources of expertise, resilience, and vision. Centering the voices and leadership of those who have navigated unjust systems firsthand is not charity; it is a prerequisite for effective and lasting change. When solutions emerge from within communities, they are more likely to endure.';
+	$p4  = 'Data matters, but data without context can mislead. Numbers alone cannot capture the lived experience of systemic exclusion. Effective equity work weaves together quantitative research, qualitative stories, and community knowledge to create a fuller picture of both the problem and the possibility. RECI\'s approach integrates all three.';
+
+	$all = [ $p, $p2, $p3, $p4 ];
+	return implode( "\n\n", array_slice( $all, 0, min( $paragraphs, 4 ) ) );
+}
