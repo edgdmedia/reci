@@ -1,0 +1,44 @@
+:root {
+	--reflection-bg: #0a0a0a;
+	--reflection-surface: rgba(20,20,20,0.8);
+	--reflection-card: rgba(255,255,255,0.04);
+	--reflection-card-strong: rgba(255,255,255,0.08);
+	--reflection-text: #e0e0e0;
+	--reflection-white: #ffffff;
+	--reflection-muted: #b8b8b8;
+	--reflection-soft-text: #e0e0e0;
+	--reflection-accent: #D4AF37;
+	--reflection-accent-contrast: #111111;
+	--reflection-metal: #5a5a5a;
+	/* Shared neutrals used by documentary/timeline chapters. */
+	--reflection-border: rgba(255,255,255,0.18);
+	--reflection-border-soft: rgba(255,255,255,0.10);
+	--reflection-hotspot-ring: rgba(212,175,55,0.35);
+}
+body.single-reci-reflection.reci-reflection-system-page {
+	background-color: var(--reflection-bg);
+	color: var(--reflection-text);
+	font-family: 'Lato', sans-serif;
+	overflow-x: hidden;
+}
+h1, h2, h3, h4, h5, h6, .title-huge {
+	font-family: 'Cinzel', serif;
+}
+.title-huge {
+	font-size: 5rem;
+	color: var(--reflection-text);
+	text-transform: uppercase;
+	letter-spacing: 10px;
+	margin-bottom: 20px;
+}
+.verse-text {
+	max-width: 600px;
+	font-size: 1.4rem;
+	line-height: 1.6;
+	margin: 0 auto;
+}
+#bcProgressLine { transition: height 0.5s; }
+.link-broken { border-color: #333 !important; transform-origin: top center; }
+@keyframes breakAndFall { 0% { transform: rotate(0deg); } 20% { transform: rotate(15deg); border-color: var(--reflection-accent); } 100% { transform: rotate(45deg) translateY(500px); opacity: 0; } }
+.shift-word { color: var(--reflection-accent); cursor: pointer; border-bottom: 1px dashed var(--reflection-accent); transition: all 0.3s; }
+.shift-word:hover, .shift-word.shifted { background: rgba(212, 175, 55, 0.2); color: white; }

@@ -34,7 +34,6 @@ $reci_media_hub_includes = [
 	
 	'/inc/admin/theme-settings.php',
 	'/inc/admin/dashboard.php',
-	'/inc/admin/admin-branding.php',
 	'/inc/admin/demo-content.php',
 	'/inc/admin/theme-setup-wizard.php',
 	'/inc/admin/class-reci-journals-list-table.php',
@@ -60,5 +59,8 @@ $reci_media_hub_includes = [
 ];
 
 foreach ($reci_media_hub_includes as $include_path) {
-	require_once get_template_directory() . $include_path;
+	$absolute_path = get_template_directory() . $include_path;
+	if (file_exists($absolute_path)) {
+		require_once $absolute_path;
+	}
 }

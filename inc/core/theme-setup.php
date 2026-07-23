@@ -114,7 +114,8 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 			'templates/page/template-submit-content.php',
 			'templates/page/dashboard/template-dashboard-submit.php',
 		];
-		$is_submit_page = (bool) array_reduce( $submit_templates, fn( $carry, $t ) => $carry || is_page_template( $t ), false );
+		$is_dashboard_submit_page = get_query_var( 'pagename' ) === 'dashboard' && get_query_var( 'dashboard_page' ) === 'submit';
+		$is_submit_page = $is_dashboard_submit_page || (bool) array_reduce( $submit_templates, fn( $carry, $t ) => $carry || is_page_template( $t ), false );
 		if ( $is_submit_page ) {
 			$submission_path = get_template_directory() . '/assets/js/submission-form.js';
 			if (file_exists($submission_path)) {

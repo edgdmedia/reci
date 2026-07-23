@@ -85,14 +85,12 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 					<!-- Left: Search -->
 					<div class="hidden lg:flex relative w-2/7">
 						<div class="reci-search-container">
-							<form role="search" method="get" action="<?php echo esc_url(
+						<form role="search" method="get" action="<?php echo esc_url(
            home_url("/"),
        ); ?>" class="flex w-full md:w-[280px] px-5 py-3.5 bg-slate-100 rounded-lg items-center gap-2.5">
-								<?php echo reci_inline_svg(
-            "assets/icons/search-icon.svg",
-            "w-4 h-4 flex-shrink-0 opacity-50",
-            ["aria-hidden" => "true"],
-        ); ?>
+							<svg class="w-4 h-4 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+							</svg>
 								<input
 									type="search"
 									name="s"
@@ -115,11 +113,9 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 						aria-expanded="false"
 						aria-controls="search-drawer"
 						class="lg:hidden p-3 rounded-lg bg-slate-100 flex items-center justify-center">
-						<?php echo reci_inline_svg(
-          "assets/icons/search-icon.svg",
-          "w-5 h-5 flex-shrink-0",
-          ["aria-hidden" => "true"],
-      ); ?>
+						<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+						</svg>
 					</button>
 
 					<!-- Center: RECI Logo -->
@@ -142,11 +138,11 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
            home_url("/reflections/"),
        ); ?>"
 							class="py-2 relative group items-center gap-1 flex-shrink-0 hidden md:flex">
-							<?php echo reci_inline_svg(
-           "assets/icons/lightbulb-on.svg",
-           "w-4 h-4 flex-shrink-0",
-           ["aria-hidden" => "true"],
-       ); ?>
+						<?php echo reci_inline_svg(
+			"assets/icons/lightbulb-on.svg",
+			"w-4 h-4 flex-shrink-0",
+			["aria-hidden" => "true"],
+		); ?>
 							<span class="text-neutral-800 text-[22px] font-normal">Reflections</span>
 							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 						</a>
@@ -178,11 +174,9 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 					<form method="get" action="<?php echo esc_url(
          home_url("/"),
      ); ?>" class="flex items-center gap-3 bg-slate-100 rounded-lg px-4 py-3">
-						<?php echo reci_inline_svg(
-         "assets/icons/search-icon.svg",
-         "w-4 h-4 flex-shrink-0 opacity-50",
-         ["aria-hidden" => "true"],
-     ); ?>
+						<svg class="w-4 h-4 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+						</svg>
 						<input
 							type="search"
 							name="s"
