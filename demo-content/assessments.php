@@ -1,0 +1,128 @@
+<?php
+
+return [
+		[
+			'slug'    => 'reci-demo-assessment-racial-equity',
+			'title'   => 'Racial Equity Foundation Check',
+			'excerpt' => 'Evaluate your understanding of racial equity principles and systemic barriers.',
+			'content' => reci_demo_lorem( 1 ),
+			'topics'  => [ 'Systemic Racism', 'Education' ],
+			'image'   => 'site/quizzes/Image4.webp',
+			'post_date' => '2024-07-02 09:04:16',
+			'meta'    => [
+				'_reci_assessment_type' => 'quiz',
+				'_reci_assessment_duration' => '5 min',
+				'_reci_assessment_questions' => wp_json_encode([
+					['id'=>'q1','prompt'=>'What does racial equity primarily aim to achieve?','type'=>'single_choice','options'=>['Equal treatment regardless of outcomes','Fair outcomes by addressing systemic barriers','Preferential treatment for one group','Eliminating cultural differences'],'correct_answers'=>['Fair outcomes by addressing systemic barriers']],
+					['id'=>'q2','prompt'=>'True or False: Racial equity and racial equality mean exactly the same thing.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['False']],
+					['id'=>'q3','prompt'=>'Which of the following is an example of a racial equity initiative?','type'=>'single_choice','options'=>['Offering identical resources to everyone','Creating mentorship programs for underrepresented groups','Ignoring demographic data in hiring','Reducing workplace diversity training'],'correct_answers'=>['Creating mentorship programs for underrepresented groups']],
+					['id'=>'q4','prompt'=>'What is one major barrier to racial equity?','type'=>'single_choice','options'=>['Systemic discrimination','Increased collaboration','Equal access to opportunities','Transparent hiring practices'],'correct_answers'=>['Systemic discrimination']],
+					['id'=>'q5','prompt'=>'True or False: Data analysis can help organizations identify racial disparities.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+				]),
+				'_reci_assessment_result_ranges' => wp_json_encode([
+					['key'=>'needs_support','label'=>'Foundational','min_percent'=>0,'max_percent'=>39,'message'=>'You are beginning to explore the core concepts of racial equity. We recommend starting with our introductory modules to build a stronger baseline understanding of systemic barriers.','recommended_topics'=>['Systemic Racism','Education']],
+					['key'=>'developing','label'=>'Developing','min_percent'=>40,'max_percent'=>69,'message'=>'You have a good grasp of basic equity concepts but may benefit from deeper engagement with how systemic discrimination operates in practice.','recommended_topics'=>['Systemic Racism','Community Action']],
+					['key'=>'strong','label'=>'Strong','min_percent'=>70,'max_percent'=>100,'message'=>'Great job! You have a solid understanding of racial equity foundations and the importance of fair outcomes over equal treatment.','recommended_topics'=>['Policy and Practice','Leadership']],
+				]),
+			],
+		],
+		[
+			'slug'    => 'reci-demo-assessment-racial-empathy',
+			'title'   => 'Racial Empathy Self-Check',
+			'excerpt' => 'A reflective check-in on understanding and valuing interracial experiences.',
+			'content' => reci_demo_lorem( 1 ),
+			'topics'  => [ 'Cultural Identity', 'Intersectionality' ],
+			'image'   => 'site/quizzes/Image5.webp',
+			'post_date' => '2024-01-11 07:45:23',
+			'meta'    => [
+				'_reci_assessment_type' => 'checklist',
+				'_reci_assessment_duration' => '5 min',
+				'_reci_assessment_questions' => wp_json_encode([
+					['id'=>'q1','prompt'=>'Racial empathy refers to:','type'=>'single_choice','options'=>['Avoiding conversations about race','Understanding and valuing experiences of people from different racial backgrounds','Treating everyone exactly the same','Assuming all experiences are identical'],'correct_answers'=>['Understanding and valuing experiences of people from different racial backgrounds']],
+					['id'=>'q2','prompt'=>'True or False: Active listening is an important part of racial empathy.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+					['id'=>'q3','prompt'=>'Which action best demonstrates racial empathy in a workplace?','type'=>'single_choice','options'=>['Interrupting discussions about discrimination','Dismissing others’ experiences','Listening without defensiveness','Avoiding team discussions'],'correct_answers'=>['Listening without defensiveness']],
+					['id'=>'q4','prompt'=>'Why is racial empathy important?','type'=>'single_choice','options'=>['It reduces communication','It helps build inclusive relationships','It increases stereotypes','It removes the need for policies'],'correct_answers'=>['It helps build inclusive relationships']],
+					['id'=>'q5','prompt'=>'True or False: Racial empathy requires agreement with every perspective shared.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['False']],
+				]),
+				'_reci_assessment_result_ranges' => wp_json_encode([
+					['key'=>'low','label'=>'Emerging Empathy','min_percent'=>0,'max_percent'=>39,'message'=>'Racial empathy involves active unlearning and listening. Take time to explore stories and perspectives from backgrounds different from your own.','recommended_topics'=>['Cultural Identity','Intersectionality']],
+					['key'=>'mid','label'=>'Developing Empathy','min_percent'=>40,'max_percent'=>79,'message'=>'You are practicing the skills of listening and valuing diverse experiences. Continue focusing on non-defensive listening to further build your racial empathy.','recommended_topics'=>['Intersectionality','Community Action']],
+					['key'=>'high','label'=>'High Empathy','min_percent'=>80,'max_percent'=>100,'message'=>'Your responses show a strong commitment to understanding and valuing interracial experiences through active listening and openness.','recommended_topics'=>['Racial Healing','Cultural Identity']],
+				]),
+			],
+		],
+		[
+			'slug'    => 'reci-demo-assessment-racial-anxiety',
+			'title'   => 'Racial Anxiety Awareness',
+			'excerpt' => 'Identify discomfort or stress in interracial interactions to build better collaboration.',
+			'content' => reci_demo_lorem( 1 ),
+			'topics'  => [ 'Workplace Equity', 'Community Action' ],
+			'image'   => 'site/quizzes/Image2.webp',
+			'post_date' => '2024-11-19 07:49:42',
+			'meta'    => [
+				'_reci_assessment_type' => 'quiz',
+				'_reci_assessment_duration' => '5 min',
+				'_reci_assessment_questions' => wp_json_encode([
+					['id'=>'q1','prompt'=>'Racial anxiety can best be described as:','type'=>'single_choice','options'=>['Confidence in discussing race-related issues','Discomfort or stress during interracial interactions','A legal policy','A personality trait unrelated to race'],'correct_answers'=>['Discomfort or stress during interracial interactions']],
+					['id'=>'q2','prompt'=>'True or False: Fear of saying the wrong thing can contribute to racial anxiety.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+					['id'=>'q3','prompt'=>'Which strategy may help reduce racial anxiety?','type'=>'single_choice','options'=>['Avoiding all conversations about race','Practicing open and respectful dialogue','Ignoring cultural differences','Making assumptions about others'],'correct_answers'=>['Practicing open and respectful dialogue']],
+					['id'=>'q4','prompt'=>'Racial anxiety may negatively affect:','type'=>'single_choice','options'=>['Team collaboration','Communication','Workplace trust','All of the above'],'correct_answers'=>['All of the above']],
+					['id'=>'q5','prompt'=>'True or False: Education and exposure can help reduce racial anxiety over time.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+				]),
+				'_reci_assessment_result_ranges' => wp_json_encode([
+					['key'=>'high','label'=>'High Anxiety','min_percent'=>0,'max_percent'=>39,'message'=>'It is common to feel stress in these interactions. Focused practice in open dialogue and exposure to new frameworks can help reduce this anxiety over time.','recommended_topics'=>['Workplace Equity','Racial Healing']],
+					['key'=>'mid','label'=>'Developing Confidence','min_percent'=>40,'max_percent'=>79,'message'=>'You are building confidence in interracial settings. Keep leaning into respectful dialogue to continue reducing the fear of "saying the wrong thing."','recommended_topics'=>['Workplace Equity','Community Action']],
+					['key'=>'low','label'=>'Interracial Confidence','min_percent'=>80,'max_percent'=>100,'message'=>'You demonstrate a high level of comfort and awareness in interracial interactions, which is key for effective collaboration and trust-building.','recommended_topics'=>['Leadership','Community Action']],
+				]),
+			],
+		],
+		[
+			'slug'    => 'reci-demo-assessment-implicit-bias',
+			'title'   => 'Implicit Bias Reflection',
+			'excerpt' => 'Examine unconscious attitudes and stereotypes that affect decision making.',
+			'content' => reci_demo_lorem( 1 ),
+			'topics'  => [ 'Systemic Racism', 'Workplace Equity' ],
+			'image'   => 'site/quizzes/Image3.webp',
+			'post_date' => '2024-10-22 03:07:28',
+			'meta'    => [
+				'_reci_assessment_type' => 'checklist',
+				'_reci_assessment_duration' => '5 min',
+				'_reci_assessment_questions' => wp_json_encode([
+					['id'=>'q1','prompt'=>'Implicit bias refers to:','type'=>'single_choice','options'=>['Intentional discrimination only','Unconscious attitudes or stereotypes that affect decisions','Public policy changes','Formal workplace rules'],'correct_answers'=>['Unconscious attitudes or stereotypes that affect decisions']],
+					['id'=>'q2','prompt'=>'True or False: Everyone can have implicit biases.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+					['id'=>'q3','prompt'=>'Which example may reflect implicit bias?','type'=>'single_choice','options'=>['Evaluating all resumes blindly','Assuming someone is less qualified based on their name','Using objective criteria in hiring','Encouraging equal participation'],'correct_answers'=>['Assuming someone is less qualified based on their name']],
+					['id'=>'q4','prompt'=>'What can organizations do to reduce implicit bias?','type'=>'single_choice','options'=>['Ignore diversity data','Limit hiring transparency','Provide bias-awareness training','Avoid feedback systems'],'correct_answers'=>['Provide bias-awareness training']],
+					['id'=>'q5','prompt'=>'True or False: Implicit bias is always intentional.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['False']],
+				]),
+				'_reci_assessment_result_ranges' => wp_json_encode([
+					['key'=>'low','label'=>'Initial Awareness','min_percent'=>0,'max_percent'=>39,'message'=>'Implicit bias is often unconscious. Identifying these patterns is the first step toward reducing their impact on your decisions and interactions.','recommended_topics'=>['Systemic Racism','Workplace Equity']],
+					['key'=>'mid','label'=>'Developing Awareness','min_percent'=>40,'max_percent'=>79,'message'=>'You are learning to spot common biases. Continue engaging with bias-awareness training to further strengthen your decision-making frameworks.','recommended_topics'=>['Workplace Equity','Intersectionality']],
+					['key'=>'high','label'=>'Bias Aware','min_percent'=>80,'max_percent'=>100,'message'=>'You have a strong understanding of how unconscious stereotypes function and how to actively mitigate them in professional and personal contexts.','recommended_topics'=>['Intersectionality','Leadership']],
+				]),
+			],
+		],
+		[
+			'slug'    => 'reci-demo-assessment-allyship',
+			'title'   => 'Allyship and Inclusion Check',
+			'excerpt' => 'Assess your advocacy and support for marginalized groups in the workplace.',
+			'content' => reci_demo_lorem( 1 ),
+			'topics'  => [ 'Community Action', 'Workplace Equity' ],
+			'image'   => 'site/quizzes/Image1.webp',
+			'post_date' => '2025-12-29 01:22:32',
+			'meta'    => [
+				'_reci_assessment_type' => 'survey',
+				'_reci_assessment_duration' => '5 min',
+				'_reci_assessment_questions' => wp_json_encode([
+					['id'=>'q1','prompt'=>'What is allyship in the context of diversity and inclusion?','type'=>'single_choice','options'=>['Remaining silent during discrimination','Supporting and advocating for marginalized groups','Avoiding workplace discussions','Treating inclusion as optional'],'correct_answers'=>['Supporting and advocating for marginalized groups']],
+					['id'=>'q2','prompt'=>'True or False: Inclusive workplaces generally improve employee engagement.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+					['id'=>'q3','prompt'=>'Which behavior reflects effective allyship?','type'=>'single_choice','options'=>['Speaking over underrepresented voices','Challenging discriminatory behavior respectfully','Ignoring exclusionary comments','Avoiding accountability'],'correct_answers'=>['Challenging discriminatory behavior respectfully']],
+					['id'=>'q4','prompt'=>'Why is inclusion important in organizations?','type'=>'single_choice','options'=>['It reduces collaboration','It limits innovation','It encourages diverse perspectives and participation','It removes the need for leadership'],'correct_answers'=>['It encourages diverse perspectives and participation']],
+					['id'=>'q5','prompt'=>'True or False: Allyship involves continuous learning and action.','type'=>'single_choice','options'=>['True','False'],'correct_answers'=>['True']],
+				]),
+				'_reci_assessment_result_ranges' => wp_json_encode([
+					['key'=>'developing','label'=>'Emerging Ally','min_percent'=>0,'max_percent'=>59,'message'=>'Allyship is a journey of continuous learning. Focus on finding respectful ways to challenge exclusionary behavior when you see it.','recommended_topics'=>['Community Action','Cultural Identity']],
+					['key'=>'strong','label'=>'Active Ally','min_percent'=>60,'max_percent'=>100,'message'=>'You demonstrate a commitment to advocating for others and fostering inclusive environments through your actions and learning.','recommended_topics'=>['Leadership','Community Action']],
+				]),
+			],
+		],
+	];
