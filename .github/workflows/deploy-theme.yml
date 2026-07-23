@@ -44,13 +44,18 @@ jobs:
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_REMOTE_PATH }}/"
 
       - name: Flush WordPress caches
-        if: ${{ secrets.DEPLOY_WP_PATH != '' }}
+        env:
+          DEPLOY_WP_PATH: ${{ secrets.DEPLOY_WP_PATH }}
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            -p ${{ secrets.DEPLOY_PORT || '22' }} \
-            -o StrictHostKeyChecking=no \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "wp cache flush --path=${{ secrets.DEPLOY_WP_PATH }} --allow-root || true"
+          if [ -n "$DEPLOY_WP_PATH" ]; then
+            ssh -i ~/.ssh/deploy_key \
+              -p ${{ secrets.DEPLOY_PORT || '22' }} \
+              -o StrictHostKeyChecking=no \
+              "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+              "wp cache flush --path=$DEPLOY_WP_PATH --allow-root || true"
+          else
+            echo "DEPLOY_WP_PATH not set, skipping cache flush"
+          fi
 
       - name: Deployment summary
         run: |
