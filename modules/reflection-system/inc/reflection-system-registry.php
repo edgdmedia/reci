@@ -190,7 +190,7 @@ if (! function_exists('reci_reflection_system_styles')) {
 					[
 						'family' => 'hero',
 						'variant' => 'immersive-dark',
-						'props' => ['id' => 'bc-hands', 'title' => 'Unity', 'subtitle' => 'When people come together, they build the collective power necessary for change.', 'foreground_image' => trailingslashit(get_template_directory_uri()) . 'reflection-gallery/assets/images/hands-unity.png', 'actions' => [['label' => 'Step Forward', 'href' => 'bc-freedom']]]
+						'props' => ['id' => 'bc-hands', 'title' => 'Unity', 'subtitle' => 'When people come together, they build the collective power necessary for change.', 'foreground_image' => trailingslashit(get_template_directory_uri()) . 'assets/images/hands-unity.png', 'actions' => [['label' => 'Step Forward', 'href' => 'bc-freedom']]]
 					],
 					[
 						'family' => 'hero',

@@ -108,7 +108,9 @@ $type_archive_url = $type_archives[$type_key] ?? '#';
                     </span>
                 <?php endif; ?>
             </div>
-            <?php if ($cta_url !== '') : ?>
+            <?php if ($link_url) : ?>
+                <a href="<?php echo esc_url($link_url); ?>" class="btn btn-primary btn-sm md:btn-md no-underline"><?php echo esc_html($cta_label !== '' ? $cta_label : 'Open episode'); ?></a>
+            <?php elseif ($cta_url !== '') : ?>
                 <a href="<?php echo esc_url($cta_url); ?>"<?php echo !empty($args['video_url']) || !empty($args['audio_url']) ? ' target="_blank" rel="noopener noreferrer"' : ''; ?> class="btn btn-primary btn-sm md:btn-md no-underline"><?php echo esc_html($cta_label !== '' ? $cta_label : 'Open episode'); ?></a>
             <?php elseif ($link_url) : ?>
                 <a href="<?php echo esc_url($link_url); ?>" class="btn btn-primary btn-sm md:btn-md no-underline">Open episode</a>
