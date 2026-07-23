@@ -35,6 +35,25 @@
 - Push attempts now reach authenticated upload stage
 - The current push attempt is sending a large pack (`~142 MB`) and has not completed successfully from this shell
 
+## Missing Binary/Media Gaps
+
+- Representative currently-detected binary/media deletion from worktree status: `reflection-gallery/sample/reflection-gallery-sample.svg`
+- Current evidence suggests most remaining deleted paths are source/text files rather than binary media
+- Classification:
+  - `reflection-gallery/sample/reflection-gallery-sample.svg`: non-blocking archive/reference material unless the sample gallery is still part of active workflows
+
+## Recovery Limitation
+
+The saved patch restored text/code changes but could not fully guarantee binary asset restoration. Any remaining deleted binary/media files should be restored from a trusted source only after they are classified as runtime-critical or release-critical.
+
+## Remaining Worktree Buckets
+
+- dashboard/personalization work
+- homepage/editorial presentation work
+- reflection system/studio work
+- legacy file deletions vs structural moves
+- binary/media restoration gaps
+
 ## Initial Conclusion
 
 - Local `development` appears to be the true active development line
