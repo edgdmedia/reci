@@ -1,0 +1,59 @@
+name: Deploy Theme
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy WordPress theme to server
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.DEPLOY_PORT || '22' }} -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy theme files
+        run: |
+          rsync -azP \
+            --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.vscode' \
+            --exclude='.claude' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='scripts' \
+            --exclude='sample' \
+            --exclude='reci-wordpress' \
+            --exclude='reci-wordpress.code-workspace' \
+            --exclude='wordpress' \
+            --exclude='*.log' \
+            --exclude='.DS_Store' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT || '22' }} -o StrictHostKeyChecking=no" \
+            ./ \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_REMOTE_PATH }}/"
+
+      - name: Flush WordPress caches
+        if: ${{ secrets.DEPLOY_WP_PATH != '' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -p ${{ secrets.DEPLOY_PORT || '22' }} \
+            -o StrictHostKeyChecking=no \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "wp cache flush --path=${{ secrets.DEPLOY_WP_PATH }} --allow-root || true"
+
+      - name: Deployment summary
+        run: |
+          echo "Theme deployed to ${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_REMOTE_PATH }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
