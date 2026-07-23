@@ -6,16 +6,34 @@ STYLE_FILE="$ROOT_DIR/style.css"
 DIST_DIR="$ROOT_DIR/dist"
 STAGING_ROOT="$DIST_DIR/.package-staging"
 THEME_SLUG="reci-media-hub"
+BUMP_VERSION="${BUMP_VERSION:-0}"
 
 if [[ ! -f "$STYLE_FILE" ]]; then
   echo "Missing style.css at $STYLE_FILE" >&2
   exit 1
 fi
 
-VERSION="$(grep -E '^Version:' "$STYLE_FILE" | head -n1 | sed 's/^Version:[[:space:]]*//')"
-if [[ -z "$VERSION" ]]; then
+CURRENT_VERSION="$(grep -E '^Version:' "$STYLE_FILE" | head -n1 | sed 's/^Version:[[:space:]]*//')"
+if [[ -z "$CURRENT_VERSION" ]]; then
   echo "Could not determine theme version from style.css" >&2
   exit 1
+fi
+
+VERSION="$CURRENT_VERSION"
+if [[ "$BUMP_VERSION" == "1" ]]; then
+  IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+  if [[ -z "${MAJOR:-}" || -z "${MINOR:-}" || -z "${PATCH:-}" ]]; then
+    echo "Version '$CURRENT_VERSION' is not in MAJOR.MINOR.PATCH format" >&2
+    exit 1
+  fi
+
+  NEXT_PATCH=$((PATCH + 1))
+  VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+
+  perl -0pi -e 's/^Version:\h*.*/Version: '"$VERSION"'/m' "$STYLE_FILE"
+  echo "Bumped theme version: $CURRENT_VERSION -> $VERSION"
+else
+  echo "Packaging committed theme version: $VERSION"
 fi
 
 PACKAGE_DIR="$DIST_DIR/${THEME_SLUG}-v${VERSION}"
