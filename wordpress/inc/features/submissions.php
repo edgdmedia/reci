@@ -7,6 +7,22 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+add_action( 'transition_post_status', 'reci_maybe_notify_staff_about_submission', 10, 3 );
+function reci_maybe_notify_staff_about_submission( string $new_status, string $old_status, WP_Post $post ): void {
+	if ( 'pending' !== $new_status || 'pending' === $old_status ) {
+		return;
+	}
+
+	$allowed_types = reci_media_hub_submission_supported_post_types();
+	if ( ! in_array( $post->post_type, $allowed_types, true ) ) {
+		return;
+	}
+
+	if ( function_exists( 'reci_send_staff_submission_notification' ) ) {
+		reci_send_staff_submission_notification( (int) $post->ID );
+	}
+}
+
 if (! function_exists('reci_media_hub_submission_type_map')) {
 	/**
 	 * Front-end submission content type map.
@@ -1287,55 +1303,6 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 	}
 }
 
-if (! function_exists('reci_media_hub_send_approval_notification')) {
-	/**
-	 * Notify submitter when their submission is published.
-	 *
-	 * @param string  $new_status New post status.
-	 * @param string  $old_status Old post status.
-	 * @param WP_Post $post       Transitioning post object.
-	 */
-	function reci_media_hub_send_approval_notification(string $new_status, string $old_status, WP_Post $post): void {
-		if ($new_status === $old_status || $new_status !== 'publish') {
-			return;
-		}
-
-		$submitter_email = sanitize_email((string) get_post_meta($post->ID, '_reci_submission_email', true));
-		if (! is_email($submitter_email)) {
-			return;
-		}
-
-		$first_name = (string) get_post_meta($post->ID, '_reci_submission_first_name', true);
-		$last_name  = (string) get_post_meta($post->ID, '_reci_submission_last_name', true);
-		$full_name  = trim($first_name . ' ' . $last_name);
-		$display_name = $full_name !== '' ? $full_name : __('Contributor', 'reci-media-hub');
-		$site_name    = wp_specialchars_decode(get_bloginfo('name'), ENT_QUOTES);
-		$post_url     = (string) get_permalink($post->ID);
-
-		$subject = sprintf(
-			/* translators: %s site name */
-			__('[%s] Your Content Has Been Published', 'reci-media-hub'),
-			$site_name
-		);
-
-		$message = implode("\n", [
-			sprintf(__('Hi %s,', 'reci-media-hub'), $display_name),
-			'',
-			__('Great news — your submission has been reviewed and published!', 'reci-media-hub'),
-			'',
-			sprintf(__('Title: %s', 'reci-media-hub'), $post->post_title),
-		]);
-
-		if ($post_url !== '') {
-			$message .= "\n" . sprintf(__('View your published content: %s', 'reci-media-hub'), $post_url);
-		}
-
-		$message .= "\n\n" . __('Thank you for contributing to racial equity consciousness.', 'reci-media-hub');
-
-		wp_mail($submitter_email, $subject, $message, ['Content-Type: text/plain; charset=UTF-8']);
-	}
-}
-
 add_action('init', 'reci_media_hub_register_submission_meta');
 add_action('admin_post_reci_submit_content', 'reci_media_hub_handle_submission');
 add_action('admin_post_nopriv_reci_submit_content', 'reci_media_hub_handle_submission');
@@ -1343,4 +1310,3 @@ add_action('admin_post_reci_export_submissions', 'reci_media_hub_export_submissi
 add_action('add_meta_boxes', 'reci_media_hub_add_submission_source_metaboxes');
 add_action('save_post', 'reci_media_hub_save_submission_source_meta');
 add_action('admin_menu', 'reci_media_hub_register_submission_admin_page');
-add_action('transition_post_status', 'reci_media_hub_send_approval_notification', 10, 3);

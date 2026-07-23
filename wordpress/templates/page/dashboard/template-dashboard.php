@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $current_user = wp_get_current_user();
 $is_author    = current_user_can( 'edit_posts' );
 
+$personalized_posts = reci_get_personalized_dashboard_posts( $current_user->ID, 4 );
+$recent_notifications = function_exists( 'reci_get_user_notifications' )
+	? reci_get_user_notifications( $current_user->ID, 5, false )
+	: [];
+
 $bookmark_ids    = reci_get_user_bookmarks( $current_user->ID );
 $recent_bookmarks = ! empty( $bookmark_ids )
 	? get_posts( [ 'post__in' => array_column( $bookmark_ids, 'post_id' ), 'posts_per_page' => 5, 'post_type' => 'any' ] )
@@ -51,6 +56,35 @@ get_header('dashboard');
 					</p>
 				</div>
 				<?php endif; ?>
+
+				<div class="bg-white border border-zinc-200 rounded-xl p-5">
+					<div class="flex items-center justify-between mb-4">
+						<h2 class="text-lg font-semibold text-zinc-800">Recommended for You</h2>
+						<a href="<?php echo esc_url( home_url( '/dashboard/settings/' ) ); ?>" class="text-sm text-amber-600 hover:text-amber-700">Update interests</a>
+					</div>
+					<?php if ( ! empty( $personalized_posts ) ) : ?>
+					<ul class="space-y-3">
+						<?php foreach ( $personalized_posts as $post ) : ?>
+						<li>
+							<a href="<?php echo esc_url( get_permalink( $post ) ); ?>" class="text-sm font-medium text-zinc-700 hover:text-amber-700 transition-colors">
+								<?php echo esc_html( get_the_title( $post ) ); ?>
+							</a>
+							<p class="text-xs text-zinc-500"><?php echo esc_html( get_post_type_object( get_post_type( $post ) )->labels->singular_name ?? get_post_type( $post ) ); ?></p>
+						</li>
+						<?php endforeach; ?>
+					</ul>
+					<?php else : ?>
+					<p class="text-sm text-zinc-500">Choose interests in Settings to get a personalized content feed.</p>
+					<?php endif; ?>
+				</div>
+
+				<div class="bg-white border border-zinc-200 rounded-xl p-5">
+					<div class="flex items-center justify-between mb-4">
+						<h2 class="text-lg font-semibold text-zinc-800">Notifications</h2>
+						<a href="<?php echo esc_url( home_url( '/dashboard/notifications/' ) ); ?>" class="text-sm text-amber-600 hover:text-amber-700">View all</a>
+					</div>
+					<?php get_template_part( 'template-parts/dashboard/notifications-list', null, [ 'items' => $recent_notifications, 'empty_message' => 'No notifications yet.' ] ); ?>
+				</div>
 
 				<div class="bg-white border border-zinc-200 rounded-xl p-5">
 					<div class="flex items-center justify-between mb-4">
