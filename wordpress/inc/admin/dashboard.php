@@ -19,6 +19,7 @@ function reci_dashboard_rewrite_rules(): void {
 		'my-content' => 'template-dashboard-my-content.php',
 		'submit'     => 'template-dashboard-submit.php',
 		'bookmarks'  => 'template-dashboard-bookmarks.php',
+		'notifications' => 'template-dashboard-notifications.php',
 		'journal'    => 'template-dashboard-journal.php',
 		'comments'   => 'template-dashboard-comments.php',
 		'profile'    => 'template-dashboard-profile.php',
@@ -54,13 +55,13 @@ function reci_dashboard_template_loader( string $template ): string {
 
 	$template_file = get_query_var( 'dashboard_template' );
 	if ( $template_file ) {
-		$path = get_template_directory() . '/page-templates/dashboard/' . $template_file;
+		$path = get_template_directory() . '/templates/page/dashboard/' . $template_file;
 		if ( file_exists( $path ) ) {
 			return $path;
 		}
 	}
 
-	$base = get_template_directory() . '/page-templates/dashboard/template-dashboard.php';
+	$base = get_template_directory() . '/templates/page/dashboard/template-dashboard.php';
 	return file_exists( $base ) ? $base : $template;
 }
 
@@ -104,6 +105,75 @@ function reci_get_user_bookmarks( int $user_id ): array {
 function reci_get_user_likes( int $user_id ): array {
 	$likes = get_user_meta( $user_id, 'reci_likes', true );
 	return is_array( $likes ) ? $likes : [];
+}
+
+function reci_get_user_followed_term_ids( int $user_id, string $meta_key ): array {
+	$values = get_user_meta( $user_id, $meta_key, true );
+	if ( ! is_array( $values ) ) {
+		return [];
+	}
+
+	return array_values( array_filter( array_map( 'absint', $values ) ) );
+}
+
+function reci_get_user_personalization_preferences( int $user_id ): array {
+	return [
+		'topics'          => reci_get_user_followed_term_ids( $user_id, 'reci_followed_topics' ),
+		'spheres'         => reci_get_user_followed_term_ids( $user_id, 'reci_followed_spheres' ),
+		'practice_focus'  => reci_get_user_followed_term_ids( $user_id, 'reci_followed_practice_focus' ),
+		'target_audience' => reci_get_user_followed_term_ids( $user_id, 'reci_followed_target_audience' ),
+	];
+}
+
+function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): array {
+	$preferences = reci_get_user_personalization_preferences( $user_id );
+	$tax_query   = [ 'relation' => 'OR' ];
+
+	if ( ! empty( $preferences['topics'] ) ) {
+		$tax_query[] = [
+			'taxonomy' => 'reci_topic',
+			'field'    => 'term_id',
+			'terms'    => $preferences['topics'],
+		];
+	}
+
+	if ( ! empty( $preferences['spheres'] ) ) {
+		$tax_query[] = [
+			'taxonomy' => 'reci_sphere',
+			'field'    => 'term_id',
+			'terms'    => $preferences['spheres'],
+		];
+	}
+
+	if ( ! empty( $preferences['practice_focus'] ) ) {
+		$tax_query[] = [
+			'taxonomy' => 'reci_practice_focus',
+			'field'    => 'term_id',
+			'terms'    => $preferences['practice_focus'],
+		];
+	}
+
+	if ( ! empty( $preferences['target_audience'] ) ) {
+		$tax_query[] = [
+			'taxonomy' => 'reci_target_audience',
+			'field'    => 'term_id',
+			'terms'    => $preferences['target_audience'],
+		];
+	}
+
+	if ( count( $tax_query ) === 1 ) {
+		return [];
+	}
+
+	return get_posts(
+		[
+			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection' ],
+			'post_status'         => 'publish',
+			'posts_per_page'      => $limit,
+			'ignore_sticky_posts' => true,
+			'tax_query'           => $tax_query,
+		]
+	);
 }
 
 /**
@@ -233,6 +303,24 @@ function reci_ajax_get_post_state(): void {
 	$liked = in_array( $post_id, $likes );
 
 	wp_send_json_success( [ 'bookmarked' => $bookmarked, 'liked' => $liked ] );
+}
+
+add_action( 'wp_ajax_reci_mark_notification_read', 'reci_ajax_mark_notification_read' );
+function reci_ajax_mark_notification_read(): void {
+	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
+
+	$notification_id = absint( $_POST['notification_id'] ?? 0 );
+	$user_id         = get_current_user_id();
+
+	if ( ! $notification_id || ! $user_id ) {
+		wp_send_json_error( [ 'message' => 'Invalid notification.' ] );
+	}
+
+	if ( ! function_exists( 'reci_mark_notification_read' ) || ! reci_mark_notification_read( $notification_id, $user_id ) ) {
+		wp_send_json_error( [ 'message' => 'Could not update notification.' ] );
+	}
+
+	wp_send_json_success( [ 'notification_id' => $notification_id ] );
 }
 
 // ---------------------------------------------------------------------------
