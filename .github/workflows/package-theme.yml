@@ -32,3 +32,6 @@ jobs:
           name: reci-media-hub-package
           path: dist/*.zip
           if-no-files-found: error
+
+      # Future enhancement: publish release-manifest JSON and zip to GitHub Releases
+      # so the custom theme updater can fetch version metadata and download URLs.

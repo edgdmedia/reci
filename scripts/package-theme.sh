@@ -72,7 +72,7 @@ copy_path "vite.config.js"
 
 # Runtime directories
 copy_path "assets"
-copy_path "demo-content"
+copy_path "demo-content" # Remove once remote demo content is live
 copy_path "inc"
 copy_path "legacy-block"
 copy_path "modules"

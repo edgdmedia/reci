@@ -31,11 +31,14 @@ $reci_media_hub_includes = [
 	'/inc/features/notifications.php',
 	'/inc/features/live-search.php',
 	'/inc/features/listing-builder.php',
+	'/inc/features/remote-demo-content.php',
+	'/inc/features/theme-updates.php',
 	
 	'/inc/admin/theme-settings.php',
 	'/inc/admin/dashboard.php',
 	'/inc/admin/demo-content.php',
 	'/inc/admin/theme-setup-wizard.php',
+	'/inc/admin/theme-setup-client.php',
 	'/inc/admin/class-reci-journals-list-table.php',
 	'/inc/admin/class-reci-assessments-list-table.php',
 	

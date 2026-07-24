@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RECI Remote Demo Content Manifest",
+  "type": "object",
+  "required": ["version", "content_sets"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Manifest version for cache busting and compatibility checks."
+    },
+    "content_sets": {
+      "type": "array",
+      "description": "List of installable content sets.",
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "url"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique content set identifier."
+          },
+          "label": {
+            "type": "string",
+            "description": "Human-readable label for the setup wizard."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the WIE/JSON/REST payload or importer endpoint."
+          },
+          "description": {
+            "type": "string"
+          },
+          "required_plugins": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "description": "Optional remote starter assets referenced by content sets.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "type": { "type": "string" }
+        }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "posts": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "taxonomies": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
