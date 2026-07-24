@@ -2,12 +2,14 @@
 **/.DS_Store
 **/.vscode/
 
-wordpress/node_modules/
-wordpress/.npm/
-wordpress/npm-debug.log*
-wordpress/yarn-debug.log*
-wordpress/yarn-error.log*
-wordpress/pnpm-debug.log*
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+dist/
 
 *.swp
 *.swo

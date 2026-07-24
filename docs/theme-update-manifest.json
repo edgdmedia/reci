@@ -1,0 +1,10 @@
+{
+  "version": "0.4.4",
+  "download_url": "https://github.com/edgdmedia/reci/releases/download/v0.4.4/reci-media-hub-v0.4.4.zip",
+  "info_url": "https://github.com/edgdmedia/reci/releases/tag/v0.4.4",
+  "author": "RECI",
+  "sections": {
+    "description": "RECI Media Hub theme release metadata.",
+    "changelog": "<ul><li>Initial client distribution scaffolding.</li></ul>"
+  }
+}

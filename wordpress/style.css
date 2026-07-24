@@ -7,1068 +7,1570 @@ Description: Block theme foundation for implementing Figma designs in WordPress.
 Requires at least: 6.4
 Tested up to: 6.6
 Requires PHP: 8.1
-Version: 0.1.0
+Version: 0.4.3
 License: GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: reci-media-hub
 Tags: full-site-editing, block-patterns, custom-colors, custom-logo
 */
 
+@font-face {
+    font-family: "Alternate Gothic ATF";
+    src: url("assets/fonts/alternate-gothic-atf.otf") format("opentype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Alternate Gothic ATF";
+    src: url("assets/fonts/alternate-gothic-atf-bold.otf") format("opentype");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
-  --reci-blue: var(--wp--preset--color--primary-blue);
-  --reci-yellow: var(--wp--preset--color--highlight-yellow);
-  --reci-bg: var(--wp--preset--color--background-blue);
-  --reci-dark: var(--wp--preset--color--dark);
-  --reci-ink: var(--wp--preset--color--ink);
-  --reci-muted: var(--wp--preset--color--muted);
-  --reci-border: var(--wp--preset--color--line);
-  --reci-white: var(--wp--preset--color--surface);
-  --reci-radius-sm: 4px;
-  --reci-radius-md: 8px;
+    --reci-blue: var(--wp--preset--color--primary-blue);
+    --reci-yellow: var(--wp--preset--color--highlight-yellow);
+    --reci-bg: var(--wp--preset--color--background-blue);
+    --reci-dark: var(--wp--preset--color--dark);
+    --reci-ink: var(--wp--preset--color--ink);
+    --reci-muted: var(--wp--preset--color--muted);
+    --reci-border: var(--wp--preset--color--line);
+    --reci-white: var(--wp--preset--color--surface);
+    --reci-radius-sm: 4px;
+    --reci-radius-md: 8px;
 }
 
 body {
-  background: var(--reci-bg);
-  color: var(--reci-ink);
+    background: #ffffff;
+    color: var(--reci-ink);
+    font-size: 20px;
 }
 
 .reci-home-shell {
-  padding: 0;
+    padding: 0;
 }
 
 .reci-header {
-  position: relative;
-  z-index: 5;
+    position: relative;
+    z-index: 5;
 }
 
 .reci-wrap {
-  margin: 0 auto;
-  max-width: 1320px;
-  width: calc(100% - 120px);
+    margin: 0 auto;
+    max-width: 1440px;
+    width: calc(100% - 60px);
 }
 
 .reci-utility-bar {
-  background: var(--reci-blue);
-  min-height: 72px;
+    background: var(--reci-blue);
+    min-height: 72px;
 }
 
 .reci-utility-inner {
-  align-items: center;
-  display: flex;
-  gap: 40px;
-  justify-content: space-between;
-  margin: 0 auto;
-  max-width: 1240px;
-  min-height: 72px;
-  width: calc(100% - 200px);
+    align-items: center;
+    display: flex;
+    gap: 40px;
+    justify-content: space-between;
+    margin: 0 auto;
+    max-width: 1240px;
+    min-height: 72px;
+    width: calc(100% - 200px);
 }
 
 .reci-utility-logo-link {
-  align-items: center;
-  display: inline-flex;
-  text-decoration: none;
+    align-items: center;
+    display: inline-flex;
+    text-decoration: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.reci-post-content a {
+    color: var(--reci-blue);
+    text-decoration: underline;
+}
+
+.reci-post-content {
+    color: var(--reci-ink);
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+}
+
+.reci-post-content > :first-child {
+    margin-top: 0;
+}
+
+.reci-post-content > :last-child {
+    margin-bottom: 0;
+}
+
+.reci-post-content h1,
+.reci-post-content h2,
+.reci-post-content h3,
+.reci-post-content h4,
+.reci-post-content h5,
+.reci-post-content h6 {
+    color: var(--reci-ink);
+    font-family: var(--wp--preset--font-family--heading);
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 1.4em 0 0.5em;
+    text-wrap: balance;
+}
+
+.reci-post-content h1 {
+    font-size: clamp(2.25rem, 5vw, 3.75rem);
+    line-height: 1.02;
+}
+
+.reci-post-content h2 {
+    font-size: clamp(1.875rem, 4vw, 3rem);
+    line-height: 1.06;
+}
+
+.reci-post-content h3 {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    line-height: 1.1;
+}
+
+.reci-post-content h4 {
+    font-size: clamp(1.25rem, 2.25vw, 1.75rem);
+    line-height: 1.16;
+}
+
+.reci-post-content h5 {
+    font-size: clamp(1.125rem, 1.75vw, 1.375rem);
+    line-height: 1.22;
+}
+
+.reci-post-content h6 {
+    font-size: 1rem;
+    line-height: 1.28;
+    text-transform: uppercase;
+}
+
+.reci-post-content ul,
+.reci-post-content ol,
+.reci-post-content blockquote {
+    margin: 0 0 1.25rem;
+}
+
+.reci-post-content ul,
+.reci-post-content ol {
+    padding-left: 1.5rem;
+}
+
+.reci-post-content ul {
+    list-style: disc;
+}
+
+.reci-post-content ol {
+    list-style: decimal;
+}
+
+.reci-post-content li + li {
+    margin-top: 0.45rem;
+}
+
+.reci-post-content img {
+    border-radius: var(--reci-radius-md);
+    display: block;
+    height: auto;
+    margin: 1.75rem 0;
+    max-width: 100%;
+}
+
+.reci-post-content figure {
+    margin: 1.75rem 0;
+}
+
+.reci-post-content .aligncenter,
+.reci-post-content .wp-block-image.aligncenter {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.reci-post-content .alignleft,
+.reci-post-content .wp-block-image.alignleft {
+    float: left;
+    margin: 0.5rem 1.5rem 1rem 0;
+}
+
+.reci-post-content .alignright,
+.reci-post-content .wp-block-image.alignright {
+    float: right;
+    margin: 0.5rem 0 1rem 1.5rem;
+}
+
+.reci-post-content img.aligncenter {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.reci-post-content img.alignleft {
+    margin: 0.5rem 1.5rem 1rem 0;
+}
+
+.reci-post-content img.alignright {
+    margin: 0.5rem 0 1rem 1.5rem;
+}
+
+.reci-post-content::after {
+    clear: both;
+    content: "";
+    display: table;
+}
+
+@media (max-width: 767px) {
+    .reci-post-content .alignleft,
+    .reci-post-content .alignright,
+    .reci-post-content .wp-block-image.alignleft,
+    .reci-post-content .wp-block-image.alignright,
+    .reci-post-content img.alignleft,
+    .reci-post-content img.alignright {
+        float: none;
+        margin-left: 0;
+        margin-right: 0;
+    }
+}
+
+.reci-post-content figcaption {
+    color: var(--reci-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin-top: 0.75rem;
+}
+
+/* Reflection builder compatibility: preserve token-style utility classes even when
+ * Tailwind does not emit arbitrary-value selectors into the compiled bundle. */
+.reci-reflection-text {
+    color: var(--reflection-text);
+}
+
+.reci-reflection-soft-text {
+    color: var(--reflection-soft-text);
+}
+
+.reci-reflection-muted {
+    color: var(--reflection-muted);
+}
+
+.reci-reflection-accent {
+    color: var(--reflection-accent);
+}
+
+[class*="text-[var(--reflection-text)]"] {
+    color: var(--reflection-text);
+}
+
+[class*="text-[var(--reflection-soft-text)]"] {
+    color: var(--reflection-soft-text);
+}
+
+[class*="text-[var(--reflection-muted)]"] {
+    color: var(--reflection-muted);
+}
+
+[class*="text-[var(--reflection-accent)]"] {
+    color: var(--reflection-accent);
+}
+
+[class*="[text-shadow:0_8px_28px_rgba(0,0,0,0.7)]"] {
+    text-shadow: 0 8px 28px rgba(0, 0, 0, 0.7);
+}
+
+[class*="[text-shadow:0_4px_18px_rgba(0,0,0,0.72)]"] {
+    text-shadow: 0 4px 18px rgba(0, 0, 0, 0.72);
+}
+
+[class*="[text-shadow:0_4px_16px_rgba(0,0,0,0.72)]"] {
+    text-shadow: 0 4px 16px rgba(0, 0, 0, 0.72);
+}
+
+[class*="[text-shadow:0_3px_12px_rgba(0,0,0,0.72)]"] {
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.72);
+}
+
+.reci-single-title {
+    color: var(--reci-ink);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.reci-card-title {
+    color: var(--reci-ink);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.05rem;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    padding-bottom: 5px;
+}
+
+@media (min-width: 640px) {
+    .reci-single-title {
+        font-size: 2.5rem;
+        line-height: 1.15;
+    }
+
+    .reci-card-title {
+        font-size: 1.75rem;
+        line-height: 1.2;
+        -webkit-line-clamp: 4;
+    }
+}
+
+@media (min-width: 1024px) {
+    .reci-single-title {
+        font-size: 3rem;
+        line-height: 1.2;
+    }
+
+    .reci-card-title {
+        font-size: 2rem;
+        line-height: 1.25;
+        -webkit-line-clamp: 4;
+        line-clamp: 4;
+    }
+}
+
+.reci-side-listing-title {
+    color: var(--reci-ink);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.5rem;
+    letter-spacing: 0.1rem;
+    text-decoration: none;
+}
+
+.reci-side-listing-title-dark {
+    color: var(--reci-white);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.5rem;
+    text-decoration: none;
+    letter-spacing: 0.05rem;
+}
+
+.reci-card-title-lg {
+    color: var(--reci-white);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.05rem;
+}
+
+@media (min-width: 640px) {
+    .reci-card-title-lg {
+        font-size: 2.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .reci-card-title-lg {
+        font-size: 2.5rem;
+    }
+}
+
+.reci-card-byline {
+    color: var(--reci-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
 }
 
 .reci-utility-logo {
-  display: block;
-  height: 47.5px;
-  max-width: 250px;
-  object-fit: contain;
-  width: auto;
+    display: block;
+    height: 47.5px;
+    max-width: 250px;
+    object-fit: contain;
+    width: auto;
+}
+
+.reci-section-title {
+    color: var(--reci-ink);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.08;
+}
+
+@media (min-width: 640px) {
+    .reci-section-title {
+        font-size: 2.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .reci-section-title {
+        font-size: 2.5rem;
+    }
 }
 
 .reci-utility-actions {
-  align-items: center;
-  display: flex;
-  gap: 20px;
+    align-items: center;
+    display: flex;
+    gap: 20px;
 }
 
 .reci-utility-right {
-  align-items: center;
-  display: flex;
-  gap: 60px;
+    align-items: center;
+    display: flex;
+    gap: 60px;
 }
 
 .reci-utility-actions a {
-  color: var(--reci-white);
-  font-size: 16px;
-  line-height: 1.2;
-  padding: 8px 0;
-  text-decoration: none;
+    color: var(--reci-white);
+    font-size: 16px;
+    line-height: 1.2;
+    padding: 8px 0;
+    text-decoration: none;
 }
 
 .reci-utility-donate {
-  align-items: center;
-  display: inline-flex;
-  font-size: 16px;
-  font-weight: 500;
-  justify-content: center;
-  line-height: 24px;
-  min-width: 120px;
-  min-height: 52px;
-  padding: 14px 28px;
+    align-items: center;
+    display: inline-flex;
+    font-size: 16px;
+    font-weight: 500;
+    justify-content: center;
+    line-height: 24px;
+    min-width: 120px;
+    min-height: 52px;
+    padding: 14px 28px;
 }
 
 .reci-main-nav {
-  background: var(--reci-white);
-  border-bottom: 0.5px solid var(--reci-border);
+    background: var(--reci-white);
+    border-bottom: 0.5px solid var(--reci-border);
 }
 
 .reci-main-nav-inner {
-  align-items: center;
-  display: flex;
-  gap: 40px;
-  justify-content: space-between;
-  min-height: 64px;
+    align-items: center;
+    display: flex;
+    gap: 40px;
+    justify-content: space-between;
+    min-height: 64px;
 }
 
 .reci-brand-block {
-  align-items: center;
-  color: var(--reci-dark);
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: 20px;
-  text-decoration: none;
+    align-items: center;
+    color: var(--reci-dark);
+    display: inline-flex;
+    flex-shrink: 0;
+    gap: 20px;
+    text-decoration: none;
 }
 
 .reci-brand-logo {
-  display: block;
-  height: auto;
-  max-width: 170px;
-  object-fit: contain;
-  width: 170px;
+    display: block;
+    height: auto;
+    max-width: 170px;
+    object-fit: contain;
+    width: 170px;
 }
 
 .reci-brand-divider {
-  background: var(--reci-border);
-  display: inline-block;
-  height: 40px;
-  width: 1px;
+    background: var(--reci-border);
+    display: inline-block;
+    height: 40px;
+    width: 1px;
 }
 
 .reci-brand-hub {
-  color: var(--reci-dark);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.2;
+    color: var(--reci-dark);
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.2;
 }
 
 .reci-search-row {
-  align-items: center;
-  display: flex;
-  flex: 1;
-  gap: 40px;
-  justify-content: flex-end;
+    align-items: center;
+    display: flex;
+    flex: 1;
+    gap: 40px;
+    justify-content: flex-end;
 }
 
 .reci-search-pill {
-  align-items: center;
-  background: var(--reci-bg);
-  border-radius: var(--reci-radius-md);
-  color: var(--reci-muted);
-  display: flex;
-  font-size: 16px;
-  font-style: italic;
-  font-weight: 300;
-  gap: 10px;
-  line-height: 1.2;
-  min-width: 0;
-  padding: 20px;
-  width: 350px;
+    align-items: center;
+    background: var(--reci-bg);
+    border-radius: var(--reci-radius-md);
+    color: var(--reci-muted);
+    display: flex;
+    font-size: 16px;
+    font-style: italic;
+    font-weight: 300;
+    gap: 10px;
+    line-height: 1.2;
+    min-width: 0;
+    padding: 20px;
+    width: 350px;
 }
 
 .reci-search-icon {
-  border: 2px solid var(--reci-muted);
-  border-radius: 999px;
-  display: inline-block;
-  height: 18px;
-  position: relative;
-  width: 18px;
+    border: 2px solid var(--reci-muted);
+    border-radius: 999px;
+    display: inline-block;
+    height: 18px;
+    position: relative;
+    width: 18px;
 }
 
 .reci-search-icon::after {
-  background: var(--reci-muted);
-  content: "";
-  height: 2px;
-  position: absolute;
-  right: -5px;
-  top: 13px;
-  transform: rotate(45deg);
-  width: 6px;
+    background: var(--reci-muted);
+    content: "";
+    height: 2px;
+    position: absolute;
+    right: -5px;
+    top: 13px;
+    transform: rotate(45deg);
+    width: 6px;
 }
 
 .reci-nav-link {
-  align-items: center;
-  color: var(--reci-dark);
-  display: inline-flex;
-  font-size: 16px;
-  gap: 8px;
-  line-height: 1.2;
-  text-decoration: none;
+    align-items: center;
+    color: var(--reci-dark);
+    display: inline-flex;
+    font-size: 16px;
+    gap: 8px;
+    line-height: 1.2;
+    text-decoration: none;
 }
 
 .reci-reflection-icon {
-  border: 1.5px solid currentcolor;
-  border-radius: 999px;
-  display: inline-block;
-  height: 16px;
-  position: relative;
-  width: 16px;
+    border: 1.5px solid currentcolor;
+    border-radius: 999px;
+    display: inline-block;
+    height: 16px;
+    position: relative;
+    width: 16px;
+}
+
+.reci-listing-media {
+    background: #e5e7eb;
+    border-radius: var(--reci-radius-md);
+    display: block;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.reci-listing-media img {
+    display: block;
+    height: 100%;
+    object-fit: cover;
+    width: 100%;
+}
+
+.reci-listing-media--side-card {
+    height: 200px;
+    width: 100%;
+}
+
+.reci-listing-media--half-row {
+    height: 320px;
+    width: 100%;
+}
+
+.reci-half-row--fill {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: 0;
+    width: 100%;
+}
+
+.reci-listing-media--fill {
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .reci-half-row--fill {
+        height: 100%;
+    }
+}
+
+.reci-listing-media--archive-row {
+    height: 240px;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .reci-listing-media--archive-row {
+        width: 384px;
+    }
+}
+
+.reci-listing-media--podcast-feature {
+    height: 288px;
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .reci-listing-media--podcast-feature {
+        height: 384px;
+    }
+}
+
+.reci-podcast-feature__content {
+    width: 100%;
+}
+
+.reci-podcast-feature__media {
+    width: 100%;
+}
+
+@media (min-width: 1024px) {
+    .reci-podcast-feature__content {
+        flex: 0 1 42%;
+        width: 42%;
+    }
+
+    .reci-podcast-feature__media {
+        flex: 0 1 58%;
+        width: 58%;
+    }
+}
+
+.reci-listing-media--podcast-archive {
+    height: 192px;
+    width: 100%;
+}
+
+.reci-listing-media--podcast-compact {
+    height: 176px;
+    width: 100%;
+}
+
+@media (min-width: 640px) {
+    .reci-listing-media--podcast-compact {
+        width: 176px;
+    }
+}
+
+.reci-listing-media--event {
+    height: 256px;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .reci-listing-media--event {
+        height: auto;
+        width: auto;
+    }
+}
+
+.reci-event-card__content {
+    width: 100%;
+}
+
+.reci-event-card__media {
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .reci-event-card__content {
+        flex: 0 1 58%;
+        width: 58%;
+    }
+
+    .reci-event-card__media {
+        flex: 0 1 42%;
+        width: 42%;
+    }
 }
 
 .reci-reflection-icon::before {
-  background: currentcolor;
-  border-radius: 2px 2px 1px 1px;
-  content: "";
-  height: 7px;
-  left: 5px;
-  position: absolute;
-  top: 2px;
-  width: 4px;
+    background: currentcolor;
+    border-radius: 2px 2px 1px 1px;
+    content: "";
+    height: 7px;
+    left: 5px;
+    position: absolute;
+    top: 2px;
+    width: 4px;
 }
 
 .reci-reflection-icon::after {
-  background: currentcolor;
-  border-radius: 1px;
-  content: "";
-  height: 2px;
-  left: 4px;
-  position: absolute;
-  top: 11px;
-  width: 6px;
+    background: currentcolor;
+    border-radius: 1px;
+    content: "";
+    height: 2px;
+    left: 4px;
+    position: absolute;
+    top: 11px;
+    width: 6px;
 }
 
 .reci-menu-btn {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  display: inline-flex;
-  flex-direction: column;
-  gap: 3px;
-  height: 32px;
-  justify-content: center;
-  padding: 6px;
-  width: 32px;
+    align-items: center;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 3px;
+    height: 32px;
+    justify-content: center;
+    padding: 6px;
+    width: 32px;
 }
 
 .reci-menu-btn span {
-  background: var(--reci-ink);
-  border-radius: 2px;
-  display: block;
-  height: 2px;
-  width: 20px;
+    background: var(--reci-ink);
+    border-radius: 2px;
+    display: block;
+    height: 2px;
+    width: 20px;
 }
 
 .reci-site-footer {
-  background: var(--reci-blue);
-  color: var(--reci-white);
-  padding-top: 100px;
+    background: var(--reci-blue);
+    color: var(--reci-white);
+    padding-top: 100px;
 }
 
 .reci-footer-wrap {
-  margin: 0 auto;
-  max-width: 1240px;
-  width: calc(100% - 200px);
+    margin: 0 auto;
+    max-width: 1240px;
+    width: calc(100% - 200px);
 }
 
 .reci-footer-brand-row {
-  margin-bottom: 40px;
+    margin-bottom: 40px;
 }
 
 .reci-footer-brand-block {
-  align-items: center;
-  color: var(--reci-white);
-  display: inline-flex;
-  gap: 22px;
-  text-decoration: none;
+    align-items: center;
+    color: var(--reci-white);
+    display: inline-flex;
+    gap: 22px;
+    text-decoration: none;
 }
 
 .reci-footer-logo {
-  display: block;
-  height: 47px;
-  max-width: 250px;
-  object-fit: contain;
-  width: auto;
+    display: block;
+    height: 47px;
+    max-width: 250px;
+    object-fit: contain;
+    width: auto;
 }
 
 .reci-footer-brand-divider {
-  background: #b0c0de;
-  display: inline-block;
-  height: 30px;
-  width: 1px;
+    background: #b0c0de;
+    display: inline-block;
+    height: 30px;
+    width: 1px;
 }
 
 .reci-footer-brand-hub {
-  color: var(--reci-white);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 1.2;
+    color: var(--reci-white);
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1.2;
 }
 
 .reci-footer-main {
-  align-items: flex-start;
-  display: flex;
-  gap: 80px;
+    align-items: flex-start;
+    display: flex;
+    gap: 80px;
 }
 
 .reci-footer-nav-grid {
-  display: flex;
-  gap: 80px;
+    display: flex;
+    gap: 80px;
 }
 
 .reci-footer-col {
-  min-width: 150px;
+    min-width: 150px;
 }
 
 .reci-footer-col h3 {
-  color: #8aa2ce;
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-  line-height: 1.6;
-  margin: 0 0 12px;
+    color: #8aa2ce;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    line-height: 1.6;
+    margin: 0 0 12px;
 }
 
 .reci-footer-col nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
 .reci-footer-col a {
-  color: var(--reci-white);
-  display: inline-block;
-  font-size: 16px;
-  line-height: 1.2;
-  padding: 8px 0;
-  text-decoration: none;
+    color: var(--reci-white);
+    display: inline-block;
+    font-size: 16px;
+    line-height: 1.2;
+    padding: 8px 0;
+    text-decoration: none;
 }
 
 .reci-footer-col p {
-  color: var(--reci-white);
-  font-size: 16px;
-  letter-spacing: 0.16px;
-  line-height: 1.6;
-  margin: 0;
-  max-width: 197px;
+    color: var(--reci-white);
+    font-size: 16px;
+    letter-spacing: 0.16px;
+    line-height: 1.6;
+    margin: 0;
+    max-width: 197px;
 }
 
 .reci-footer-newsletter {
-  flex: 1;
+    flex: 1;
 }
 
 .reci-footer-newsletter h2 {
-  color: var(--reci-white);
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0 0 20px;
+    color: var(--reci-white);
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 20px;
 }
 
 .reci-footer-form {
-  align-items: center;
-  border-bottom: 0.5px solid #b0c0de;
-  display: flex;
-  gap: 8px;
-  padding: 8px 0;
+    align-items: center;
+    border-bottom: 0.5px solid #b0c0de;
+    display: flex;
+    gap: 8px;
+    padding: 8px 0;
 }
 
 .reci-footer-form input {
-  background: transparent;
-  border: 0;
-  color: var(--reci-white);
-  flex: 1;
-  font-size: 16px;
-  line-height: 1.6;
-  min-width: 0;
-  outline: 0;
-  padding: 0;
+    background: transparent;
+    border: 0;
+    color: var(--reci-white);
+    flex: 1;
+    font-size: 16px;
+    line-height: 1.6;
+    min-width: 0;
+    outline: 0;
+    padding: 0;
 }
 
 .reci-footer-form input::placeholder {
-  color: #8aa2ce;
-  opacity: 1;
+    color: #8aa2ce;
+    opacity: 1;
 }
 
 .reci-footer-form button {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  color: var(--reci-white);
-  cursor: pointer;
-  display: inline-flex;
-  gap: 6px;
-  opacity: 0.8;
-  padding: 0;
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--reci-white);
+    cursor: pointer;
+    display: inline-flex;
+    gap: 6px;
+    opacity: 0.8;
+    padding: 0;
 }
 
 .reci-footer-submit-icon {
-  border-bottom: 2px solid currentcolor;
-  border-right: 2px solid currentcolor;
-  display: inline-block;
-  height: 10px;
-  transform: rotate(-45deg) translateY(-1px);
-  width: 10px;
+    border-bottom: 2px solid currentcolor;
+    border-right: 2px solid currentcolor;
+    display: inline-block;
+    height: 10px;
+    transform: rotate(-45deg) translateY(-1px);
+    width: 10px;
 }
 
 .reci-footer-note {
-  color: var(--reci-white);
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 12px 0 0;
-  max-width: 460px;
+    color: var(--reci-white);
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 12px 0 0;
+    max-width: 460px;
 }
 
 .reci-footer-bottom {
-  align-items: center;
-  border-top: 0.5px solid #b0c0de;
-  display: flex;
-  justify-content: space-between;
-  margin-top: 40px;
-  padding: 40px 0 60px;
+    align-items: center;
+    border-top: 0.5px solid #b0c0de;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding: 40px 0 60px;
 }
 
 .reci-footer-bottom p {
-  color: var(--reci-white);
-  font-size: 14px;
-  line-height: 1.6;
-  margin: 0;
+    color: var(--reci-white);
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
 }
 
 .reci-footer-legal {
-  align-items: center;
-  display: flex;
-  gap: 20px;
+    align-items: center;
+    display: flex;
+    gap: 20px;
 }
 
 .reci-footer-legal a {
-  color: var(--reci-white);
-  display: inline-block;
-  font-size: 16px;
-  line-height: 1.2;
-  padding: 8px 0;
-  text-decoration: none;
+    color: var(--reci-white);
+    display: inline-block;
+    font-size: 16px;
+    line-height: 1.2;
+    padding: 8px 0;
+    text-decoration: none;
 }
 
 .reci-hero-section {
-  padding: 40px 0 100px;
+    padding: 40px 0 100px;
 }
 
 .reci-hero-section .reci-wrap {
-  max-width: 1240px;
-  width: calc(100% - 200px);
+    max-width: 1240px;
+    width: calc(100% - 200px);
 }
 
 .reci-hero-grid {
-  display: grid;
-  gap: 40px;
-  grid-template-columns: 700px minmax(0, 1fr);
+    display: grid;
+    gap: 40px;
+    grid-template-columns: 700px minmax(0, 1fr);
 }
 
 .reci-hero-feature h1 {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: clamp(2.25rem, 5vw, 3.875rem);
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 16px 0;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: clamp(2.25rem, 5vw, 3.875rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 16px 0;
 }
 
 .reci-feature-copy p,
 .reci-cta-card p,
 .reci-highlight-card p,
 .reci-rail-card p {
-  color: var(--reci-muted);
-  font-size: 14px;
-  line-height: 1.6;
+    color: var(--reci-muted);
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .reci-meta-row,
 .reci-tag-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .reci-meta-row {
-  gap: 12px;
+    gap: 12px;
 }
 
 .reci-meta-row > * {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-chip {
-  border-radius: var(--reci-radius-sm);
-  display: inline-block;
-  font-size: 14px;
-  line-height: 1.1;
-  padding: 4px 8px;
+    border-radius: var(--reci-radius-sm);
+    display: inline-block;
+    font-size: 14px;
+    line-height: 1.1;
+    padding: 4px 8px;
 }
 
 .reci-chip-yellow {
-  background: var(--reci-yellow);
-  color: var(--reci-ink);
+    background: var(--reci-yellow);
+    color: var(--reci-ink);
 }
 
 .reci-chip-dark {
-  background: var(--reci-ink);
-  color: var(--reci-white);
+    background: var(--reci-ink);
+    color: var(--reci-white);
 }
 
 .reci-chip-blue {
-  background: var(--reci-blue);
-  color: var(--reci-white);
+    background: var(--reci-blue);
+    color: var(--reci-white);
 }
 
 .reci-chip-muted {
-  background: #e9e9ea;
-  color: var(--reci-muted);
+    background: #e9e9ea;
+    color: var(--reci-muted);
 }
 
 .reci-meta-dot {
-  background: var(--reci-yellow);
-  border-radius: 999px;
-  display: inline-block;
-  height: 8px;
-  width: 8px;
+    background: var(--reci-yellow);
+    border-radius: 999px;
+    display: inline-block;
+    height: 8px;
+    width: 8px;
 }
 
 .reci-date {
-  font-size: 14px;
-  margin: 0;
+    font-size: 14px;
+    margin: 0;
 }
 
 .reci-hero-query,
 .reci-rail-query {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-hero-feature-wrap,
 .reci-rail-query .wp-block-post-template {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .reci-hero-feature .wp-block-post-title {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: clamp(2.25rem, 5vw, 3.875rem);
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 16px 0;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: clamp(2.25rem, 5vw, 3.875rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 16px 0;
 }
 
 .reci-hero-feature .wp-block-post-title a {
-  color: var(--reci-ink);
-  text-decoration: none;
+    color: var(--reci-ink);
+    text-decoration: none;
 }
 
 .reci-hero-feature .wp-block-post-title a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 .reci-hero-feature .wp-block-post-excerpt {
-  margin: 0 0 16px;
+    margin: 0 0 16px;
 }
 
 .reci-hero-feature .wp-block-post-excerpt p {
-  color: var(--reci-muted);
-  font-size: 18px;
-  line-height: 1.6;
-  margin: 0;
+    color: var(--reci-muted);
+    font-size: 18px;
+    line-height: 1.6;
+    margin: 0;
 }
 
 .reci-hero-feature .wp-block-post-terms {
-  margin: 0 0 16px;
+    margin: 0 0 16px;
 }
 
 .reci-hero-feature .wp-block-post-featured-image {
-  margin-top: 40px;
+    margin-top: 40px;
 }
 
 .reci-hero-feature .wp-block-post-featured-image img {
-  aspect-ratio: 700 / 372;
-  border-radius: var(--reci-radius-md);
-  display: block;
-  object-fit: cover;
-  width: 100%;
+    aspect-ratio: 700 / 372;
+    border-radius: var(--reci-radius-md);
+    display: block;
+    object-fit: cover;
+    width: 100%;
 }
 
 .reci-hero-rail {
-  border-left: 0.5px solid var(--reci-border);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-height: none;
-  overflow: visible;
-  padding-left: 40px;
+    border-left: 0.5px solid var(--reci-border);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-height: none;
+    overflow: visible;
+    padding-left: 40px;
 }
 
 .reci-rail-card {
-  border-bottom: 1px solid var(--reci-border);
-  display: grid;
-  gap: 20px;
-  grid-template-columns: 180px minmax(0, 1fr);
-  padding-bottom: 20px;
+    border-bottom: 1px solid var(--reci-border);
+    display: grid;
+    gap: 20px;
+    grid-template-columns: 180px minmax(0, 1fr);
+    padding-bottom: 20px;
 }
 
 .reci-rail-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  justify-content: space-between;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: space-between;
 }
 
 .reci-rail-card .wp-block-post-featured-image {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-rail-card .wp-block-post-featured-image img {
-  border-radius: var(--reci-radius-md);
-  display: block;
-  height: 150px;
-  object-fit: cover;
-  width: 180px;
+    border-radius: var(--reci-radius-md);
+    display: block;
+    height: 150px;
+    object-fit: cover;
+    width: 180px;
 }
 
 .reci-rail-content .wp-block-post-title {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin: 0;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
 }
 
 .reci-rail-content .wp-block-post-title a {
-  color: var(--reci-ink);
-  text-decoration: none;
+    color: var(--reci-ink);
+    text-decoration: none;
 }
 
 .reci-rail-content .wp-block-post-title a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 .reci-rail-content .wp-block-post-terms {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-rail-card h3,
 .reci-feed-card h3 {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin: 0;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
 }
 
 .reci-terms-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .reci-terms-row a {
-  background: #e9e9ea;
-  border-radius: var(--reci-radius-sm);
-  color: var(--reci-muted);
-  display: inline-block;
-  font-size: 14px;
-  line-height: 1.1;
-  padding: 4px 8px;
-  text-decoration: none;
+    background: #e9e9ea;
+    border-radius: var(--reci-radius-sm);
+    color: var(--reci-muted);
+    display: inline-block;
+    font-size: 14px;
+    line-height: 1.1;
+    padding: 4px 8px;
+    text-decoration: none;
 }
 
 .reci-terms-row a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 .reci-media {
-  background-color: #d7dbe4;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  border-radius: var(--reci-radius-md);
+    background-color: #d7dbe4;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: var(--reci-radius-md);
 }
 
 .reci-media-map {
-  aspect-ratio: 800 / 408;
-  background-image: url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80");
+    aspect-ratio: 800 / 408;
+    background-image: url("https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80");
 }
 
 .reci-media-thumb,
 .reci-media-thumb-alt {
-  height: 180px;
-  width: 180px;
+    height: 180px;
+    width: 180px;
 }
 
 .reci-media-thumb {
-  background-image: url("https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80");
+    background-image: url("https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80");
 }
 
 .reci-media-thumb-alt {
-  background-image: url("https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80");
+    background-image: url("https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80");
 }
 
 .reci-highlight-band {
-  background-image: linear-gradient(rgba(243, 245, 249, 0.78), rgba(243, 245, 249, 0.78)), url("https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1600&q=80");
-  background-position: center;
-  background-size: cover;
-  padding: 60px 0;
+    background-image:
+        linear-gradient(rgba(243, 245, 249, 0.78), rgba(243, 245, 249, 0.78)),
+        url("https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1600&q=80");
+    background-position: center;
+    background-size: cover;
+    padding: 60px 0;
 }
 
 .reci-highlight-card {
-  background: var(--reci-white);
-  border-radius: var(--reci-radius-md);
-  max-width: 520px;
-  padding: 28px;
+    background: var(--reci-white);
+    border-radius: var(--reci-radius-md);
+    max-width: 520px;
+    padding: 28px;
 }
 
 .reci-highlight-kicker {
-  color: var(--reci-blue);
-  font-size: 18px;
-  font-weight: 500;
-  margin: 0 0 12px;
+    color: var(--reci-blue);
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0 0 12px;
 }
 
 .reci-highlight-card h2,
 .reci-section-head h2,
 .reci-feature-copy h2,
 .reci-cta-card h2 {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin: 0 0 16px;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0 0 16px;
 }
 
 .reci-feed-section,
 .reci-feature-split {
-  padding: 80px 0 20px;
+    padding: 80px 0 20px;
 }
 
 .reci-feature-split {
-  padding-bottom: 70px;
+    padding-bottom: 70px;
 }
 
 .reci-section-head {
-  align-items: center;
-  border-bottom: 1px solid var(--reci-border);
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--reci-border);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
 }
 
 .reci-card-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  list-style: none;
-  margin: 0;
-  padding: 0;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .reci-feed-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .reci-query-loop {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-feed-card .wp-block-post-featured-image {
-  margin: 0;
+    margin: 0;
 }
 
 .reci-feed-card .wp-block-post-featured-image a {
-  display: block;
+    display: block;
 }
 
 .reci-feed-card .wp-block-post-featured-image img {
-  aspect-ratio: 413 / 300;
-  border-radius: var(--reci-radius-md);
-  display: block;
-  object-fit: cover;
-  width: 100%;
+    aspect-ratio: 413 / 300;
+    border-radius: var(--reci-radius-md);
+    display: block;
+    object-fit: cover;
+    width: 100%;
 }
 
 .reci-feed-card .wp-block-post-title {
-  font-family: var(--wp--preset--font-family--editorial-serif);
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.2;
-  margin: 0;
+    font-family: var(--wp--preset--font-family--heading);
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
 }
 
 .reci-feed-card .wp-block-post-title a {
-  color: var(--reci-ink);
-  text-decoration: none;
+    color: var(--reci-ink);
+    text-decoration: none;
 }
 
 .reci-feed-card .wp-block-post-title a:hover {
-  text-decoration: underline;
+    text-decoration: underline;
 }
 
 .reci-media-card {
-  aspect-ratio: 413 / 300;
-  background-image: url("https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80");
+    aspect-ratio: 413 / 300;
+    background-image: url("https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80");
 }
 
 .reci-feature-grid {
-  align-items: stretch;
-  border-bottom: 1px solid var(--reci-border);
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1fr) 550px;
-  padding-bottom: 24px;
+    align-items: stretch;
+    border-bottom: 1px solid var(--reci-border);
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 550px;
+    padding-bottom: 24px;
 }
 
 .reci-feature-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .reci-cta-band {
-  background-image: linear-gradient(rgba(0, 53, 148, 0.45), rgba(0, 53, 148, 0.45)), url("https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1800&q=80");
-  background-position: center;
-  background-size: cover;
-  padding: 90px 0;
+    background-image:
+        linear-gradient(rgba(0, 53, 148, 0.45), rgba(0, 53, 148, 0.45)),
+        url("https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1800&q=80");
+    background-position: center;
+    background-size: cover;
+    padding: 90px 0;
 }
 
 .reci-cta-card {
-  align-items: stretch;
-  background: var(--reci-white);
-  border-radius: var(--reci-radius-md);
-  display: grid;
-  gap: 0;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 800px;
-  padding: 40px;
+    align-items: stretch;
+    background: var(--reci-white);
+    border-radius: var(--reci-radius-md);
+    display: grid;
+    gap: 0;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 800px;
+    padding: 40px;
 }
 
 .reci-btn {
-  border-radius: var(--reci-radius-md);
-  display: inline-block;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 14px 20px;
-  text-decoration: none;
+    border-radius: var(--reci-radius-md);
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 14px 20px;
+    text-decoration: none;
 }
 
 .reci-btn-yellow {
-  background: var(--reci-yellow);
-  color: var(--reci-dark);
+    background: var(--reci-yellow);
+    color: var(--reci-dark);
 }
 
 .reci-btn-ghost {
-  border: 1px solid var(--reci-dark);
-  color: var(--reci-dark);
+    border: 1px solid var(--reci-dark);
+    color: var(--reci-dark);
 }
 
 .wp-block-button.reci-btn-ghost .wp-block-button__link {
-  background: transparent;
-  border: 1px solid var(--reci-dark);
-  border-radius: var(--reci-radius-md);
-  color: var(--reci-dark);
-  font-size: 14px;
-  padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--reci-dark);
+    border-radius: var(--reci-radius-md);
+    color: var(--reci-dark);
+    font-size: 14px;
+    padding: 10px 16px;
 }
 
 @media (max-width: 1200px) {
-  .reci-wrap {
-    width: calc(100% - 48px);
-  }
+    .reci-wrap {
+        width: calc(100% - 48px);
+    }
 
-  .reci-hero-section .reci-wrap {
-    width: calc(100% - 48px);
-  }
+    .reci-hero-section .reci-wrap {
+        width: calc(100% - 48px);
+    }
 
-  .reci-utility-inner {
-    width: calc(100% - 48px);
-  }
+    .reci-utility-inner {
+        width: calc(100% - 48px);
+    }
 
-  .reci-footer-wrap {
-    width: calc(100% - 48px);
-  }
+    .reci-footer-wrap {
+        width: calc(100% - 48px);
+    }
 
-  .reci-footer-main {
-    flex-direction: column;
-  }
+    .reci-footer-main {
+        flex-direction: column;
+    }
 
-  .reci-footer-nav-grid {
-    flex-wrap: wrap;
-    gap: 48px;
-  }
+    .reci-footer-nav-grid {
+        flex-wrap: wrap;
+        gap: 48px;
+    }
 
-  .reci-hero-grid,
-  .reci-feature-grid {
-    grid-template-columns: 1fr;
-  }
+    .reci-hero-grid,
+    .reci-feature-grid {
+        grid-template-columns: 1fr;
+    }
 
-  .reci-hero-rail {
-    border-left: 0;
-    border-top: 1px solid var(--reci-border);
-    max-height: none;
-    padding-left: 0;
-    padding-top: 20px;
-  }
+    .reci-hero-rail {
+        border-left: 0;
+        border-top: 1px solid var(--reci-border);
+        max-height: none;
+        padding-left: 0;
+        padding-top: 20px;
+    }
 
-  .reci-rail-card {
-    grid-template-columns: 150px minmax(0, 1fr);
-  }
+    .reci-rail-card {
+        grid-template-columns: 150px minmax(0, 1fr);
+    }
 
-  .reci-rail-card .wp-block-post-featured-image img {
-    height: 150px;
-    width: 150px;
-  }
+    .reci-rail-card .wp-block-post-featured-image img {
+        height: 150px;
+        width: 150px;
+    }
 
-  .reci-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+    .reci-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 782px) {
-  .reci-wrap {
-    width: calc(100% - 28px);
-  }
+    .reci-wrap {
+        width: calc(100% - 28px);
+    }
 
-  .reci-hero-section .reci-wrap {
-    width: calc(100% - 28px);
-  }
+    .reci-hero-section .reci-wrap {
+        width: calc(100% - 28px);
+    }
 
-  .reci-utility-inner {
-    width: calc(100% - 28px);
-  }
+    .reci-utility-inner {
+        width: calc(100% - 28px);
+    }
 
-  .reci-footer-wrap {
-    width: calc(100% - 28px);
-  }
+    .reci-footer-wrap {
+        width: calc(100% - 28px);
+    }
 
-  .reci-utility-inner,
-  .reci-utility-right,
-  .reci-main-nav-inner,
-  .reci-search-row,
-  .reci-section-head,
-  .reci-cta-card {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+    .reci-utility-inner,
+    .reci-utility-right,
+    .reci-main-nav-inner,
+    .reci-search-row,
+    .reci-section-head,
+    .reci-cta-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
-  .reci-utility-right,
-  .reci-search-row {
-    gap: 20px;
-    width: 100%;
-  }
+    .reci-utility-right,
+    .reci-search-row {
+        gap: 20px;
+        width: 100%;
+    }
 
-  .reci-brand-block {
-    gap: 12px;
-  }
+    .reci-brand-block {
+        gap: 12px;
+    }
 
-  .reci-brand-divider {
-    display: none;
-  }
+    .reci-brand-divider {
+        display: none;
+    }
 
-  .reci-brand-hub {
-    font-size: 16px;
-  }
+    .reci-brand-hub {
+        font-size: 16px;
+    }
 
-  .reci-utility-logo {
-    height: 36px;
-    max-width: 190px;
-  }
+    .reci-utility-logo {
+        height: 36px;
+        max-width: 190px;
+    }
 
-  .reci-site-footer {
-    padding-top: 56px;
-  }
+    .reci-site-footer {
+        padding-top: 56px;
+    }
 
-  .reci-footer-brand-block {
-    gap: 12px;
-  }
+    .reci-footer-brand-block {
+        gap: 12px;
+    }
 
-  .reci-footer-brand-divider {
-    display: none;
-  }
+    .reci-footer-brand-divider {
+        display: none;
+    }
 
-  .reci-footer-main {
-    gap: 32px;
-  }
+    .reci-footer-main {
+        gap: 32px;
+    }
 
-  .reci-footer-nav-grid {
-    flex-direction: column;
-    gap: 24px;
-  }
+    .reci-footer-nav-grid {
+        flex-direction: column;
+        gap: 24px;
+    }
 
-  .reci-footer-col p {
-    max-width: none;
-  }
+    .reci-footer-col p {
+        max-width: none;
+    }
 
-  .reci-footer-newsletter h2 {
-    font-size: 28px;
-  }
+    .reci-footer-newsletter h2 {
+        font-size: 28px;
+    }
 
-  .reci-footer-form {
-    align-items: flex-start;
-    flex-direction: column;
-  }
+    .reci-footer-form {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 
-  .reci-footer-bottom {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    padding-bottom: 40px;
-  }
+    .reci-footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+        padding-bottom: 40px;
+    }
 
-  .reci-footer-legal {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-  }
+    .reci-footer-legal {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
 
-  .reci-search-pill {
-    width: 100%;
-  }
+    .reci-search-pill {
+        width: 100%;
+    }
 
-  .reci-hero-section {
-    padding-bottom: 48px;
-  }
+    .reci-hero-section {
+        padding-bottom: 48px;
+    }
 
-  .reci-card-grid {
-    grid-template-columns: 1fr;
-  }
+    .reci-card-grid {
+        grid-template-columns: 1fr;
+    }
 
-  .reci-rail-card {
-    grid-template-columns: 1fr;
-  }
+    .reci-rail-card {
+        grid-template-columns: 1fr;
+    }
 
-  .reci-media-thumb,
-  .reci-media-thumb-alt {
-    width: 100%;
-  }
+    .reci-media-thumb,
+    .reci-media-thumb-alt {
+        width: 100%;
+    }
 
-  .reci-rail-card .wp-block-post-featured-image img {
-    height: auto;
-    width: 100%;
-  }
+    .reci-rail-card .wp-block-post-featured-image img {
+        height: auto;
+        width: 100%;
+    }
 
-  .reci-cta-card {
-    grid-template-columns: 1fr;
-    padding: 24px;
-  }
+    .reci-cta-card {
+        grid-template-columns: 1fr;
+        padding: 24px;
+    }
 
-  .reci-highlight-card h2,
-  .reci-section-head h2,
-  .reci-feature-copy h2,
-  .reci-cta-card h2 {
-    font-size: 24px;
-  }
+    .reci-highlight-card h2,
+    .reci-section-head h2,
+    .reci-feature-copy h2,
+    .reci-cta-card h2 {
+        font-size: 24px;
+    }
+}
+
+@media (min-width: 1441px) {
+    .reci-container.reci-container {
+        max-width: 1440px;
+        padding-left: 30px;
+        padding-right: 30px;
+    }
+
+    .reci-container-fluid.reci-container-fluid {
+        padding-left: 30px;
+        padding-right: 30px;
+    }
 }

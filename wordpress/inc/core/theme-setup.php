@@ -111,8 +111,8 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 		}
 
 		$submit_templates = [
-			'page-templates/template-submit-content.php',
-			'page-templates/dashboard/template-dashboard-submit.php',
+			'templates/page/template-submit-content.php',
+			'templates/page/dashboard/template-dashboard-submit.php',
 		];
 		$is_submit_page = (bool) array_reduce( $submit_templates, fn( $carry, $t ) => $carry || is_page_template( $t ), false );
 		if ( $is_submit_page ) {
@@ -485,7 +485,7 @@ if (! function_exists('reci_media_hub_enqueue_reflection_stage_styles')) {
 .annotation-chip.active { border-color: var(--reflection-accent) !important; background: rgba(167, 199, 150, 0.18) !important; }
 @media (max-width: 1024px) {
 	.reci-stage-body,
-	.reci-timeline-panel { padding-top: 5.5rem; }
+	.reci-timeline-panel { padding-top: 4.5rem; }
 	.reci-stage-panels,
 	.reci-stage-grid { grid-template-columns: 1fr; }
 	.reci-timeline-card { padding: 1.5rem; }

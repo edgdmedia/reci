@@ -1,0 +1,26 @@
+{
+  "version": "1",
+  "content_sets": [
+    {
+      "id": "starter",
+      "label": "Starter Demo Content",
+	  "url": "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/pages.php",
+      "description": "Starter import payload for first-time client setup.",
+      "required_plugins": []
+    }
+  ],
+  "assets": {},
+  "pages": [
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/pages.php"
+  ],
+  "posts": [
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/authors.php",
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/articles/RECMH%20Origin.md",
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/events.php",
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/podcasts.php",
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/videos.php"
+  ],
+  "taxonomies": [
+    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/glossary.php"
+  ]
+}
