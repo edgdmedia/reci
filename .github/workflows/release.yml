@@ -1,0 +1,76 @@
+name: Release Theme
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.4.5)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "version=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate tag format
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: $VERSION (expected v0.0.0)" >&2
+            exit 1
+          fi
+
+      - name: Extract version number
+        id: version
+        run: |
+          TAG="${{ steps.tag.outputs.version }}"
+          echo "number=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Make packaging script executable
+        run: chmod +x ./scripts/package-theme.sh
+
+      - name: Package theme
+        run: ./scripts/package-theme.sh
+
+      - name: Verify version matches tag
+        run: |
+          EXPECTED="${{ steps.version.outputs.number }}"
+          cd dist
+          if ls reci-media-hub-v${EXPECTED}.zip 1>/dev/null 2>&1; then
+            echo "Package matches tag version: $EXPECTED"
+          else
+            echo "Version mismatch: expected v${EXPECTED} in dist/" >&2
+            ls -la
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: "Reci Media Hub ${{ steps.tag.outputs.version }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: dist/reci-media-hub-v${{ steps.version.outputs.number }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
