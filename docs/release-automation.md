@@ -6,32 +6,34 @@ The theme uses GitHub Releases for distribution. When you push a version tag, Gi
 
 ## How to Release
 
-### 1. Merge to main
+### 1. Bump version on development
 ```bash
-git checkout main
-git merge development
-```
-
-### 2. Bump version in style.css
-```bash
-# Edit style.css and update the Version: line
-# Or use the package script with BUMP_VERSION=1:
+git checkout development
 BUMP_VERSION=1 bash scripts/package-theme.sh
-```
-
-### 3. Commit and tag
-```bash
 git add style.css
 git commit -m "chore: bump version to 0.4.6"
+git push
+```
+
+### 2. PR and merge to main
+```bash
+# Via GitHub or CLI
+gh pr create --base main --head development
+gh pr merge --admin
+```
+
+### 3. Tag and push tag
+```bash
+git checkout main
+git pull
 git tag v0.4.6
-git push origin main --tags
+git push origin v0.4.6
 ```
 
 ### 4. Done
 GitHub Actions automatically:
 - Packages the theme zip
 - Creates a GitHub Release with the zip attached
-- No manual steps needed
 
 ## Client Update Flow
 
