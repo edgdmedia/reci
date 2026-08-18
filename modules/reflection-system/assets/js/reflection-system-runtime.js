@@ -272,6 +272,40 @@
     paint();
   }
 
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function renderAnnotation(notes, annotationIndex = 0) {
+    const note = notes[annotationIndex];
+    if (!note) {
+      if (annotationTitle) annotationTitle.textContent = 'No annotation';
+      if (annotationBody) annotationBody.textContent = 'No annotation is available for this panel yet.';
+      if (annotationList) annotationList.innerHTML = '';
+      if (hotspotLayer) hotspotLayer.innerHTML = '';
+      return;
+    }
+    if (annotationTitle) annotationTitle.textContent = note.title;
+    if (annotationBody) annotationBody.textContent = note.body;
+    if (annotationList) {
+      annotationList.innerHTML = notes.map((item, index) => `
+        <button type="button" class="annotation-chip w-full rounded-[14px] border px-4 py-3 text-left text-sm transition ${index === annotationIndex ? 'active' : ''}" style="border-color:${index === annotationIndex ? 'var(--reflection-accent)' : 'var(--reflection-border)'}; background:${index === annotationIndex ? 'rgba(167, 199, 150, 0.28)' : 'rgba(255,255,255,0.12)'}; color:var(--reflection-text);" data-annotation-index="${index}">
+          ${index + 1}. ${escapeHtml(item.title)}
+        </button>
+      `).join('');
+    }
+    if (hotspotLayer) {
+      hotspotLayer.innerHTML = notes.map((item, index) => `
+        <button type="button" class="panel-hotspot ${index === annotationIndex ? 'active' : ''}" data-annotation-index="${index}" style="left:${Number(item.x) || 0}%; top:${Number(item.y) || 0}%;">${index + 1}</button>
+      `).join('');
+    }
+  }
+
   function initLightbox() {
     const lightbox = byId('lightbox');
     const image = byId('lightboxImage');
@@ -284,22 +318,68 @@
     const hotspotLayer = byId('hotspotLayer');
     if (!lightbox || !image || !close) return;
 
+    function openPlainImage(src, alt, caption) {
+      image.src = src || '';
+      image.alt = alt || '';
+      image.dataset.annotations = '[]';
+      if (title) title.textContent = alt || caption || 'Image viewer';
+      if (intro) intro.textContent = caption || '';
+      if (annotationTitle) annotationTitle.textContent = 'Image';
+      if (annotationBody) annotationBody.textContent = caption || '';
+      if (annotationList) annotationList.innerHTML = '';
+      if (hotspotLayer) hotspotLayer.innerHTML = '';
+      lightbox.classList.add('lightbox--plain');
+      lightbox.classList.add('active');
+    }
+
+    document.querySelectorAll('[data-lightbox-image]').forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        openPlainImage(
+          trigger.getAttribute('data-lightbox-src') || '',
+          trigger.getAttribute('data-lightbox-alt') || '',
+          trigger.getAttribute('data-lightbox-caption') || ''
+        );
+      });
+    });
+
     document.querySelectorAll('.panel-image').forEach((panel) => {
       panel.addEventListener('click', () => {
+        let notes = [];
+        try {
+          const parsed = JSON.parse(panel.dataset.annotations || '[]');
+          if (Array.isArray(parsed)) notes = parsed;
+        } catch (error) {
+          notes = [];
+        }
         image.src = panel.getAttribute('src') || '';
         image.alt = panel.getAttribute('alt') || '';
+        image.dataset.annotations = JSON.stringify(notes);
         if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
-        if (intro) intro.textContent = 'Panel enlarged for closer reading.';
-        if (annotationTitle) annotationTitle.textContent = 'Panel note';
-        if (annotationBody) annotationBody.textContent = 'Annotations can be attached to this panel style.';
-        if (annotationList) annotationList.innerHTML = '';
-        if (hotspotLayer) hotspotLayer.innerHTML = '';
+        if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
+        lightbox.classList.remove('lightbox--plain');
+        renderAnnotation(notes, 0);
         lightbox.classList.add('active');
       });
     });
 
+    lightbox.addEventListener('click', (event) => {
+      const annotationTrigger = event.target.closest('[data-annotation-index]');
+      if (annotationTrigger) {
+        let notes = [];
+        try {
+          const parsed = JSON.parse(image.dataset ? image.dataset.annotations : '[]');
+          if (Array.isArray(parsed)) notes = parsed;
+        } catch (error) {
+          notes = [];
+        }
+        renderAnnotation(notes, Number(annotationTrigger.dataset.annotationIndex || 0));
+      }
+    });
+
     function closeLightbox() {
-      lightbox.classList.remove('active');
+      lightbox.classList.remove('active', 'lightbox--plain');
+      if (hotspotLayer) hotspotLayer.innerHTML = '';
+      if (annotationList) annotationList.innerHTML = '';
     }
 
     close.addEventListener('click', closeLightbox);

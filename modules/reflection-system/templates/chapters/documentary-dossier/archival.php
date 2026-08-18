@@ -32,7 +32,7 @@ $args = wp_parse_args($args ?? [], [
 						<?php endforeach; ?>
 					</div>
 					<div class="mt-6 flex flex-wrap gap-4">
-						<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
+						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
 						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
 						<?php endif; ?>
 					</div>

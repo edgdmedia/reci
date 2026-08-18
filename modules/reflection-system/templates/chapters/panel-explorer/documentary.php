@@ -30,7 +30,7 @@ $args = wp_parse_args($args ?? [], [
 					<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($args['intro']); ?></p>
 					</div>
 					<div class="mt-8 flex flex-wrap gap-4">
-						<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
+						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
 						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
 						<?php endif; ?>
 					</div>
@@ -39,7 +39,7 @@ $args = wp_parse_args($args ?? [], [
 					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 						<?php foreach ((array) $args['items'] as $item) : ?>
 							<article class="overflow-hidden rounded-[20px] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-surface)]">
-								<img class="panel-image block h-[360px] w-full cursor-zoom-in object-cover" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>">
+								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($item['annotations'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
 								<div class="p-4">
 									<h3 class="mb-1 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($item['title']); ?></h3>
 									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo esc_html($item['description']); ?></p>
