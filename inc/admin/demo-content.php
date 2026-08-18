@@ -1159,7 +1159,8 @@ function reci_install_demo_content( array $only_types = [] ): void {
 					'students-1959.webp', 'are-you-ethnocentric.webp', 'ethnocentric.webp', 'teacher-1959.webp',
 					'courier-1956.webp', 'sf-library-1959.webp', 'indianapolis-1.webp', 'indianapolis-2.webp',
 					'panel-1a.webp', 'panel-1b.webp', 'panel-2a.webp', 'panel-2b.webp',
-					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp',
+					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp', 'at-70.webp',
+					'comments-from-teachers.pdf', 'swauger-museum-as-teacher.pdf',
 				];
 				$wh_img = [];
 				foreach ( $wh_files as $file ) {
@@ -2215,6 +2216,9 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 	$im = static function ( string $key ) use ( $img, $ph ): string {
 		return ! empty( $img[ $key ] ) ? $img[ $key ] : $ph;
 	};
+	$pd = static function ( string $file ): string {
+		return reci_demo_theme_image_url( 'site/reflections/we-humans/' . $file );
+	};
 
 	return [
 		'version'  => 2,
@@ -2247,12 +2251,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 			// 1. Title / Hero — light text overlaid on the period photo (dark overlay).
 			[
 				'id'              => 'wh-title',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 				'family'  => 'hero',
 				'variant' => 'documentary',
 				'props'   => [
 					'id'              => 'wh-title',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 					'override_colors'      => true,
 					'color_text'           => '#F4F6EF',
 					'color_soft_text'      => '#E7ECE0',
@@ -2268,7 +2272,6 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 					'overlay_opacity'      => 0.62,
 					'actions'         => [
 						[ 'label' => 'Introduction', 'href' => 'wh-intro' ],
-						[ 'label' => 'The Original Panels', 'href' => 'wh-panels-intro' ],
 					],
 				],
 			],
@@ -2279,19 +2282,18 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 				'family'  => 'feature-split',
 				'variant' => 'documentary',
 				'props'   => [
-					'id'              => 'wh-intro',
-					'include_in_menu' => '1',
-					'eyebrow'         => 'Introduction',
+					'id'                 => 'wh-intro',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'Introduction',
+					'menu_description'   => 'Return to the start of the exhibit',
+					'eyebrow'            => 'Introduction',
 					'title'           => 'What feels familiar and unfamiliar about this story?',
-					'body'            => '"We Humans" was an exhibit on race and racism developed by two curators of anthropology at the Carnegie Museum, James Swauger and Don Dragoo. Through punchy rhetoric informed by the science of the day, they encouraged workers, students, and citizens to question their assumptions about race and to value the lives and contributions of all people. It debuted in downtown Pittsburgh in 1955 and later reached a national audience through portable versions and publications. The exhibit was jointly planned by the museum, the United Steelworkers of America, Mayor David L. Lawrence\'s Civic Unity Council, and Pittsburgh Public Schools.' . "\n\n" . '"We Humans" shows how a version of anti-racism was made an urgent public priority across the United States in the 1950s — but it also reveals the pitfalls of the institutional and scientific tactics of the time. As you explore, ask yourself what its ambitions and shortcomings might teach people today.' . "\n\n" . '*Please note that this exhibit includes racial terminology and imagery that are outdated and offensive.*',
+					'body'            => '"We Humans" was an exhibit on race and racism developed by two curators of anthropology employed at the Carnegie Museum (now Carnegie Museum of Natural History), James Swauger and Don Dragoo. Through punchy rhetoric informed by current science, Swauger and Dragoo encouraged workers, students, and citizens to question their assumptions about race and to value the lives and contributions of all people. The exhibit debuted in downtown Pittsburgh in 1955 and later reached a national audience through portable versions and publications. The exhibit was a collaborative effort, jointly planned and sponsored by the museum, the labor union the United Steelworkers of America, Mayor David L. Lawrence\'s Civic Unity Council, and Pittsburgh Public Schools.' . "\n\n" . '"We Humans" demonstrates the extent to which a version of anti-racism was being made an urgent public priority across the United States in the 1950s, but also shows the pitfalls of the institutional and scientific tactics employed in such efforts at this time. As you learn more about the story of "We Humans," ask yourself what its ambitions and shortcomings might have to teach people today.',
+					'note'            => 'Please note that this exhibit includes racial terminology and imagery that are outdated and offensive.',
 					'image'           => $im( 'students-1959.webp' ),
 					'media_side'      => 'right',
 					'actions'         => [
 						[ 'label' => 'Origins', 'href' => 'wh-origins' ],
-						[ 'label' => 'Display & Reception', 'href' => 'wh-display' ],
-						[ 'label' => 'The Original Panels', 'href' => 'wh-panels-intro' ],
-						[ 'label' => 'Conclusion & Reflection', 'href' => 'wh-reflect' ],
-						[ 'label' => 'About', 'href' => 'wh-about' ],
 					],
 				],
 			],
@@ -2302,10 +2304,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 				'family'  => 'documentary-dossier',
 				'variant' => 'archival',
 				'props'   => [
-					'id'              => 'wh-origins',
-					'include_in_menu' => '1',
-					'eyebrow'  => 'How did "We Humans" come to be?',
-					'title'    => 'Origins',
+					'id'                 => 'wh-origins',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'Origins',
+					'menu_description'   => 'Learn about how "We Humans" came to be',
+					'eyebrow'            => 'Origins',
+					'title'    => 'How did "We Humans" come to be?',
 					'intro'    => [
 						[ 'text' => '"We Humans" emerged as one of many responses to local, national, and global conversations about race and discrimination in the 1950s. Civic, labor, religious, and community leaders, alongside academics, collaborated to counter both anti-semitism and Nazi race science, and anti-Black racism and segregation.' ],
 						[ 'text' => 'Of particular relevance were discussions convened by the Committee on Civil Rights of the United Steelworkers of America, and the first UNESCO Statement on Race of 1950.' ],
@@ -2317,17 +2321,20 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 								[ 'text' => 'The Civil Rights Committee of the United Steelworkers (USW), established in 1948, organized seminars where leaders in labor, education, religion, and the social sciences debated how to mitigate prejudice in the workplace and in society.' ],
 								[ 'text' => 'Carnegie Museum curator James Swauger was invited to a USW "Seminar on Human Relations" in 1951. He brought museum artifacts made by diverse cultural groups and — presenting them without identifying information — challenged participants to racially label or judge them. That collaboration eventually created the opportunity for "We Humans."' ],
 							],
-							'links'      => [],
+							'links'      => [
+								[ 'label' => 'Read the opening remarks and see the list of participants at the October 1951 seminar. Document courtesy of the University of Pittsburgh Library System\'s Archives & Special Collections (Francis C. Shane Papers, 1942-1969, AIS.1996.03).', 'href' => 'https://drive.google.com/file/d/1vyM3GCXQ4XSBvbwI87INZNbqnSjcxaII/view?usp=sharing' ],
+							],
 						],
 						[
 							'title'      => 'UNESCO Statements on Race',
 							'paragraphs' => [
-								[ 'text' => 'In 1949, mostly anthropologists gathered in Paris to draft the first UNESCO Statement on Race (1950), aiming to eliminate racial prejudice through knowledge. The status of racial categorization in anthropology was shifting, even as many scholars still clung to now-discredited practices of physical anthropology.' ],
-								[ 'text' => 'Core messages — shared later by "We Humans" — held that humans are one species and that "races" were not pure, superior, or inferior, and did not determine intelligence or culture. Yet the statement also asserted three racial groups, combining progressive ideas about equality with biological categories now understood as inaccurate and offensive.' ],
+								[ 'text' => 'In December 1949, a group of academics (mostly anthropologists) gathered in Paris to draft the first UNESCO Statement on Race of 1950, aiming to eliminate racial prejudice through knowledge. Ideas about race in anthropology were slowly shifting away from harmful comparisons between groups, even as many scholars still relied on now-discredited techniques like skull measuring to categorize people. The UNESCO Statement, and later "We Humans," reflect this moment of transition.' ],
+								[ 'text' => 'The UNESCO Statement called racism out as a dangerous social myth not supported by science. It defined "races" as groups of humans who through geographic isolation and natural selection came to show distinct, but variable, physical traits. Nevertheless, it still named three main racial groups as known to science (none of which are recognized as accurate today): Caucasoid, Mongoloid, and Negroid.' ],
+								[ 'text' => 'The UNESCO Statement thus combined messages about human equality that were progressive, and actually controversial at the time, alongside ideas that are now considered out of date and offensive. A few years later, "We Humans" repeated these same tensions.' ],
 							],
 							'links'      => [
-								[ 'label' => 'Read the 2019 AABA statement on race', 'href' => 'https://onlinelibrary.wiley.com/doi/10.1002/ajpa.23882' ],
-								[ 'label' => 'Read "What is Race?" (UNESCO, 1952)', 'href' => 'https://unesdoc.unesco.org/ark:/48223/pf0000067867' ],
+								[ 'label' => 'Read the 2019 AABA statement on race that shows how ideas in anthropology have changed', 'href' => 'https://onlinelibrary.wiley.com/doi/10.1002/ajpa.23882' ],
+								[ 'label' => 'Read What is Race? (UNESCO, 1952), which was owned by curator James Swauger, and had a strong influence on "We Humans"', 'href' => 'https://unesdoc.unesco.org/ark:/48223/pf0000067867' ],
 							],
 						],
 					],
@@ -2342,10 +2349,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 				'family'  => 'timeline-world',
 				'variant' => 'documentary',
 				'props'   => [
-					'id'              => 'wh-display',
-					'include_in_menu' => '1',
-					'eyebrow' => 'Display & Reception',
-					'title'   => 'Where was it shown, and what did people say?',
+					'id'                 => 'wh-display',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'Display & Reception',
+					'menu_description'   => 'Where was "We Humans" shown? And what did people say about it?',
+					'eyebrow'            => 'Display & Reception',
+					'title'   => 'Where was "We Humans" shown, and how did people respond?',
 					'items'   => [
 						[
 							'date'  => 'February 1955',
@@ -2358,15 +2367,16 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'title' => '"Are You Ethnocentric?"',
 							'body'  => 'A Pittsburgh Sun-Telegraph editorial praised the exhibit for challenging the belief that one\'s own group is superior. Some readers doubled down on their sense of superiority — one even claimed the anti-ethnocentric message would lead to Communism.',
 							'media' => [
-								[ 'src' => $im( 'are-you-ethnocentric.webp' ), 'alt' => 'Are You Ethnocentric? editorial', 'caption' => '"Are You Ethnocentric?," Pittsburgh Sun-Telegraph, July 8, 1955.' ],
-								[ 'src' => $im( 'ethnocentric.webp' ), 'alt' => 'Ethnocentric reader responses', 'caption' => '"Ethnocentric," Pittsburgh Sun-Telegraph, July 15, 1955.' ],
+								[ 'src' => $im( 'are-you-ethnocentric.webp' ), 'alt' => 'Are You Ethnocentric? editorial', 'caption' => '"Are You Ethnocentric?," Pittsburgh Sun-Telegraph, July 8, 1955. From newspapers.com.' ],
+								[ 'src' => $im( 'ethnocentric.webp' ), 'alt' => 'Ethnocentric reader responses', 'caption' => '"Ethnocentric," Pittsburgh Sun-Telegraph, July 15, 1955. From newspapers.com.' ],
 							],
 						],
 						[
 							'date'  => 'February 1956',
 							'title' => 'Into the schools',
 							'body'  => 'A modified, portable version tours Pittsburgh Public, parochial, and regional schools as a social-studies module. A USW-funded booklet circulated the content more broadly; the tour continued at least through 1959.',
-							'media' => [ [ 'src' => $im( 'teacher-1959.webp' ), 'alt' => 'Teacher with a portable We Humans panel', 'caption' => 'A teacher at Monongahela High School with a portable "We Humans" panel, 1959.' ] ],
+							'media' => [ [ 'src' => $im( 'teacher-1959.webp' ), 'alt' => 'Teacher with a portable We Humans panel', 'caption' => 'A teacher at Monongahela High School with a portable "We Humans" panel, 1959. Photograph by Michel Chalufour. Courtesy of Carnegie Museum of Natural History Library and Archives.' ] ],
+							'link'  => [ [ 'label' => 'Read responses from teachers and students at Schenley High School, the first school to host "We Humans." Document courtesy of Carnegie Museum of Natural History Section of Anthropology Archives.', 'href' => $pd( 'comments-from-teachers.pdf' ) ] ],
 						],
 						[
 							'date'  => 'March 1956',
@@ -2377,22 +2387,54 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'date'  => 'June 1956',
 							'title' => 'In the Courier',
 							'body'  => 'Ric Roberts wrote about the exhibit and its school tour in The Pittsburgh Courier. Its message — that humans differed by "type" but were fundamentally united and equal — resonated.',
-							'media' => [ [ 'src' => $im( 'courier-1956.webp' ), 'alt' => 'Pittsburgh Courier article', 'caption' => 'Ric Roberts, "School, Churchmen Agree \'Race\' is Mythical," Pittsburgh Courier, June 2, 1956.' ] ],
+							'media' => [ [ 'src' => $im( 'courier-1956.webp' ), 'alt' => 'Pittsburgh Courier article', 'caption' => 'Ric Roberts, "Treasure Trove: School, Churchmen Agree \'Race\' is Mythical," The Pittsburgh Courier, June 2, 1956. From newspapers.com.' ] ],
 						],
 						[
 							'date'  => 'November 1959',
 							'title' => 'A national tour',
 							'body'  => 'With support from the American Jewish Committee and USW, a second portable version toured libraries nationwide. This month it opened at the San Francisco Public Library.',
-							'media' => [ [ 'src' => $im( 'sf-library-1959.webp' ), 'alt' => 'We Humans at the San Francisco Public Library', 'caption' => 'The temporary installation of "We Humans" at the San Francisco Public Library, 1959.' ] ],
+							'media' => [ [ 'src' => $im( 'sf-library-1959.webp' ), 'alt' => 'We Humans at the San Francisco Public Library', 'caption' => 'Frank Clarvoe, Jr. and Hazel McFarlane of the San Francisco Public Library (left) with William K. Coblentz of the San Francisco chapter of the American Jewish Committee (right) with the temporary installation of "We Humans." Courtesy of the University of Pittsburgh Library System\'s Archives & Special Collections (Francis C. Shane Papers, 1942-1969, AIS.1996.03).' ] ],
+						],
+						[
+							'date'  => 'September 1961',
+							'title' => 'Miami',
+							'body'  => '"We Humans" is displayed at the Miami Public Library in Florida, and a special about the exhibit airs on television there.',
+						],
+						[
+							'date'  => 'January 1962',
+							'title' => 'Plainville, Connecticut',
+							'body'  => '"We Humans" is displayed at Plainville High School in Connecticut.',
 						],
 						[
 							'date'  => 'October 1963',
 							'title' => 'The Indiana Centennial',
-							'body'  => '"We Humans" is displayed at the Indiana Centennial in Indianapolis, one of many stops — including Miami, Connecticut, and Detroit — on its long national journey.',
+							'body'  => '"We Humans" is displayed at the Indiana Centennial in Indianapolis.',
 							'media' => [
-								[ 'src' => $im( 'indianapolis-1.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.' ],
+								[ 'src' => $im( 'indianapolis-1.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963. Courtesy of the University of Pittsburgh Library System\'s Archives & Special Collections (Francis C. Shane Papers, 1942-1969, AIS.1996.03).' ],
 								[ 'src' => $im( 'indianapolis-2.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.' ],
 							],
+						],
+						[
+							'date'  => 'April 1964',
+							'title' => 'Detroit',
+							'body'  => '"We Humans" is displayed at the Detroit Historical Museum as part of Labor Education Week.',
+						],
+						[
+							'date'  => 'October 1969',
+							'title' => 'Swauger looks back',
+							'body'  => 'Almost fifteen years after the debut of "We Humans," curator James Swauger reflected on the experience of developing the exhibit in the article "The Museum as Teacher," published in Current Anthropology. Still largely approving of the exhibit, he admitted it had flaws, writing: "We had to take complex, abstract concepts and present them as bald statements that would arouse curiosity in a viewer."',
+							'link'  => [ [ 'label' => 'Read Swauger\'s full article. Document courtesy of Carnegie Museum of Natural History Section of Anthropology Archives.', 'href' => $pd( 'swauger-museum-as-teacher.pdf' ) ] ],
+						],
+						[
+							'date'  => 'October 2014',
+							'title' => 'Finding the Words',
+							'body'  => 'When Carnegie Museum of Natural History hosts the acclaimed traveling exhibit RACE: Are We So Different? staff organized a small display on "We Humans" titled "Finding the Words: Pittsburgh and the Early Civil Rights Movement," striking a largely celebratory tone and emphasizing the positive intentions and unexpected reach of "We Humans" in its moment.',
+						],
+						[
+							'date'  => 'September 2025',
+							'title' => '"We Humans" at 70',
+							'body'  => 'The exhibit "We Humans" at 70: Educating Pittsburgh on Race in the 1950s, organized by Deirdre Madeleine Smith (with Lindsey Kenny, then a University of Pittsburgh student and intern), opens at the Hyland Gallery at Hillman Library on the University of Pittsburgh campus. It shared the story of "We Humans" through original archival records and critical, reparative interpretation.',
+							'media' => [ [ 'src' => $im( 'at-70.webp' ), 'alt' => 'We Humans at 70 exhibit in Hyland Gallery', 'caption' => '"We Humans" at 70: Educating Pittsburgh on Race in the 1950s. Hyland Gallery at Hillman Library, University of Pittsburgh. September 2025–July 2026. Photograph by Deirdre Madeleine Smith.' ] ],
 						],
 					],
 					'continue_label'  => 'The Original Panels',
@@ -2406,11 +2448,13 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 				'family'  => 'feature-split',
 				'variant' => 'documentary',
 				'props'   => [
-					'id'              => 'wh-panels-intro',
-					'include_in_menu' => '1',
-					'eyebrow'         => 'What was actually in "We Humans"?',
+					'id'                 => 'wh-panels-intro',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'The Original Panels',
+					'menu_description'   => 'What was actually in "We Humans"?',
+					'eyebrow'            => 'What was actually in "We Humans"?',
 					'title'           => 'The Original Panels',
-					'body'            => '"We Humans" consisted of eight panels displayed in four double-sided cases. Each case paired one panel ("Panel A") about human biology and genetics with another ("Panel B") about human culture.' . "\n\n" . 'Using bold rhetoric, museum artifacts, and mannequin heads, Swauger and Dragoo tried to unsettle assumptions about race — in ways that today appear outdated, inaccurate, and offensive, awkwardly shifting between racial division and harmony.',
+					'body'            => '"We Humans" consisted of eight panels that were originally displayed in four, double-sided cases. Each case paired one panel ("Panel A") aimed at sharing information about human biology and genetics with another ("Panel B") focused on human culture. The authors of these panels, anthropologists and curators James Swauger and Don Dragoo, aimed to encourage audiences to question their ideas about race and their attachments to the logic of racism. They did so in ways that today appear outdated, inaccurate, and detrimental. Using bold rhetoric and graphics, museum artifacts, and mannequin heads, Swauger and Dragoo presented messages that awkwardly shift between racial division and harmony.' . "\n\n" . 'Click on the panels to the right to study their content and learn more.',
 					'image'           => $im( 'panel-1a.webp' ),
 					'image_alt'       => 'We Humans, Case I, Panel A',
 					'media_side'      => 'right',
@@ -2421,74 +2465,216 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 			// 7. The Original Panels (gallery).
 			[
 				'id'              => 'wh-panels',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 				'family'  => 'panel-explorer',
 				'variant' => 'documentary',
 				'props'   => [
 					'id'              => 'wh-panels',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 					'eyebrow' => 'The Original Panels',
 					'title'   => 'Eight Panels, Four Cases',
-					'intro'   => 'Click any panel to enlarge. "Panel A" addressed human biology; "Panel B" addressed human culture.',
+					'intro'   => 'Click any panel to enlarge and learn more.',
 					'items'   => [
-						[ 'title' => 'Case I, Panel A', 'src' => $im( 'panel-1a.webp' ), 'alt' => 'Case I, Panel A', 'description' => 'Challenges viewers to identify three mannequins by "race," implying difference is hard to see — while still presenting the era\'s now-invalid racial "types" as real and knowable.' ],
-						[ 'title' => 'Case I, Panel B', 'src' => $im( 'panel-1b.webp' ), 'alt' => 'Case I, Panel B', 'description' => 'Argues "ethnocentrism" is human but can be overcome by knowledge — quoting figures from a pharaoh and Euripides to Hitler, Jesus, and Jefferson, while privileging Western voices.' ],
-						[ 'title' => 'Case II, Panel A', 'src' => $im( 'panel-2a.webp' ), 'alt' => 'Case II, Panel A', 'description' => 'The mannequin heads return wearing headdresses from the museum\'s collection — meant to show we read cultural, not racial, cues, but mislabeling and decontextualizing the objects.' ],
-						[ 'title' => 'Case II, Panel B', 'src' => $im( 'panel-2b.webp' ), 'alt' => 'Case II, Panel B', 'description' => 'Similar objects from different regions, pinned unmarked. "Are you a wizard?" it asks. It closes: "If you needed one of these baskets... would it really matter who made it?"' ],
-						[ 'title' => 'Case III, Panel A', 'src' => $im( 'panel-3a.webp' ), 'alt' => 'Case III, Panel A', 'description' => 'A world map and color-coded figurines illustrate variation from geographic isolation — but wrongly frame it as "racial" and place humanity\'s origin in Asia rather than Africa.' ],
-						[ 'title' => 'Case III, Panel B', 'src' => $im( 'panel-3b.webp' ), 'alt' => 'Case III, Panel B', 'description' => 'A man before a hearty breakfast of globally sourced foods shows racism\'s incoherence. Notably, "the waitress" is the only feminized person mentioned in all of "We Humans."' ],
-						[ 'title' => 'Case IV, Panel A', 'src' => $im( 'panel-4a.webp' ), 'alt' => 'Case IV, Panel A', 'description' => 'A concluding biology panel, drawing together the exhibit\'s claims about human variation and unity.' ],
-						[ 'title' => 'Case IV, Panel B', 'src' => $im( 'panel-4b.webp' ), 'alt' => 'Case IV, Panel B', 'description' => 'A concluding culture panel, closing the paired sequence of "We Humans."' ],
+						[
+							'title'       => 'Case I, Panel A',
+							'src'         => $im( 'panel-1a.webp' ),
+							'alt'         => 'Case I, Panel A',
+							'description' => 'In this first panel, Swauger and Dragoo both deconstructed and reinforced racial categories (a pattern throughout "We Humans"). They challenged their viewers to racially identify three mannequins each wearing "an American hat," thus suggesting that racial difference is not so easy (or relevant) to recognize. At the same time, they asserted that these categories were both real and knowable by anthropologists.',
+							'annotations' => [
+								[ 'x' => 26.6, 'y' => 22.9, 'title' => 'Physical differences are superficial', 'body' => 'Swauger and Dragoo emphasized that while physical differences existed between people, these were superficial, and mostly of concern to academics.' ],
+								[ 'x' => 53.7, 'y' => 41.2, 'title' => 'Three mannequin heads', 'body' => 'This panel featured three mannequin heads whose features were based on an understanding from the time of the racial types: "Mongoloid," "Caucasoid," and "Negroid." These three categories were defined by anthropologists through differences in geographic origin and physical appearance, but are now known to be scientifically invalid.' ],
+								[ 'x' => 50.7, 'y' => 69.5, 'title' => 'A response to Nazi race science', 'body' => 'The bold words at the bottom of this panel are an intended response to anti-semitism and Nazi race science. In the 1920s-1940s, the German Nazi Party had promoted rhetoric placing people into a false, racialized hierarchy in order to justify the genocidal violence of the Holocaust. "We Humans" was one of several public education campaigns led by anthropologists during and after the era of the Nazi regime which aimed at countering these falsehoods directly.' ],
+								[ 'x' => 86.0, 'y' => 90.0, 'title' => 'Interpretation by Dr. Anthony Hazard', 'body' => 'Anthony Hazard is Professor of Ethnic Studies and History at Santa Clara University and author of Postwar Anti-racism: The U.S., Unesco and "Race," 1945-1968 (Palgrave, 2012) and Boasians At War: Anthropology, Race, and World War II (Palgrave, 2020). "This case portrays the tripartite schema of human populations or \'races\' which by and large remained a valid concept in physical anthropology at this time. In keeping with the context of the postwar period and mid-century anthropology, Case I recognizes the unity of the species Homo sapiens. Significantly, it describes ranges and broad distributions of physical characteristics in given \'races\' rather than fixed \'racial\' characteristics over time. Swauger and Dragoo thus embraced the theoretical synthesis of Darwinian evolution and Mendelian genetics which occurred over the first four decades of the twentieth century that rejected the notion of racial purity. Refuting basic tenets of Nazi race science, this case decouples nation and religion from race, while also placing emphasis on the \'scientific\' expertise of the anthropologists\' \'racket\' of \'laborious measuring.\' This embrace of physical anthropological methods of measuring bone, skull size, nose angle, etc. sits in tension with the presence of Neo-Darwinian ideas."' ],
+							],
+						],
+						[
+							'title'       => 'Case I, Panel B',
+							'src'         => $im( 'panel-1b.webp' ),
+							'alt'         => 'Case I, Panel B',
+							'description' => 'In this panel, Swauger and Dragoo claimed that while racism, or "ethnocentrism," is inherently human, it can also be overcome by knowledge and reflection. They pulled examples from throughout human history of people either embracing or dismissing ethnocentric ideas.',
+							'annotations' => [
+								[ 'x' => 26.2, 'y' => 50.0, 'title' => 'Examples of "ethnocentric" thinking', 'body' => 'For examples of "ethnocentric" thinking, Swauger and Dragoo quote an ancient Egyptian pharaoh, the Greek dramatist Euripides, a late 19th century Chinese Minister of Education, and Adolf Hitler (the leader of the Nazi party), each claiming that one group is superior to another.' ],
+								[ 'x' => 51.3, 'y' => 50.0, 'title' => 'Autonyms and group identity', 'body' => 'Swauger and Dragoo also stated that many Indigenous peoples espoused "ethnocentric" thinking, based on the fact that some Indigenous groups\' autonyms (the names they call themselves) can be translated into concepts like "the people." In this way, Swauger and Dragoo confused group identity with a sense of superiority. Not only did they make a harmful accusation here, they got information about group names and meanings wrong.' ],
+								[ 'x' => 75.7, 'y' => 50.0, 'title' => 'Progressive Western voices', 'body' => 'As examples of humans with progressive views on human equality, Swauger and Dragoo quoted: Greek playwright Menander, Jesus of Nazareth, founding father Thomas Jefferson, German writer Johann Wolfgang von Goethe, and American anthropologist George P. Murdock. In privileging the ideas of Western figures in this way, Swauger and Dragoo seem to undermine their message of equality.' ],
+								[ 'x' => 67.2, 'y' => 70.5, 'title' => 'A risk of trivializing', 'body' => 'While Swauger and Dragoo promoted a positive idea that racism could, and needed to, be challenged, they also risked trivializing the matter by writing things like, "And it is silly, isn\'t it?"' ],
+							],
+						],
+						[
+							'title'       => 'Case II, Panel A',
+							'src'         => $im( 'panel-2a.webp' ),
+							'alt'         => 'Case II, Panel A',
+							'description' => 'In this panel, the mannequin heads from the first panel appear again, this time culturally (and "racially") marked by different headdresses, all borrowed from the Carnegie Museum of Natural History\'s anthropology collection. While the intention may have been to suggest that people picked up on cultural rather than racial cues when they tried to categorize each other, Swauger and Dragoo also inaccurately racially categorized the cultures from which these headdresses came. They also divorced these items from their original context and meaning.',
+							'annotations' => [
+								[ 'x' => 25.2, 'y' => 43.1, 'title' => 'War bonnet', 'body' => 'On the left of the panel, a Native American (identified as "Sioux Indian") war bonnet sits on the head of the "Mongoloid" mannequin. These feathered headdresses are markers of earned social status among Native peoples of the Great Plains.' ],
+								[ 'x' => 53.6, 'y' => 36.0, 'title' => 'Turban', 'body' => 'In the center, the "Caucasoid" mannequin wears a turban and is identified as "Hindu." This choice was a possible allusion to the pagri, a kind of turban worn on the Indian subcontinent. It bears repeating, however, that all of the racial categorizations used by Swauger and Dragoo were based on faulty premises now rejected by science.' ],
+								[ 'x' => 73.6, 'y' => 27.1, 'title' => 'Headdress from Malawi', 'body' => 'On the right, the "Negroid" mannequin wears a headdress from Malawi, a country in East Africa. While Swauger and Dragoo identify these items as coming from the Maasai people, the Maasai are not typically known to live in Malawi, thus placing this attribution into question.' ],
+							],
+						],
+						[
+							'title'       => 'Case II, Panel B',
+							'src'         => $im( 'panel-2b.webp' ),
+							'alt'         => 'Case II, Panel B',
+							'description' => 'For this panel, Swauger and Dragoo selected, categorized and pinned to a board objects from the Carnegie Museum of Natural History\'s anthropology collections that are of a similar material and manufacture, but that come from different regions of the world. They intentionally left the items unlabeled in order to encourage viewers to question their ability to identify and judge the items in racial terms.',
+							'annotations' => [
+								[ 'x' => 19.3, 'y' => 72.4, 'title' => '"Are you a wizard?"', 'body' => 'Swauger and Dragoo pose a provocative question ("Are you a wizard?"), implying that it would take magic powers for someone to be able to label the items in this panel according to a racial group. This framing represents an interesting break from their usual emphasis on science and facts.' ],
+								[ 'x' => 15.1, 'y' => 25.8, 'title' => 'Native American materials', 'body' => 'On the left materials from Native American cultures are displayed, such as this tray made of elm bark, which is attributed to the Seneca people and was made before 1910.' ],
+								[ 'x' => 57.5, 'y' => 31.0, 'title' => 'African materials', 'body' => 'In the center are materials from the African continent. This is a cloth mat made by Kuba people from the Democratic Republic of the Congo.' ],
+								[ 'x' => 89.9, 'y' => 57.1, 'title' => 'European objects', 'body' => 'To the right are objects with origins in present-day Europe, such as this stone blade, an object from prehistoric Scandinavia.' ],
+								[ 'x' => 86.0, 'y' => 90.0, 'title' => 'Interpretation by Kristina Gaugler', 'body' => 'Kristina Gaugler is Anthropology Collection Manager, Carnegie Museum of Natural History. "As was typical for a 1950s museum exhibition, this panel showcases objects devoid of both context and humanity. By grouping these items together using a racial typology, all the nuance, care, history, and purpose that went into creating them is reduced to something with very little meaning. In museum spaces today, particularly when it comes to culture studies, we strive to tell authentic stories, with community involvement, where objects are displayed as complementary to these narratives rather than used as a prop for a particular ideology. I do commend our Carnegie Museum of Natural History forbearers for their effort in trying to educate our communities with the message that, ultimately, we are all not so different. Unfortunately, by today\'s standards, their execution leaves a lot to be desired."' ],
+								[ 'x' => 92.0, 'y' => 90.0, 'title' => 'Interpretation by Amy Covell-Murthy', 'body' => 'Amy Covell-Murthy is Archaeology Collection Manager and Head of the Section of Anthropology, Carnegie Museum of Natural History. "This is not how we organize and interpret cultural material for exhibition purposes at Carnegie Museum of Natural History any longer. Our focus now is to provide a platform for authentic voices and to share authority with members of the communities from where these collections originated. We prioritize relationships over objects and celebrate the diversity of human experience. While Dragoo and Swauger\'s work in the 1950s was commendable, we can now acknowledge that taking a multicultural approach to understanding how inequities are rooted in systemic racism is crucial to building a better message."' ],
+							],
+						],
+						[
+							'title'       => 'Case III, Panel A',
+							'src'         => $im( 'panel-3a.webp' ),
+							'alt'         => 'Case III, Panel A',
+							'description' => 'In this panel, Swauger and Dragoo use a modified graphic of a world map and simple, color-coded figurines to illustrate the idea of genetic variation due to geographic isolation. While they correctly identified geographic isolation as a driver of changes in outward appearance, they misidentified these variations as "racial" on a genetic level. They write that "Man\'s Birthplace" is unknown, but today we know that the human species (Homo sapiens) emerged in Africa.',
+							'annotations' => [
+								[ 'x' => 86.0, 'y' => 90.0, 'title' => 'Interpretation by Dr. Anthony Hazard', 'body' => 'Anthony Hazard is Professor of Ethnic Studies and History at Santa Clara University and author of Postwar Anti-racism: The U.S., Unesco and "Race," 1945-1968 (Palgrave, 2012) and Boasians At War: Anthropology, Race, and World War II (Palgrave, 2020). "Prior to paleoanthropologists Mary and Louis Leakey\'s discoveries of hominin fossils at Olduvai Gorge in northern Tanzania, scientists largely postulated that Homo sapiens originated in Europe or Asia. This panel offers southern Asia as the birthplace of the human species, with movement eastward resulting in the development of the Mongoloid race, movement westward into Africa resulting in the Negroid race, and movement to the northwest resulting in the Caucasoid race in Europe. Pointing to heredity, mutation, and natural selection, this panel echoes Case I, Panel A in highlighting the Neo-Darwinian synthesis as the evolutionary driver of human diversity. Geographic isolation of populations then results in the emergence of racial difference. Neither panel engages the controversial deconstructionist position of anthropologist Ashley Montagu, who in the 1940s defined race as a myth. Rather, Swauger and Dragoo confirm the existence of biological races in the human species."' ],
+							],
+						],
+						[
+							'title'       => 'Case III, Panel B',
+							'src'         => $im( 'panel-3b.webp' ),
+							'alt'         => 'Case III, Panel B',
+							'description' => 'In this example of a "cultural" panel, an image of a person who appears coded as white, male, and middle class sits before a hearty breakfast. With this pairing of text and image, Swauger and Dragoo attempted to demonstrate how incoherent racism is: people will espouse discriminatory views of a group of people while enjoying food or other cultural exports from that same group.',
+							'annotations' => [
+								[ 'x' => 60.7, 'y' => 26.0, 'title' => 'Who are the "other peoples"?', 'body' => 'The language chosen here is telling: Who are the "other peoples" being referred to? "[T]he waitress" is the only time that a feminine-coded person is mentioned throughout "We Humans."' ],
+								[ 'x' => 75.2, 'y' => 70.4, 'title' => 'Categorizing the breakfast table', 'body' => 'In this section, Swauger and Dragoo categorize the items on the breakfast table according to their racial scheme of Mongoloid, Negroid, and Caucasoid. In doing so, they conflated the geographic origins of these foods with the racial types of peoples who share the same origins.' ],
+								[ 'x' => 92.0, 'y' => 90.0, 'title' => 'Interpretation by Tracy Teslow', 'body' => 'Tracy Teslow is Associate Professor of History, University of Cincinnati and author of Constructing Race: The Science of Bodies and Cultures in American Anthropology (Cambridge University Press, 2014). "Midcentury American anthropologists encouraged the public to question their assumptions of racial and cultural superiority through exhibitions and publications. In an era of great faith in the ability of science to offer objective truth and clear-eyed solutions to problems, scholars believed that factual instruction could effectively combat social ills such as racial prejudice. \'We Humans\' employed one of these anthropologists\' favorite approaches—illustrating the global origins of everyday items. Drawing on their encyclopedic knowledge of world history, cultures, and commerce, scholars sought to demonstrate the extensive borrowing underlying American culture (but rarely the colonial and commercial networks that enabled it). The newspaper the man in this panel might read with his breakfast was printed using a process invented in Germany, upon a material invented in China, in an Indo-European language, using characters invented by ancient Semites. The morning coffee he enjoys came from an Ethiopian plant discovered by Arabs. In \'We Humans\', this cultural diffusion has been reduced to racialized terms, \'Negroid,\' \'Mongoloid,\' and \'Caucasoid,\' standing in for more complex processes of heritage and exchange. This panel tried to undermine ethnocentric chauvinism, even as it reinforced unexamined racial categories. Similarly, the featured diner, a white man in a business suit, centers assumptions about who was a \'typical\' American, even as it points to the intended audience. \'We Humans\' echoed earlier \'Races of Mankind\' texts and exhibitions with similar anti-racist goals, including a 1943 pamphlet by anthropologists Ruth Benedict and Gene Weltfish."' ],
+							],
+						],
+						[
+							'title'       => 'Case IV, Panel A',
+							'src'         => $im( 'panel-4a.webp' ),
+							'alt'         => 'Case IV, Panel A',
+							'description' => 'To produce this panel, James Swauger reached out to the World Health Organization to ask for examples of situations where a multi-racial coalition had collaborated to solve a health crisis. The panel focuses on Yaws, a bacterial infection that causes skin, tissue, and nerve damage. Through the evidence of Yaws, Swauger and Dragoo argued that not only do people of all races get sick with the same diseases, they also have the ability to work toward their cures.',
+							'annotations' => [
+								[ 'x' => 86.0, 'y' => 90.0, 'title' => 'Interpretation by Dr. Anthony Hazard', 'body' => 'Anthony Hazard is Professor of Ethnic Studies and History at Santa Clara University and author of Postwar Anti-racism: The U.S., Unesco and "Race," 1945-1968 (Palgrave, 2012) and Boasians At War: Anthropology, Race, and World War II (Palgrave, 2020). "Highlighting the prevalence of a particular infectious medical malady in various regions of the globe speaks to the biological unity of human beings despite the occurrence of phenotypic variation. This focus on global sameness also rejects the belief that certain \'races\' are biologically predisposed to certain medical diseases or conditions, though without a useful exploration of an environmental explanation for discrepancies between \'races\' in the prevalence of certain medical conditions. This case also makes a claim about the equal potential (\'equipotentiality\') of all people to become professionally trained medical experts, no matter who they are or where they are from, a position staked out in the early twentieth century by W. E. B. Du Bois, Franz Boas, and others. The spirit of global or transnational cooperation in medical training and the application of recently developed medicines and treatments is presented as a necessity in improving the living conditions of people around the globe."' ],
+							],
+						],
+						[
+							'title'       => 'Case IV, Panel B',
+							'src'         => $im( 'panel-4b.webp' ),
+							'alt'         => 'Case IV, Panel B',
+							'description' => 'In the final panel, Swauger and Dragoo equate human cultures to "designs for living," reaffirming the assertions from Case II, Panel B that all groups are equally valid in their approach to fundamental, and universal, aspects of how to survive and live as humans.',
+							'annotations' => [
+								[ 'x' => 20.6, 'y' => 45.9, 'title' => 'Arts and Crafts', 'body' => 'This section displays (from top to bottom) spoons made by the Haida people of the Pacific Northwest (United States), knives from Russia, and spoons from Cameroon, West Africa.' ],
+								[ 'x' => 40.5, 'y' => 34.7, 'title' => 'Religion', 'body' => 'This section displays (from left to right) a wooden figure from the Democratic Republic of the Congo, three metal figures from India, and a Hopi katsina from the American Southwest.' ],
+								[ 'x' => 61.7, 'y' => 45.0, 'title' => 'War', 'body' => 'This section juxtaposes three swords (left to right): one from Japan, one from the Democratic Republic of the Congo, and one from Germany.' ],
+							],
+						],
 					],
 					'continue_label'  => 'Conclusion & Reflection',
-					'continue_target' => 'wh-reflect',
+					'continue_target' => 'wh-contradiction',
 				],
 			],
-			// 8. Conclusion & Reflection.
+			// 8b. Conclusion — The Contradiction at the Core.
+			[
+				'id'              => 'wh-contradiction',
+					'include_in_menu' => '1',
+				'family'  => 'documentary-dossier',
+				'variant' => 'archival',
+				'props'   => [
+					'id'                 => 'wh-contradiction',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'Contradictions',
+					'menu_description'   => 'How should we think and feel about "We Humans" today?',
+					'eyebrow'            => 'Conclusion & Reflection',
+					'title'              => 'The Contradiction at the Core',
+					'intro'              => [
+						'Both of these statements are true:',
+						'"We Humans" was an optimistic, collaborative response to racial turmoil that had a national impact on diverse audiences of students, workers, and other Americans with a message of equality, grounded in science, that was widely praised in its time.',
+						'"We Humans" was an effort by white men in positions of power to meet a moment of racial reckoning through an education campaign that masked structural racism behind condescending rhetoric that has since been disproved and largely forgotten.',
+						'These competing realities challenge audiences today to make sense of "We Humans," and similar projects that emerged in the aftermath of World War II and at the dawn of the Civil Rights Movement. This final section of the exhibit provides some additional context for you to consider, and invites you to reflect on what you have learned.',
+					],
+					'sections'           => [
+						[
+							'title'      => 'The United Steelworkers of America',
+							'paragraphs' => [
+								'"We Humans" was touched off by the labor union The United Steelworkers of America and events being organized by their Civil Rights Committee. That committee was formed as a result of Black worker-led organizing to advocate for better and safer opportunities for Black workers in industry. When the Committee was formed, none of those workers were placed in positions of leadership. Instead, the leadership consisted entirely of white men, including secretary Francis Shane who initiated the collaboration with James Swauger and Carnegie Museum of Natural History. Over time, Shane\u2019s emphasis on seminars and public education and efforts like "We Humans" became increasingly frustrating to Black workers who felt that the Civil Rights Committee had proved ineffectual at securing their safety and advancement.',
+							],
+							'links'      => [],
+						],
+						[
+							'title'      => 'The City of Pittsburgh',
+							'paragraphs' => [
+								'Mayor David L. Lawrence\u2019s \u201CCivic Unity Council\u201D was a key partner in the development of "We Humans," and was the entity that contracted with the Carnegie Museum to co-produce and host the initial exhibit. The Mayor\u2019s Council was officially tasked with promoting positive relations between racial, religious and other groups, and its activities included reports on housing and investigations into police brutality.',
+								'In 1955, the same year that Lawrence\u2019s administration presented a message of racial and social unity with "We Humans," it approved actions that had disproportionate negative impacts on Black and other minority citizens. As part of his signature urban renewal plans, Lawrence allowed for the demolition of the Lower Hill District to make way for the Civic Arena (itself demolished in 2011). This resulted in the displacement of 8,000 residents, including 1,239 Black families.',
+							],
+							'links'      => [],
+						],
+						[
+							'title'      => 'Pittsburgh Public Schools',
+							'paragraphs' => [
+								'Students hearing the messages of "We Humans" in their social studies classes had to reconcile them with their lives in a multi-racial, but in many contexts segregated, city where they would have encountered or witnessed forms of racism daily. They were also likely aware of the galvanizing events in the history of civil rights and race relations in the U.S. that were happening in the same years, including: the lynching of Emmett Till (August 1955), the Montgomery Bus Boycott (1955\u20131956), and the ongoing events and debates that surrounded the desegregation of schools after the Supreme Court decision striking down legal segregation in Brown v. Board of Education (1954).',
+								'Scholar and author Ralph Proctor, Jr. (1938\u20132024) was born and raised in Pittsburgh\u2019s Hill District and attended Schenley High School in the same years that "We Humans" was taught there. In Proctor\u2019s experience, Schenley was a school where he and other Black students faced rampant discrimination by teachers and administrators. Later, he earned his doctorate at University of Pittsburgh where he wrote a dissertation on racial discrimination against Black teachers and professionals in Pittsburgh Public Schools. In it, he cited statistics showing that in the years that he attended Schenley, while the Black student population increased, the white student population decreased, and there were few Black teachers.',
+							],
+							'links'      => [],
+						],
+					],
+					'continue_label'     => 'Reflection',
+					'continue_target'    => 'wh-reflect',
+				],
+			],
+			// 9. Conclusion & Reflection.
 			[
 				'id'              => 'wh-reflect',
 					'include_in_menu' => '1',
 				'family'  => 'reflection-prompt',
 				'variant' => 'journal',
 				'props'   => [
-					'id'              => 'wh-reflect',
-					'include_in_menu' => '1',
-					'eyebrow'         => 'How should we think and feel about "We Humans" today?',
-					'title'           => 'Conclusion & Reflection',
-					'prompt'          => '"We Humans" made anti-racism an urgent public priority in the 1950s — yet leaned on scientific and institutional tactics we now recognize as flawed. What might its ambitions, and its shortcomings, teach us today?',
+					'id'                 => 'wh-reflect',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'Reflections',
+					'menu_description'   => 'Share your thoughts on "We Humans"',
+					'eyebrow'            => 'Conclusion & Reflection',
+					'title'           => 'Reflection',
+					'intro'            => 'The following questions are offered for you to reflect on what you have learned about "We Humans." Answer as many or few as you wish. When you are done, you may download your responses, or submit them to be shared. Your responses may be used in future publications or even featured on this site.',
+					'cards'            => [
+						[ 'title' => 'Familiarity', 'body' => 'What feels most familiar to you about "We Humans"? Have you encountered any similar education campaigns or exhibits in your life?' ],
+						[ 'title' => 'Surprise', 'body' => 'What feels most unfamiliar, or surprising, about "We Humans"?' ],
+						[ 'title' => 'Today', 'body' => 'Do you think a project like "We Humans" could happen today? Imagine how such a project might play out in your own social and political context.' ],
+						[ 'title' => 'Forgetting', 'body' => 'Why do you think projects like "We Humans" have been forgotten over time?' ],
+						[ 'title' => 'The Future', 'body' => 'What will people in the future say about the efforts at education on race and racism of your time?' ],
+						[ 'title' => 'Action', 'body' => 'How are you called to address racism and prejudice in your moment?' ],
+					],
+					'prompt'          => 'How are you called to address racism and prejudice in your moment?',
 					'continue_label'  => 'About this exhibit',
 					'continue_target' => 'wh-about',
 				],
 			],
-			// 9. About — curator.
+			// 10. About — curator.
 			[
 				'id'              => 'wh-about',
 					'include_in_menu' => '1',
 				'family'  => 'feature-split',
 				'variant' => 'documentary',
 				'props'   => [
-					'id'              => 'wh-about',
-					'include_in_menu' => '1',
-					'eyebrow'         => 'About',
+					'id'                 => 'wh-about',
+					'include_in_menu'    => '1',
+					'menu_label'         => 'About',
+					'menu_description'   => 'Credits, Acknowledgements, and Sources',
+					'eyebrow'            => 'About',
 					'title'           => 'About this exhibit',
 					'body'            => 'This exhibit was developed in 2025–2026 by Deirdre Madeleine Smith, a Teaching Assistant Professor in the History of Art and Architecture Department at the University of Pittsburgh and Curator of Museum Studies and Art at Carnegie Museum of Natural History. An earlier version was hosted in the Hyland Gallery at Hillman Library, co-curated by student intern Lindsey Kenny with University of Pittsburgh Library System staff Megan Massanelli and Madeleine Chesek-Welch.',
 					'image'           => $im( 'about.webp' ),
 					'image_alt'       => 'Curator Deirdre Madeleine Smith in front of the We Humans exhibit, 2025',
 					'caption'         => 'Curator Deirdre Madeleine Smith in front of the "We Humans" exhibit in Hyland Gallery, 2025. Photograph by Ron Idoko.',
 					'media_side'      => 'left',
-					'continue_label'  => 'Credits & Sources',
+					'continue_label'  => 'Credits, Acknowledgements & Sources',
 					'continue_target' => 'wh-credits',
 				],
 			],
-			// 10. Credits, Acknowledgements & Sources.
+			// 11. Credits, Acknowledgements & Sources.
 			[
 				'id'              => 'wh-credits',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 				'family'  => 'documentary-dossier',
 				'variant' => 'archival',
 				'props'   => [
 					'id'              => 'wh-credits',
-					'include_in_menu' => '1',
+					'include_in_menu' => '0',
 					'eyebrow'  => 'About',
 					'title'    => 'Credits, Acknowledgements & Sources',
 					'intro'    => [],
@@ -2504,8 +2690,16 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 						[
 							'title'      => 'Sources consulted and recommended',
 							'paragraphs' => [
-								[ 'text' => 'Archives: Carnegie Museum of Natural History Section of Anthropology Archives; CMNH Library & Archives; Heinz History Center (Pittsburgh Public Schools Records); University of Pittsburgh Library System Archives & Special Collections (Francis C. Shane Papers, 1942–1969).' ],
-								[ 'text' => 'Books & articles: Anthony Hazard, Postwar Anti-racism (Palgrave, 2012); James B. Stewart, "Civil Rights and Organized Labor" (2005); Tracy Teslow, Constructing Race (Cambridge, 2014); Joe W. Trotter Jr. & Jared N. Day, Race and Renaissance (Pittsburgh, 2010).' ],
+								[ 'text' => 'Archives:' ],
+								[ 'text' => 'Carnegie Museum of Natural History, Section of Anthropology Archives.' ],
+								[ 'text' => 'Carnegie Museum of Natural History, Library & Archives.' ],
+								[ 'text' => 'Heinz History Center, Pittsburgh Public Schools Records.' ],
+								[ 'text' => 'University of Pittsburgh Library System Archives & Special Collections, Francis C. Shane Papers, 1942–1969.' ],
+								[ 'text' => 'Books & articles:' ],
+								[ 'text' => 'Anthony Hazard, Postwar Anti-racism (Palgrave, 2012).' ],
+								[ 'text' => 'James B. Stewart, "Civil Rights and Organized Labor" (2005).' ],
+								[ 'text' => 'Tracy Teslow, Constructing Race (Cambridge, 2014).' ],
+								[ 'text' => 'Joe W. Trotter Jr. & Jared N. Day, Race and Renaissance (Pittsburgh, 2010).' ],
 							],
 							'links'      => [
 								[ 'label' => 'Curator: Deirdre Madeleine Smith (Pitt)', 'href' => 'https://www.haa.pitt.edu/people/deirdre-madeleine-smith' ],

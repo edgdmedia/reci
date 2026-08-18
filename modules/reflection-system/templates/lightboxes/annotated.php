@@ -11,6 +11,8 @@ if (! defined('ABSPATH')) {
 ?>
 <style>
 	.lightbox.active { display: grid; }
+	.lightbox--plain { grid-template-columns: minmax(0, 1fr) !important; }
+	.lightbox--plain .lightbox-aside { display: none; }
 	.panel-hotspot {
 		position: absolute;
 		width: 22px;
@@ -45,11 +47,11 @@ if (! defined('ABSPATH')) {
 			<img class="block max-h-[calc(92vh-3rem)] max-w-full object-contain" src="" alt="" id="lightboxImage">
 			<div class="absolute inset-6" id="hotspotLayer"></div>
 		</div>
-		<aside class="overflow-y-auto border-t border-[color:var(--reflection-border)] bg-[var(--reflection-surface)] p-6 lg:border-l lg:border-t-0">
+		<aside class="lightbox-aside overflow-y-auto border-t border-[color:var(--reflection-border)] bg-[var(--reflection-surface)] p-6 lg:border-l lg:border-t-0">
 			<span class="block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent">Panel annotations</span>
 			<h3 class="mt-2 font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text" id="lightboxTitle">Panel reader</h3>
 			<p class="mt-2 text-base leading-8 reci-reflection-soft-text" id="lightboxIntro">Select an annotation point to read a guided note for this panel.</p>
-			<div class="mt-5 rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4">
+			<div class="mt-5 max-h-[38vh] overflow-y-auto rounded-[18px] border border-[color:var(--reflection-border)] bg-[rgba(255,255,255,0.12)] p-4">
 				<h4 class="font-['Oswald'] text-sm uppercase tracking-[0.06em] reci-reflection-accent" id="annotationTitle">Panel note</h4>
 				<p class="mt-2 text-sm leading-7 reci-reflection-soft-text" id="annotationBody">Annotated notes will appear here.</p>
 			</div>

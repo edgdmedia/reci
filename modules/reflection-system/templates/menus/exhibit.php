@@ -12,6 +12,7 @@ if (! defined('ABSPATH')) {
 $args = wp_parse_args($args ?? [], [
 	'back_url' => '#',
 	'items' => [],
+	'subtitle' => '',
 ]);
 ?>
 <style>
@@ -43,7 +44,9 @@ $args = wp_parse_args($args ?? [], [
 		</div>
 
 		<h2 class="font-['Playfair_Display'] text-4xl font-semibold reci-reflection-text sm:text-5xl">Navigate the Exhibit</h2>
-		<p class="mt-3 max-w-[48rem] text-base leading-8 reci-reflection-soft-text">Move through the exhibit in the order laid out in the curatorial narrative.</p>
+		<?php if (! empty($args['subtitle'])) : ?>
+			<p class="mt-3 max-w-[48rem] text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($args['subtitle']); ?></p>
+		<?php endif; ?>
 		
 		<div class="mt-8 grid gap-4 sm:grid-cols-2">
 			<?php foreach ((array) $args['items'] as $item) : ?>

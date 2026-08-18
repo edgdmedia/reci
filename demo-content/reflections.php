@@ -123,6 +123,7 @@ return [
 				'site/reflections/we-humans/panel-4a.webp',
 				'site/reflections/we-humans/panel-4b.webp',
 				'site/reflections/we-humans/about.webp',
+				'site/reflections/we-humans/at-70.webp',
 			],
 		],
 	],

@@ -25,7 +25,7 @@ $args = wp_parse_args($args ?? [], [
 		<div class="reci-stage-body">
 			<div class="reci-stage-grid lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-start">
 				<div class="flex max-h-[70vh] flex-col rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
-					<div class="reci-scroll-panel">
+					<div class="reci-scroll-panel !justify-start">
 						<div class="font-['Oswald'] text-xs uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 						<h2 class="mt-3 font-['Playfair_Display'] text-3xl font-semibold leading-tight reci-reflection-text sm:text-4xl"><?php echo esc_html($args['title']); ?></h2>
 						<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo esc_html($args['intro']); ?></p>
@@ -35,13 +35,8 @@ $args = wp_parse_args($args ?? [], [
 							<?php endforeach; ?>
 						</div>
 					</div>
-					<div class="mt-6 flex flex-wrap gap-4">
-						<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
-						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
-						<?php endif; ?>
-					</div>
 				</div>
-				<div class="reci-scroll-panel rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
+				<div class="reci-scroll-panel !justify-start rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
 					<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Save your reflection</h3>
 					<p class="text-sm leading-7 reci-reflection-soft-text">Prompt: <?php echo esc_html($args['prompt']); ?></p>
 					<div id="responseGate" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
@@ -57,6 +52,11 @@ $args = wp_parse_args($args ?? [], [
 						<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Your saved responses</h3>
 						<p class="text-sm leading-7 reci-reflection-soft-text">These responses are tied to your account and this reflection.</p>
 						<div id="responseList" class="mt-4 grid gap-4"></div>
+					</div>
+					<div class="mt-6 flex flex-wrap gap-4">
+						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
+						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
+						<?php endif; ?>
 					</div>
 				</div>
 			</div>
