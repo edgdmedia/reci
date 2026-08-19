@@ -82,7 +82,7 @@ function reci_check_for_theme_update( $transient ) {
 		$transient = new stdClass();
 	}
 
-	if ( empty( $transient->response ) ) {
+	if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
 		$transient->response = [];
 	}
 
