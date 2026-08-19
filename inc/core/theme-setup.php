@@ -38,6 +38,15 @@ if (! function_exists('reci_media_hub_setup')) {
 
 add_action('after_setup_theme', 'reci_media_hub_setup');
 
+/**
+ * Output favicon link tag.
+ */
+function reci_media_hub_favicon(): void {
+	$favicon = get_template_directory_uri() . '/favicon.png';
+	printf('<link rel="icon" type="image/png" href="%s">' . "\n", esc_url($favicon));
+}
+add_action('wp_head', 'reci_media_hub_favicon', 1);
+
 if (! function_exists('reci_media_hub_enqueue_assets')) {
 	function reci_media_hub_enqueue_assets(): void
 	{
@@ -397,7 +406,7 @@ if (! function_exists('reci_media_hub_enqueue_reflection_stage_styles')) {
 	display: grid;
 	gap: 1.5rem;
 }
-.reci-scroll-panel {
+: {
 	max-height: min(72vh, 820px);
 	overflow-y: auto;
 	padding-right: 0.5rem;
