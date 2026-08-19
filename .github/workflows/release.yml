@@ -2,17 +2,21 @@ name: Release Theme
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.4.7)'
+        required: true
 
 permissions:
   contents: write
 
 jobs:
   release:
-    name: Check for release tag
+    name: Build and release
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'Merge') || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout repository
@@ -20,43 +24,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get latest tag
+      - name: Determine tag
         id: tag
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$TAG" ]; then
-            echo "No tags found, skipping release"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "version=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
           fi
 
-          # Check if this tag is on the current commit or an ancestor
-          if git merge-base --is-ancestor "$TAG" HEAD 2>/dev/null; then
-            echo "Tag $TAG found on current branch"
-            echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Tag $TAG is not on current branch, skipping"
-            echo "skip=true" >> "$GITHUB_OUTPUT"
+      - name: Validate tag format
+        run: |
+          VERSION="${{ steps.tag.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: $VERSION (expected v0.0.0)" >&2
+            exit 1
           fi
 
       - name: Extract version number
-        if: steps.tag.outputs.skip == 'false'
         id: version
         run: |
-          TAG="${{ steps.tag.outputs.tag }}"
+          TAG="${{ steps.tag.outputs.version }}"
           echo "number=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Make packaging script executable
-        if: steps.tag.outputs.skip == 'false'
         run: chmod +x ./scripts/package-theme.sh
 
       - name: Package theme
-        if: steps.tag.outputs.skip == 'false'
         run: ./scripts/package-theme.sh
 
       - name: Verify version matches tag
-        if: steps.tag.outputs.skip == 'false'
         run: |
           EXPECTED="${{ steps.version.outputs.number }}"
           cd dist
@@ -68,27 +65,11 @@ jobs:
             exit 1
           fi
 
-      - name: Check if release already exists
-        if: steps.tag.outputs.skip == 'false'
-        id: check_release
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists, skipping"
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Release $TAG does not exist, will create"
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create GitHub Release
-        if: steps.tag.outputs.skip == 'false' && steps.check_release.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "Reci Media Hub ${{ steps.tag.outputs.tag }}"
+          tag_name: ${{ steps.tag.outputs.version }}
+          name: "Reci Media Hub ${{ steps.tag.outputs.version }}"
           draft: false
           prerelease: false
           generate_release_notes: true
