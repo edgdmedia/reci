@@ -25,7 +25,7 @@ $args = wp_parse_args($args ?? [], [
 	<div class="reci-stage-shell">
 		<div class="reci-stage-body">
 			<div class="reci-stage-grid lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.85fr)] lg:items-start">
-				<div class="pr-0 lg:pr-8">
+				<div class="pr-0 lg:pr-8 lg:max-h-[80vh] lg:overflow-y-auto">
 					<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 					<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4.5rem]"><?php echo esc_html($args['title']); ?></h2>
 					<?php foreach ((array) $args['intro_paragraphs'] as $paragraph) : ?>

@@ -330,6 +330,7 @@
       if (hotspotLayer) hotspotLayer.innerHTML = '';
       lightbox.classList.add('lightbox--plain');
       lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
     }
 
     document.querySelectorAll('[data-lightbox-image]').forEach((trigger) => {
@@ -359,6 +360,7 @@
         lightbox.classList.remove('lightbox--plain');
         renderAnnotation(notes, 0);
         lightbox.classList.add('active');
+        document.body.style.overflow = 'hidden';
       });
     });
 
@@ -380,6 +382,7 @@
       lightbox.classList.remove('active', 'lightbox--plain');
       if (hotspotLayer) hotspotLayer.innerHTML = '';
       if (annotationList) annotationList.innerHTML = '';
+      document.body.style.overflow = '';
     }
 
     close.addEventListener('click', closeLightbox);
