@@ -304,6 +304,21 @@ function reci_demo_build_import_queue( array $selected ): array {
 	$image_groups = reci_demo_image_groups();
 
 	foreach ( $selected as $group ) {
+		$remote_group = function_exists( 'reci_remote_demo_group_definition' ) ? reci_remote_demo_group_definition( $group ) : [];
+		if ( ! empty( $remote_group ) ) {
+			$archive_step = reci_demo_remote_group_archive_step( $group, $remote_group );
+			if ( ! empty( $archive_step ) ) {
+				$queue[] = $archive_step;
+				continue;
+			}
+
+			$remote_assets = reci_demo_remote_group_assets( $group, $remote_group );
+			foreach ( $remote_assets as $asset ) {
+				$queue[] = [ 'type' => 'import_remote_image', 'group' => $group, 'asset' => $asset ];
+			}
+			continue;
+		}
+
 		if ( 'reci_demo_taxonomies' === $group ) {
 			reci_demo_bootstrap_taxonomies();
 			$queue[] = [ 'type' => 'skip', 'group' => $group, 'message' => 'Taxonomies seeded.' ];
@@ -328,6 +343,50 @@ function reci_demo_build_import_queue( array $selected ): array {
 	}
 
 	return $queue;
+}
+
+function reci_demo_remote_group_archive_step( string $group_id, array $group_definition ): array {
+	$type = sanitize_key( (string) ( $group_definition['type'] ?? '' ) );
+	$url  = esc_url_raw( (string) ( $group_definition['url'] ?? '' ) );
+
+	if ( 'release-archive' !== $type || '' === $url ) {
+		return [];
+	}
+
+	return [
+		'type'  => 'import_remote_archive',
+		'group' => $group_id,
+		'url'   => $url,
+		'root'  => ltrim( (string) ( $group_definition['extract_root'] ?? '' ), '/' ),
+		'label' => (string) ( $group_definition['label'] ?? $group_id ),
+	];
+}
+
+function reci_demo_remote_group_assets( string $group_id, array $group_definition ): array {
+	$assets = $group_definition['assets'] ?? [];
+	if ( ! is_array( $assets ) ) {
+		return [];
+	}
+
+	$normalized = [];
+	foreach ( $assets as $asset ) {
+		if ( ! is_array( $asset ) ) {
+			continue;
+		}
+
+		$path = isset( $asset['path'] ) ? ltrim( (string) $asset['path'], '/' ) : '';
+		$url  = isset( $asset['url'] ) ? esc_url_raw( (string) $asset['url'] ) : '';
+		if ( '' === $path || '' === $url ) {
+			continue;
+		}
+
+		$normalized[] = [
+			'path' => $path,
+			'url'  => $url,
+		];
+	}
+
+	return $normalized;
 }
 
 function reci_demo_get_registered_asset( string $path ): array {
@@ -361,6 +420,123 @@ function reci_demo_import_image_asset( string $path ): array {
 	reci_demo_set_asset_registry( $registry );
 
 	return reci_demo_result_entry( 'completed', $path, 'Image imported successfully.', [ 'path' => $path ] );
+}
+
+function reci_demo_import_remote_image_asset( array $asset ): array {
+	$path = ltrim( (string) ( $asset['path'] ?? '' ), '/' );
+	$url  = esc_url_raw( (string) ( $asset['url'] ?? '' ) );
+
+	if ( '' === $path || '' === $url ) {
+		return reci_demo_result_entry( 'failed', 'Remote image', 'Remote image asset is missing a path or URL.' );
+	}
+
+	$existing = reci_demo_get_registered_asset( $path );
+	if ( ! empty( $existing['attachment_id'] ) ) {
+		return reci_demo_result_entry( 'skipped', $path, 'Remote image already imported.', [ 'path' => $path ] );
+	}
+
+	$imgs = [];
+	$error_message = '';
+	$attachment_id = reci_demo_sideload_image_from_url( $path, $url, 0, $imgs, $error_message );
+	if ( ! $attachment_id ) {
+		return reci_demo_result_entry( 'failed', $path, 'Remote image import failed.' . ( '' !== $error_message ? ' ' . $error_message : '' ), [ 'path' => $path ] );
+	}
+
+	$entry = [
+		'attachment_id' => $attachment_id,
+		'url'           => wp_get_attachment_url( $attachment_id ) ?: '',
+		'path'          => $path,
+		'source_url'    => $url,
+		'imported_at'   => time(),
+	];
+
+	$registry = reci_demo_get_asset_registry();
+	$registry[ $path ] = $entry;
+	reci_demo_set_asset_registry( $registry );
+
+	return reci_demo_result_entry( 'completed', $path, 'Remote image imported successfully.', [ 'path' => $path ] );
+}
+
+function reci_demo_import_remote_archive_group( array $step ): array {
+	$url   = esc_url_raw( (string) ( $step['url'] ?? '' ) );
+	$root  = ltrim( (string) ( $step['root'] ?? '' ), '/' );
+	$label = (string) ( $step['label'] ?? ( $step['group'] ?? 'Remote archive' ) );
+
+	if ( '' === $url ) {
+		return reci_demo_result_entry( 'failed', $label, 'Remote archive URL is missing.' );
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	WP_Filesystem();
+
+	$temp_zip = download_url( $url, 60 );
+	if ( is_wp_error( $temp_zip ) ) {
+		return reci_demo_result_entry( 'failed', $label, 'Archive download failed: ' . $temp_zip->get_error_message() );
+	}
+
+	$extract_dir = trailingslashit( get_temp_dir() ) . 'reci-demo-' . wp_generate_password( 8, false, false );
+	wp_mkdir_p( $extract_dir );
+
+	$unzipped = unzip_file( $temp_zip, $extract_dir );
+	@unlink( $temp_zip );
+	if ( is_wp_error( $unzipped ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive extraction failed: ' . $unzipped->get_error_message() );
+	}
+
+	$base_dir = '' !== $root ? trailingslashit( $extract_dir ) . $root : $extract_dir;
+	if ( ! is_dir( $base_dir ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive root not found after extraction.' );
+	}
+
+	$files = reci_demo_collect_importable_files_from_directory( $base_dir );
+	if ( empty( $files ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive contained no importable image files.' );
+	}
+
+	$completed = 0;
+	$skipped   = 0;
+	$failed    = [];
+	$imgs      = [];
+
+	foreach ( $files as $file_path ) {
+		$relative = ltrim( str_replace( trailingslashit( $base_dir ), '', $file_path ), '/' );
+		$registry_key = ( '' !== $root ? trailingslashit( $root ) : '' ) . str_replace( DIRECTORY_SEPARATOR, '/', $relative );
+
+		$existing = reci_demo_get_registered_asset( $registry_key );
+		if ( ! empty( $existing['attachment_id'] ) ) {
+			$skipped++;
+			continue;
+		}
+
+		$error_message = '';
+		$attachment_id = reci_demo_sideload_image_from_path( $registry_key, $file_path, 0, $imgs, $error_message );
+		if ( ! $attachment_id ) {
+			$failed[] = $registry_key . ( '' !== $error_message ? ' (' . $error_message . ')' : '' );
+			continue;
+		}
+
+		$registry = reci_demo_get_asset_registry();
+		$registry[ $registry_key ] = [
+			'attachment_id' => $attachment_id,
+			'url'           => wp_get_attachment_url( $attachment_id ) ?: '',
+			'path'          => $registry_key,
+			'source_url'    => $url,
+			'imported_at'   => time(),
+		];
+		reci_demo_set_asset_registry( $registry );
+		$completed++;
+	}
+
+	reci_demo_delete_directory( $extract_dir );
+
+	if ( ! empty( $failed ) ) {
+		return reci_demo_result_entry( 'failed', $label, sprintf( 'Archive imported with %1$d successes, %2$d skipped, %3$d failures.', $completed, $skipped, count( $failed ) ), [ 'activity' => $failed ] );
+	}
+
+	return reci_demo_result_entry( 'completed', $label, sprintf( 'Archive imported successfully (%1$d imported, %2$d skipped).', $completed, $skipped ) );
 }
 
 function reci_demo_resolve_registry_url( string $path ): string {
@@ -501,6 +677,16 @@ function reci_demo_process_next_job_step( array $job ): array {
 		$job['current_label'] = 'Importing image: ' . $path;
 		$job = reci_demo_append_activity( $job, $job['current_label'] );
 		$result = reci_demo_import_image_asset( $path );
+	} elseif ( 'import_remote_image' === ( $step['type'] ?? '' ) ) {
+		$asset = is_array( $step['asset'] ?? null ) ? $step['asset'] : [];
+		$path = (string) ( $asset['path'] ?? 'remote-image' );
+		$job['current_label'] = 'Importing remote image: ' . $path;
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_remote_image_asset( $asset );
+	} elseif ( 'import_remote_archive' === ( $step['type'] ?? '' ) ) {
+		$job['current_label'] = 'Importing remote archive: ' . (string) ( $step['label'] ?? $step['group'] ?? 'Archive' );
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_remote_archive_group( $step );
 	} elseif ( 'import_reflection' === ( $step['type'] ?? '' ) ) {
 		$item = is_array( $step['item'] ?? null ) ? $step['item'] : [];
 		$job['current_label'] = 'Creating reflection: ' . (string) ( $item['title'] ?? $item['slug'] ?? 'Reflection' );
@@ -3029,6 +3215,193 @@ function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs,
 
 	$imgs[ $filename ] = $attachment_id;
 	return $attachment_id;
+}
+
+function reci_demo_sideload_image_from_url( string $registry_key, string $url, int $post_id, array &$imgs, string &$error_message = '' ): int {
+	if ( isset( $imgs[ $registry_key ] ) ) {
+		return $imgs[ $registry_key ];
+	}
+
+	if ( '' === $url ) {
+		$error_message = 'Remote source URL is empty.';
+		return 0;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+
+	$response = wp_remote_get( $url, [ 'timeout' => 30 ] );
+	if ( is_wp_error( $response ) ) {
+		$error_message = 'Remote download failed: ' . $response->get_error_message();
+		return 0;
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	if ( $code < 200 || $code >= 300 ) {
+		$error_message = 'Remote download returned HTTP ' . $code . '.';
+		return 0;
+	}
+
+	$file_contents = wp_remote_retrieve_body( $response );
+	if ( '' === $file_contents ) {
+		$error_message = 'Remote source returned an empty body.';
+		return 0;
+	}
+
+	$filename = wp_basename( wp_parse_url( $url, PHP_URL_PATH ) ?: $registry_key );
+	if ( '' === $filename ) {
+		$filename = sanitize_title( basename( $registry_key ) ) . '.jpg';
+	}
+
+	$upload = wp_upload_bits( $filename, null, $file_contents );
+	if ( ! empty( $upload['error'] ) ) {
+		$error_message = 'Upload failed: ' . $upload['error'];
+		return 0;
+	}
+
+	$check = wp_check_filetype( $filename );
+	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/jpeg';
+	$base_name = pathinfo( $filename, PATHINFO_FILENAME );
+
+	$attachment_id = wp_insert_attachment(
+		[
+			'post_mime_type' => $mime_type,
+			'post_title'     => $base_name . ' Image',
+			'post_name'      => sanitize_title( $base_name ) . '-img',
+			'post_status'    => 'inherit',
+			'post_parent'    => $post_id,
+		],
+		$upload['file'],
+		$post_id
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		$error_message = 'Attachment creation failed' . ( is_wp_error( $attachment_id ) ? ': ' . $attachment_id->get_error_message() : '.' );
+		if ( ! empty( $upload['file'] ) && file_exists( $upload['file'] ) ) {
+			wp_delete_file( $upload['file'] );
+		}
+		return 0;
+	}
+
+	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	if ( is_wp_error( $metadata ) ) {
+		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
+		wp_delete_attachment( $attachment_id, true );
+		return 0;
+	}
+
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+	$imgs[ $registry_key ] = $attachment_id;
+
+	return $attachment_id;
+}
+
+function reci_demo_sideload_image_from_path( string $registry_key, string $file_path, int $post_id, array &$imgs, string &$error_message = '' ): int {
+	if ( isset( $imgs[ $registry_key ] ) ) {
+		return $imgs[ $registry_key ];
+	}
+
+	if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+		$error_message = 'Extracted file is missing or unreadable.';
+		return 0;
+	}
+
+	$file_contents = file_get_contents( $file_path );
+	if ( false === $file_contents || '' === $file_contents ) {
+		$error_message = 'Extracted file is empty.';
+		return 0;
+	}
+
+	$filename = wp_basename( $file_path );
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+
+	$upload = wp_upload_bits( $filename, null, $file_contents );
+	if ( ! empty( $upload['error'] ) ) {
+		$error_message = 'Upload failed: ' . $upload['error'];
+		return 0;
+	}
+
+	$check = wp_check_filetype( $filename );
+	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/jpeg';
+	$base_name = pathinfo( $filename, PATHINFO_FILENAME );
+
+	$attachment_id = wp_insert_attachment(
+		[
+			'post_mime_type' => $mime_type,
+			'post_title'     => $base_name . ' Image',
+			'post_name'      => sanitize_title( $base_name ) . '-img',
+			'post_status'    => 'inherit',
+			'post_parent'    => $post_id,
+		],
+		$upload['file'],
+		$post_id
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		$error_message = 'Attachment creation failed' . ( is_wp_error( $attachment_id ) ? ': ' . $attachment_id->get_error_message() : '.' );
+		if ( ! empty( $upload['file'] ) && file_exists( $upload['file'] ) ) {
+			wp_delete_file( $upload['file'] );
+		}
+		return 0;
+	}
+
+	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	if ( is_wp_error( $metadata ) ) {
+		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
+		wp_delete_attachment( $attachment_id, true );
+		return 0;
+	}
+
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+	$imgs[ $registry_key ] = $attachment_id;
+
+	return $attachment_id;
+}
+
+function reci_demo_collect_importable_files_from_directory( string $directory ): array {
+	if ( ! is_dir( $directory ) ) {
+		return [];
+	}
+
+	$paths = [];
+	$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ) );
+	foreach ( $iterator as $file ) {
+		if ( ! $file instanceof SplFileInfo || ! $file->isFile() ) {
+			continue;
+		}
+		$extension = strtolower( $file->getExtension() );
+		if ( ! in_array( $extension, [ 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif' ], true ) ) {
+			continue;
+		}
+		$paths[] = $file->getPathname();
+	}
+
+	sort( $paths );
+	return $paths;
+}
+
+function reci_demo_delete_directory( string $directory ): void {
+	if ( ! is_dir( $directory ) ) {
+		return;
+	}
+
+	$iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+
+	foreach ( $iterator as $item ) {
+		if ( $item->isDir() ) {
+			@rmdir( $item->getPathname() );
+		} else {
+			@unlink( $item->getPathname() );
+		}
+	}
+
+	@rmdir( $directory );
 }
 
 /**

@@ -1,11 +1,15 @@
 {
-  "version": "1",
+  "manifest_version": 1,
+  "demo_version": "2026-08-26",
+  "theme_compatibility": {
+    "min": "0.4.8",
+    "max": "0.5.x"
+  },
   "content_sets": [
     {
       "id": "starter",
       "label": "Starter Demo Content",
-	  "url": "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/pages.php",
-      "description": "Starter import payload for first-time client setup.",
+      "description": "Remote-backed starter demo import with local content datasets and GitHub release-hosted demo media bundles.",
       "groups": [
         "reci_demo_taxonomies",
         "reci_demo_images_reflections",
@@ -30,22 +34,57 @@
         "reci_author",
         "reci_partner",
         "reci_page"
-      ],
-      "required_plugins": []
+      ]
     }
   ],
-  "assets": {},
-  "pages": [
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/pages.php"
-  ],
-  "posts": [
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/authors.php",
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/articles/RECMH%20Origin.md",
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/events.php",
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/podcasts.php",
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/videos.php"
-  ],
-  "taxonomies": [
-    "https://raw.githubusercontent.com/edgdmedia/reci/main/demo-content/glossary.php"
-  ]
+  "groups": {
+    "reci_demo_images_reflections": {
+      "label": "Reflection Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/reflection-images.zip",
+      "extract_root": "reflections"
+    },
+    "reci_demo_images_articles": {
+      "label": "Article Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/article-images.zip",
+      "extract_root": "articles"
+    },
+    "reci_demo_images_events": {
+      "label": "Event Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/event-images.zip",
+      "extract_root": "events"
+    },
+    "reci_demo_images_courses": {
+      "label": "Course Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/course-images.zip",
+      "extract_root": "learn"
+    },
+    "reci_demo_images_podcasts": {
+      "label": "Podcast Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/podcast-images.zip",
+      "extract_root": "podcasts"
+    },
+    "reci_demo_images_videos": {
+      "label": "Video Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/video-images.zip",
+      "extract_root": "videos"
+    },
+    "reci_demo_images_quizzes": {
+      "label": "Quiz Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/quiz-images.zip",
+      "extract_root": "quizzes"
+    },
+    "reci_demo_images_partners": {
+      "label": "Partner Images",
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/partner-images.zip",
+      "extract_root": "partners"
+    }
+  }
 }

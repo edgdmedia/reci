@@ -89,6 +89,8 @@ function reci_theme_activation_setup(): void {
 
 	// Schedule rewrite rule flush.
 	set_transient( 'reci_flush_rewrite_rules', true );
+	set_transient( 'reci_theme_setup_redirect', true, MINUTE_IN_SECONDS * 5 );
+	delete_option( 'reci_setup_notice_dismissed' );
 }
 
 add_action( 'init', function() {
@@ -96,6 +98,25 @@ add_action( 'init', function() {
 		flush_rewrite_rules();
 		delete_transient( 'reci_flush_rewrite_rules' );
 	}
+} );
+
+add_action( 'admin_init', function() {
+	if ( ! get_transient( 'reci_theme_setup_redirect' ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'manage_options' ) ) {
+		delete_transient( 'reci_theme_setup_redirect' );
+		return;
+	}
+
+	if ( wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+
+	delete_transient( 'reci_theme_setup_redirect' );
+	wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup' ) );
+	exit;
 } );
 
 /**

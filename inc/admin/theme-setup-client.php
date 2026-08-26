@@ -12,6 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'admin_menu', 'reci_register_client_setup_page' );
 add_action( 'wp_ajax_reci_client_setup_start_import', 'reci_client_setup_start_import' );
 add_action( 'admin_post_reci_setup_plugin_action', 'reci_handle_setup_plugin_action' );
+add_action( 'admin_notices', 'reci_render_setup_reminder_notice' );
+add_action( 'admin_post_reci_dismiss_setup_notice', 'reci_handle_dismiss_setup_notice' );
 
 function reci_register_client_setup_page(): void {
 	add_submenu_page(
@@ -390,6 +392,79 @@ function reci_render_client_setup_page(): void {
 	})();
 	</script>
 	<?php
+}
+
+function reci_is_setup_notice_dismissed(): bool {
+	return (bool) get_option( 'reci_setup_notice_dismissed', false );
+}
+
+function reci_theme_setup_needs_attention(): bool {
+	$required_paths = [
+		'sign-in',
+		'sign-up',
+		'become-a-collaborator',
+		'community',
+		'submit',
+		'dashboard',
+		'articles',
+		'learn',
+		'framework',
+		'glossary',
+		'privacy-policy',
+		'terms-of-use',
+		'cookies',
+	];
+
+	foreach ( $required_paths as $path ) {
+		if ( ! ( get_page_by_path( $path, OBJECT, 'page' ) instanceof WP_Post ) ) {
+			return true;
+		}
+	}
+
+	if ( (int) get_option( 'page_on_front' ) <= 0 || (int) get_option( 'page_for_posts' ) <= 0 ) {
+		return true;
+	}
+
+	foreach ( reci_plugin_status_map() as $status ) {
+		if ( ( $status['tier'] ?? '' ) === 'required' && empty( $status['active'] ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+function reci_render_setup_reminder_notice(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	if ( reci_is_setup_notice_dismissed() || ! reci_theme_setup_needs_attention() ) {
+		return;
+	}
+
+	$setup_url   = admin_url( 'themes.php?page=reci-client-setup' );
+	$dismiss_url = wp_nonce_url( admin_url( 'admin-post.php?action=reci_dismiss_setup_notice' ), 'reci_dismiss_setup_notice' );
+	?>
+	<div class="notice notice-warning is-dismissible">
+		<p><strong><?php esc_html_e( 'RECI Theme Setup is not complete.', 'reci-media-hub' ); ?></strong> <?php esc_html_e( 'Finish plugin activation, page setup, and starter content import before launch.', 'reci-media-hub' ); ?></p>
+		<p>
+			<a class="button button-primary" href="<?php echo esc_url( $setup_url ); ?>"><?php esc_html_e( 'Open RECI Theme Setup', 'reci-media-hub' ); ?></a>
+			<a class="button button-secondary" href="<?php echo esc_url( $dismiss_url ); ?>"><?php esc_html_e( 'Dismiss', 'reci-media-hub' ); ?></a>
+		</p>
+	</div>
+	<?php
+}
+
+function reci_handle_dismiss_setup_notice(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'Unauthorized.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_dismiss_setup_notice' );
+	update_option( 'reci_setup_notice_dismissed', 1, false );
+	wp_safe_redirect( wp_get_referer() ?: admin_url() );
+	exit;
 }
 
 function reci_client_setup_start_import(): void {
