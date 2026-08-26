@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $current_user = wp_get_current_user();
-$is_author    = current_user_can( 'edit_posts' );
+$is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator( $current_user->ID );
 
 $personalized_posts = reci_get_personalized_dashboard_posts( $current_user->ID, 4 );
 $recent_notifications = function_exists( 'reci_get_user_notifications' )
@@ -29,13 +29,13 @@ $recent_journals = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_nam
 $recent_comments = get_comments( [ 'user_id' => $current_user->ID, 'number' => 5 ] );
 
 $pending_count = $is_author
-	? (int) get_posts( [
+	? count( get_posts( [
 		'author'         => $current_user->ID,
-		'post_type'      => 'any',
+		'post_type'      => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_reflection', 'reci_course', 'reci_document' ],
 		'post_status'    => 'pending',
-		'posts_per_page' => 1,
+		'posts_per_page' => -1,
 		'fields'         => 'ids',
-	] )
+	] ) )
 	: 0;
 
 get_header('dashboard');
@@ -59,7 +59,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-xl p-5">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-zinc-800">Recommended for You</h2>
+						<h2 class="text-lg font-semibold text-zinc-800">Your Feed</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/settings/' ) ); ?>" class="text-sm text-amber-600 hover:text-amber-700">Update interests</a>
 					</div>
 					<?php if ( ! empty( $personalized_posts ) ) : ?>
@@ -74,7 +74,7 @@ get_header('dashboard');
 						<?php endforeach; ?>
 					</ul>
 					<?php else : ?>
-					<p class="text-sm text-zinc-500">Choose interests in Settings to get a personalized content feed.</p>
+					<p class="text-sm text-zinc-500">Choose interests and collaborators in Settings to build your private dashboard feed.</p>
 					<?php endif; ?>
 				</div>
 

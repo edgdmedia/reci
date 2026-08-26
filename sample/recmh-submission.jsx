@@ -38,6 +38,7 @@ const RECMHSubmission = () => {
     { id: "blog", label: "Blog Post", icon: "◈", desc: "Accessible, conversational pieces that share insights, reflections, or practical guidance on advancing racial equity. Can be personal narrative or analytical.", examples: "Personal reflections, how-to guides, commentary, book reviews", wordRange: "400 – 1,200 words" },
     { id: "video", label: "Video Content", icon: "▶", desc: "Explainer videos, mini-documentaries, recorded presentations, interviews, or visual storytelling that advances racial equity consciousness.", examples: "Explainer videos, documentary shorts, panel recordings, testimonials", wordRange: "3 – 30 minutes" },
     { id: "podcast", label: "Podcast / Audio", icon: "◉", desc: "Audio content including interviews, discussions, storytelling, or educational episodes centered on racial equity themes.", examples: "Interview episodes, roundtable discussions, narrative audio, lecture recordings", wordRange: "15 – 60 minutes" },
+    { id: "document", label: "Resource", icon: "▣", desc: "Reports, PDFs, curricula, policy briefs, toolkits, and linked materials that contributors want to share as practical standalone resources.", examples: "Research papers, reports, curricula, policy briefs, toolkits", wordRange: "Varies by format" },
     { id: "exhibit", label: "Virtual Exhibit", icon: "◇", desc: "Digital exhibitions, curated visual collections, interactive timelines, or multimedia presentations that illuminate racial equity topics.", examples: "Photo essays, digital archives, interactive timelines, curated collections", wordRange: "Varies by format" },
     { id: "assessment", label: "Assessment / Tool", icon: "⬡", desc: "Self-assessments, surveys, diagnostic instruments, or interactive tools that help users evaluate or develop their racial equity consciousness.", examples: "Self-reflection instruments, organizational audits, learning diagnostics, checklists", wordRange: "Varies by format" },
     { id: "other", label: "Other Content", icon: "✧", desc: "Infographics, curricula, toolkits, creative works, or other formats that don't fit neatly into the above categories but advance racial equity.", examples: "Infographics, curricula, training materials, creative works, data visualizations", wordRange: "Varies by format" },
@@ -409,6 +410,7 @@ const RECMHSubmission = () => {
           invalid_nonce: "Security check failed. Please refresh and try again.",
           invalid_type: "Please choose a valid content type.",
           missing_fields: "Please complete all required fields.",
+          collaborator_required: "You need an approved Collaborator account to submit content.",
           save_failed: "We could not save your submission. Please try again.",
         };
         setSubmitError(errors[submitErrorCode] || "We could not submit right now. Please try again.");
@@ -644,7 +646,7 @@ const RECMHSubmission = () => {
               Submission Received
             </div>
             <h1 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 38, lineHeight: 1.2, marginBottom: 16, color: "var(--earth-deep)" }}>
-              Thank You for Contributing to<br />Racial Equity Consciousness
+              Thank You for Contributing to<br />RECI
             </h1>
             <p style={{ fontSize: 17, lineHeight: 1.8, color: "var(--muted)", marginBottom: 12 }}>
               Your submission, <strong style={{ color: "var(--ink)" }}>"{formData.title}"</strong>, has been received and will be reviewed by our editorial team.
@@ -656,9 +658,9 @@ const RECMHSubmission = () => {
             <div style={{ background: "var(--earth-light)", padding: 28, marginBottom: 32, textAlign: "left", borderLeft: "4px solid var(--terracotta)" }}>
               <div style={{ fontFamily: "var(--wp--preset--font-family--body, 'Roboto', sans-serif)", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--terracotta)", marginBottom: 10 }}>What Happens Next</div>
               <div style={{ fontSize: 14, lineHeight: 1.8, color: "var(--earth-deep)" }}>
-                <div style={{ marginBottom: 6 }}><strong>1.</strong> Our editorial team reviews your submission for alignment with RECMH standards.</div>
+                <div style={{ marginBottom: 6 }}><strong>1.</strong> Our editorial team reviews your submission for alignment with RECI standards.</div>
                 <div style={{ marginBottom: 6 }}><strong>2.</strong> If accepted, we'll work with you on any necessary revisions or enhancements.</div>
-                <div style={{ marginBottom: 6 }}><strong>3.</strong> Your content is published on the RECMH platform with full attribution.</div>
+                <div style={{ marginBottom: 6 }}><strong>3.</strong> Your content is published on the RECI platform with full attribution.</div>
                 <div><strong>4.</strong> Your contribution becomes part of our growing community knowledge base.</div>
               </div>
             </div>
@@ -670,14 +672,17 @@ const RECMHSubmission = () => {
               <button className="btn btn-md btn-outline-primary" onClick={() => {
                 window.location.href = submissionConfig.returnUrl || "/";
               }}>
-                Return to RECMH ↗
+                Return to RECI ↗
               </button>
             </div>
           </div>
         </div>
       ) : (
         <>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 16, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--muted)" }}>
+              Approved Collaborators can submit here. Members can follow interests and apply to become a Collaborator.
+            </div>
             <button className="btn btn-sm btn-outline-primary" onClick={() => setShowGuidelinesPanel(true)}>
               Submission Guidelines
             </button>
@@ -739,7 +744,7 @@ const RECMHSubmission = () => {
                   <div style={{ marginBottom: 36 }}>
                     <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>What type of content are you submitting?</h2>
                     <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600 }}>
-                      Select the format that best represents your contribution. All content should be evidence-based and process-oriented, focused on practices, policies, programs, initiatives, or frameworks advancing racial equity.
+                      Select the format that best represents your contribution. All content should be evidence-based and process-oriented, focused on practices, policies, programs, initiatives, frameworks, or documents advancing racial equity.
                     </p>
                   </div>
 
@@ -965,7 +970,7 @@ const RECMHSubmission = () => {
                         <textarea className="field-textarea" placeholder="Explain how your content is process-oriented. How does it describe or guide a developmental process? Does it outline stages, steps, or phases of growth? Does it emphasize ongoing learning rather than one-time interventions?"
                           value={formData.processOrientation} onChange={(e) => updateForm("processOrientation", e.target.value)}
                           style={{ background: "white" }} />
-                        <div className="field-hint">RECMH values content that emphasizes process and development over static outcomes.</div>
+                        <div className="field-hint">RECI values content that emphasizes process and development over static outcomes.</div>
                       </div>
                     </div>
 
@@ -1006,7 +1011,7 @@ const RECMHSubmission = () => {
                       <label className="field-label">Upload File (optional)</label>
                       <input className="field-input" type="file"
                         onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)} />
-                      <div className="field-hint">Attach manuscript, media, or supplementary file.</div>
+                      <div className="field-hint">Attach a document, manuscript, media file, or supplementary file.</div>
                     </div>
 
                     <div>
@@ -1025,7 +1030,7 @@ const RECMHSubmission = () => {
                   <div style={{ marginBottom: 36 }}>
                     <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>About You</h2>
                     <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600 }}>
-                      Help us know who you are so we can attribute your contribution properly and reach out about the editorial process.
+                      Help us know who you are so we can attribute your contribution properly as a Collaborator and reach out about the editorial process.
                     </p>
                   </div>
 
@@ -1082,7 +1087,7 @@ const RECMHSubmission = () => {
                           {formData.agreeTerms && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
                         </div>
                         <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
-                          <strong>I confirm</strong> that this content is my original work (or I have permission to submit it), that it is evidence-based and/or process-oriented, and that it has not been previously published on the RECMH platform. *
+                          <strong>I confirm</strong> that this content is my original work (or I have permission to submit it), that it is evidence-based and/or process-oriented, and that it has not been previously published on the RECI platform. *
                         </div>
                       </div>
 
@@ -1092,7 +1097,7 @@ const RECMHSubmission = () => {
                           {formData.agreeReview && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
                         </div>
                         <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
-                          <strong>I understand</strong> that all submissions undergo editorial review for alignment with RECMH's mission, evidence standards, and the RECI framework, and that the editorial team may suggest revisions. *
+                          <strong>I understand</strong> that all submissions undergo editorial review for alignment with RECI's mission, evidence standards, and the RECI framework, and that the editorial team may suggest revisions. *
                         </div>
                       </div>
                     </div>
@@ -1228,7 +1233,7 @@ const RECMHSubmission = () => {
               {[
                 {
                   title: "What We're Looking For",
-                  content: "RECMH curates content that is evidence-based and process-oriented, focused on practices, policies, programs, initiatives, and frameworks that effectively advance racial equity. We seek contributions that inform individuals, communities, and organizations—and ultimately inspire them to share what they've learned."
+                  content: "RECI curates content that is evidence-based and process-oriented, focused on practices, policies, programs, initiatives, frameworks, and resources that effectively advance racial equity. We seek contributions that inform individuals, communities, and organizations—and ultimately inspire them to share what they've learned."
                 },
                 {
                   title: "Evidence-Based Standard",
@@ -1248,11 +1253,11 @@ const RECMHSubmission = () => {
                 },
                 {
                   title: "Editorial Process",
-                  content: "All submissions are reviewed by the RECMH editorial team for quality, evidence standards, process orientation, and alignment with the RECI framework. We may suggest revisions to strengthen your contribution. Expect a response within 10–15 business days."
+                  content: "All submissions are reviewed by the RECI editorial team for quality, evidence standards, process orientation, and alignment with the RECI framework. We may suggest revisions to strengthen your contribution. Expect a response within 10–15 business days."
                 },
                 {
                   title: "Accepted Formats",
-                  content: "Magazine articles (800–3,000 words), blog posts (400–1,200 words), video (3–30 min), podcasts (15–60 min), virtual exhibits, assessments/tools, infographics, curricula, and other creative formats that advance racial equity consciousness."
+                  content: "Magazine articles (800–3,000 words), blog posts (400–1,200 words), video (3–30 min), podcasts (15–60 min), resources, virtual exhibits, assessments/tools, infographics, curricula, and other creative formats that advance racial equity consciousness."
                 },
               ].map((section, i) => (
                 <div key={i} style={{ marginBottom: 24 }}>
@@ -1264,7 +1269,7 @@ const RECMHSubmission = () => {
               <div style={{ marginTop: 32, padding: "20px 24px", background: "rgba(250,247,242,0.05)", borderLeft: "3px solid var(--terracotta)" }}>
                 <div style={{ fontFamily: "var(--wp--preset--font-family--body, 'Roboto', sans-serif)", fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--terracotta)", marginBottom: 8 }}>Questions?</div>
                 <p style={{ fontSize: 13, lineHeight: 1.6, color: "rgba(250,247,242,0.6)" }}>
-                  Contact the RECMH editorial team for guidance on your submission. We're happy to help you determine the best format and sphere alignment for your content.
+                  Contact the RECI editorial team for guidance on your submission. We're happy to help you determine the best format and sphere alignment for your content.
                 </p>
               </div>
             </div>

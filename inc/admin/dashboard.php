@@ -85,8 +85,7 @@ function reci_dashboard_author_guard(): void {
 	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
 		return;
 	}
-	$author_pages = [ 'my-content', 'submit' ];
-	if ( in_array( get_query_var( 'dashboard_page' ), $author_pages, true ) && ! current_user_can( 'edit_posts' ) ) {
+	if ( 'my-content' === get_query_var( 'dashboard_page' ) && ( ! function_exists( 'reci_user_is_collaborator' ) || ! reci_user_is_collaborator() ) ) {
 		global $wp_query;
 		$wp_query->set_404();
 		status_header( 404 );
@@ -122,12 +121,14 @@ function reci_get_user_personalization_preferences( int $user_id ): array {
 		'spheres'         => reci_get_user_followed_term_ids( $user_id, 'reci_followed_spheres' ),
 		'practice_focus'  => reci_get_user_followed_term_ids( $user_id, 'reci_followed_practice_focus' ),
 		'target_audience' => reci_get_user_followed_term_ids( $user_id, 'reci_followed_target_audience' ),
+		'collaborators'   => function_exists( 'reci_get_user_followed_collaborator_ids' ) ? reci_get_user_followed_collaborator_ids( $user_id ) : [],
 	];
 }
 
 function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): array {
 	$preferences = reci_get_user_personalization_preferences( $user_id );
 	$tax_query   = [ 'relation' => 'OR' ];
+	$post_ids    = [];
 
 	if ( ! empty( $preferences['topics'] ) ) {
 		$tax_query[] = [
@@ -161,17 +162,40 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
 		];
 	}
 
-	if ( count( $tax_query ) === 1 ) {
+	if ( count( $tax_query ) > 1 ) {
+		$taxonomy_posts = get_posts(
+			[
+				'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
+				'post_status'         => 'publish',
+				'posts_per_page'      => $limit,
+				'ignore_sticky_posts' => true,
+				'tax_query'           => $tax_query,
+				'fields'              => 'ids',
+			]
+		);
+		$post_ids = array_merge( $post_ids, array_map( 'absint', $taxonomy_posts ) );
+	}
+
+	if ( ! empty( $preferences['collaborators'] ) && function_exists( 'reci_media_hub_get_authored_content_ids' ) ) {
+		foreach ( $preferences['collaborators'] as $profile_id ) {
+			$post_ids = array_merge( $post_ids, reci_media_hub_get_authored_content_ids( (int) $profile_id, [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ] ) );
+		}
+	}
+
+	$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
+	if ( empty( $post_ids ) ) {
 		return [];
 	}
 
 	return get_posts(
 		[
-			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection' ],
+			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
 			'post_status'         => 'publish',
 			'posts_per_page'      => $limit,
 			'ignore_sticky_posts' => true,
-			'tax_query'           => $tax_query,
+			'post__in'            => $post_ids,
+			'orderby'             => 'date',
+			'order'               => 'DESC',
 		]
 	);
 }

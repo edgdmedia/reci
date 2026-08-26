@@ -31,9 +31,9 @@ $section_args = wp_parse_args(
 		'join_image_url' => get_template_directory_uri() . '/assets/images/connect-now3.png',
 		'join_image_alt' => __('Connect elements', 'reci-media-hub'),
 		'join_tag'       => __('Connect Elements', 'reci-media-hub'),
-		'join_title'     => __('Connect your interests to improve your feed and discover more relevant content', 'reci-media-hub'),
-		'join_cta_label' => __('Connect Now', 'reci-media-hub'),
-		'join_cta_url'   => is_user_logged_in() ? home_url('/dashboard/') : home_url('/sign-up/'),
+		'join_title'     => __('Explore how RECI Community works, how to join, and how to contribute', 'reci-media-hub'),
+		'join_cta_label' => __('Explore Community', 'reci-media-hub'),
+		'join_cta_url'   => home_url('/community/'),
 		'pulse_title'    => __('Community Pulse', 'reci-media-hub'),
 		'pulse_slides'   => [],
 	]

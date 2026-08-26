@@ -40,15 +40,16 @@ get_header('dashboard');
 					$shared        = (bool) $journal->is_shared;
 					$content       = $journal->response;
 					$date          = wp_date( get_option( 'date_format' ), strtotime( $journal->created_at ) );
+					$reflection_post = $reflection_id ? get_post( $reflection_id ) : null;
 				?>
 				<div class="bg-white border border-zinc-200 rounded-xl p-5">
 					<div class="flex items-start justify-between gap-4">
 						<div class="min-w-0 flex-1">
 							<p class="text-xs text-zinc-500 mb-1">
-								<?php if ( $reflection_id && get_post( $reflection_id ) ) : ?>
+								<?php if ( $reflection_post ) : ?>
 								From: <a href="<?php echo esc_url( get_permalink( $reflection_id ) ); ?>" class="text-amber-600 hover:text-amber-700"><?php echo esc_html( get_the_title( $reflection_id ) ); ?></a>
 								<?php elseif ( $reflection_id ) : ?>
-								From: [Reflection removed]
+								From reflection #<?php echo esc_html( (string) $reflection_id ); ?>
 								<?php endif; ?>
 							</p>
 							<?php if ( $prompt ) : ?>

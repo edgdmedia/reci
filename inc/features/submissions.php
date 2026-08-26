@@ -35,6 +35,7 @@ if (! function_exists('reci_media_hub_submission_type_map')) {
 			'article'    => 'post',
 			'podcast'    => 'reci_podcast',
 			'video'      => 'reci_video',
+			'document'   => 'reci_document',
 			'assessment' => 'reci_assessment',
 			'exhibit'    => 'post',
 			'other'      => 'post',
@@ -54,6 +55,7 @@ if (! function_exists('reci_media_hub_submission_type_labels')) {
 			'article'    => __('Magazine / Newspaper Article', 'reci-media-hub'),
 			'podcast'    => __('Podcast / Audio', 'reci-media-hub'),
 			'video'      => __('Video Content', 'reci-media-hub'),
+			'document'   => __('Resource', 'reci-media-hub'),
 			'assessment' => __('Quiz / Tool', 'reci-media-hub'),
 			'exhibit'    => __('Virtual Exhibit', 'reci-media-hub'),
 			'other'      => __('Other Content', 'reci-media-hub'),
@@ -112,6 +114,14 @@ if (! function_exists('reci_media_hub_submission_type_definitions')) {
 				'wordRange' => 'Varies by format',
 			],
 			[
+				'id'        => 'document',
+				'label'     => $labels['document'] ?? __('Resource', 'reci-media-hub'),
+				'icon'      => '▣',
+				'desc'      => 'Reports, PDFs, curricula, policy briefs, toolkits, and linked materials that contributors want to share as practical standalone resources.',
+				'examples'  => 'Research papers, reports, curricula, policy briefs, toolkits',
+				'wordRange' => 'Varies by format',
+			],
+			[
 				'id'        => 'assessment',
 				'label'     => $labels['assessment'] ?? __('Quiz / Tool', 'reci-media-hub'),
 				'icon'      => '⬡',
@@ -153,6 +163,7 @@ if (! function_exists('reci_media_hub_submission_meta_post_types')) {
 	function reci_media_hub_submission_meta_post_types(): array {
 		$post_types = reci_media_hub_submission_supported_post_types();
 		$post_types[] = 'reci_author';
+		$post_types[] = 'reci_document';
 		$post_types = array_values(array_unique($post_types));
 		sort($post_types);
 		return $post_types;
@@ -515,6 +526,16 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 	 */
 	function reci_media_hub_handle_submission(): void {
 		$redirect_url = reci_media_hub_get_submission_page_url();
+
+		if ( ! is_user_logged_in() ) {
+			wp_safe_redirect( reci_get_auth_page_url( 'sign-in' ) ?: wp_login_url( $redirect_url ) );
+			exit;
+		}
+
+		if ( ! function_exists( 'reci_user_is_collaborator' ) || ! reci_user_is_collaborator( get_current_user_id() ) ) {
+			wp_safe_redirect( add_query_arg( 'submit_error', 'collaborator_required', $redirect_url ) );
+			exit;
+		}
 
 		$nonce_raw = $_POST['reci_submit_content_nonce'] ?? '';
 		$nonce = is_string($nonce_raw) ? sanitize_text_field(wp_unslash($nonce_raw)) : '';

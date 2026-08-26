@@ -22,6 +22,7 @@ if ($uses_new_system) {
         'restUrl' => $response_rest_url,
         'nonce' => wp_create_nonce('wp_rest'),
         'reflectionId' => $post_id,
+        'currentUserId' => get_current_user_id(),
     ];
     ?>
     <!doctype html>

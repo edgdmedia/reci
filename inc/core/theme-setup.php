@@ -97,7 +97,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						'progressEndpoint' => esc_url_raw(rest_url('reci/v1/assessment-progress')),
 						'restNonce'        => wp_create_nonce('wp_rest'),
 						'loginUrl'         => esc_url_raw(wp_login_url(get_permalink())),
-						'registerUrl'      => esc_url_raw(wp_registration_url()),
+						'registerUrl'      => esc_url_raw(reci_get_sign_up_url()),
 						'currentUser'      => [
 							'isLoggedIn' => is_user_logged_in(),
 							'name'       => is_user_logged_in() ? $current_user->display_name : '',

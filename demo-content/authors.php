@@ -6,14 +6,14 @@ return [
 			'name'    => 'RECI',
 			'title'   => 'Racial Equity Consciousness Institute',
 			'bio'     => 'The Racial Equity Consciousness Institute.',
-			'content' => 'The Racial Equity Consciousness Institute.',
+			'content' => 'The Racial Equity Consciousness Institute. RECI serves as a publishing and learning platform for racial equity consciousness, bringing together articles, reflections, media, and practical resources that support transformation across personal, community, and institutional life.',
 		],
 		[
 		'slug'    => 'dr-toya-jones',
 		'name'    => 'Dr. Toya Jones',
 		'title'   => 'Licensed Therapist, College Professor, Momma, and Wife',
 		'bio'     => 'Dr. Toya Jones is a licensed therapist and college professor passionate about spreading healing throughout generations.',
-		'content' => 'Dr. Toya Jones is a licensed therapist and college professor passionate about spreading healing throughout generations. With over a decade of experience in mental health counseling, she specializes in racial trauma, intergenerational healing, and culturally responsive therapeutic practices.\n\nDr. Jones currently serves as a professor of counseling psychology, where she trains the next generation of therapists to center equity and cultural humility in their practice. Her research explores the intersection of racial identity development, healing-centered engagement, and community well-being.\n\nAs the host of "Healing Overflow with Dr. Toy," she brings a warm, accessible voice to complex conversations about mental health in communities of color. Her work emphasizes that healing is not a solo journey but a collective practice rooted in community, culture, and connection.',
+			'content' => 'Dr. Toya Jones is a licensed therapist and college professor passionate about spreading healing throughout generations. With over a decade of experience in mental health counseling, she specializes in racial trauma, intergenerational healing, and culturally responsive therapeutic practices.\n\nDr. Jones currently serves as a professor of counseling psychology, where she trains the next generation of therapists to center equity and cultural humility in their practice. Her research explores the intersection of racial identity development, healing-centered engagement, and community well-being.\n\nAs the host of "Healing Overflow with Dr. Toy," she brings a warm, accessible voice to complex conversations about mental health in communities of color. Her work emphasizes that healing is not a solo journey but a collective practice rooted in community, culture, and connection.',
 		],
 		[
 			'slug'    => 'ron-idoko',
@@ -25,9 +25,9 @@ return [
 
 He received his Bachelor\'s and Master\'s degrees from the University of Pittsburgh and is currently an Ed. D. candidate in the University of Pittsburgh\'s School of Education.',
 			],
-			[ 'slug' => 'anuj-peri', 'name' => 'Anuj Peri', 'title' => 'RECI Contributor', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => '' ],
-			[ 'slug' => 'alexia-wagurak', 'name' => 'Alexia Wagurak', 'title' => 'RECI Contributor', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => '' ],
-			[ 'slug' => 'tracy-wang', 'name' => 'Tracy Wang', 'title' => 'RECI Contributor', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => '' ],
-			[ 'slug' => 'vivian-greenwood', 'name' => 'Vivian Greenwood', 'title' => 'RECI Contributor', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => '' ],
-			[ 'slug' => 'arshia-sista', 'name' => 'Arshia Sista', 'title' => 'RECI Contributor', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => '' ],
+			[ 'slug' => 'anuj-peri', 'name' => 'Anuj Peri', 'title' => 'RECI Collaborator', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => 'Anuj Peri contributes writing and commentary that connect racial equity research to public dialogue and practical learning.' ],
+			[ 'slug' => 'alexia-wagurak', 'name' => 'Alexia Wagurak', 'title' => 'RECI Collaborator', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => 'Alexia Wagurak contributes reflection-centered content and public-facing writing that supports RECI learning pathways.' ],
+			[ 'slug' => 'tracy-wang', 'name' => 'Tracy Wang', 'title' => 'RECI Collaborator', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => 'Tracy Wang contributes writing that connects racial equity, systems thinking, and educational practice.' ],
+			[ 'slug' => 'vivian-greenwood', 'name' => 'Vivian Greenwood', 'title' => 'RECI Collaborator', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => 'Vivian Greenwood contributes equity-centered writing and analysis that help translate research into practical insight.' ],
+			[ 'slug' => 'arshia-sista', 'name' => 'Arshia Sista', 'title' => 'RECI Collaborator', 'bio' => 'Contributor to the RECI Media Hub demo library.', 'content' => 'Arshia Sista contributes public scholarship and interpretive writing that supports deeper community understanding.' ],
 		];
