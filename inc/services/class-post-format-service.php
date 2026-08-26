@@ -44,7 +44,7 @@ if (! class_exists('RECI_Post_Format_Service')) {
             $type_cfg  = self::type_config($post_type);
 
             $image_size       = (string) ($args['image_size'] ?? 'medium');
-            $fallback_image   = (string) ($args['fallback_image'] ?? 'https://placehold.co/460x232');
+            $fallback_image   = (string) ($args['fallback_image'] ?? (function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('medium', 'https://placehold.co/460x232') : 'https://placehold.co/460x232'));
             $excerpt_words    = (int) ($args['excerpt_words'] ?? 20);
             $tag_limit        = (int) ($args['tag_limit'] ?? 3);
             $date_format      = (string) ($args['date_format'] ?? 'd M Y');

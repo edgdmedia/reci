@@ -34,7 +34,7 @@ if (! class_exists('RECI_Single_Post_Service')) {
                 $subtitle = has_excerpt($post_id) ? get_the_excerpt($post_id) : '';
             }
 
-            $featured_image_url = get_the_post_thumbnail_url($post_id, (string) ($args['image_size'] ?? 'large')) ?: (string) ($args['fallback_image'] ?? 'https://placehold.co/800x446');
+            $featured_image_url = get_the_post_thumbnail_url($post_id, (string) ($args['image_size'] ?? 'large')) ?: (string) ($args['fallback_image'] ?? (function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/800x446') : 'https://placehold.co/800x446'));
             $thumb_id           = get_post_thumbnail_id($post_id);
             $featured_image_alt = $thumb_id ? (string) get_post_meta($thumb_id, '_wp_attachment_image_alt', true) : '';
             if ($featured_image_alt === '') {

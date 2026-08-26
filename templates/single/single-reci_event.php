@@ -13,6 +13,7 @@ the_post();
 
 $post_id = get_the_ID();
 $display_author = reci_media_hub_get_display_author($post_id);
+$shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/1200x500') : 'https://placehold.co/1200x500';
 
 $category = '';
 $cats = wp_get_post_categories($post_id, ['fields' => 'names']);
@@ -58,7 +59,7 @@ if ( 'past' === $status ) {
 
 // Featured image.
 $thumb_id             = get_post_thumbnail_id( $post_id );
-$image_url            = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://placehold.co/1200x500';
+$image_url            = get_the_post_thumbnail_url( $post_id, 'large' ) ?: $shared_fallback_image;
 $image_alt            = $thumb_id ? ( (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) ?: get_the_title() ) : get_the_title();
 $author_card_heading  = __( 'Event Organizer', 'reci-media-hub' );
 
@@ -108,7 +109,7 @@ foreach ( $related_query->posts as $rel_post ) {
 		'excerpt'      => wp_trim_words( has_excerpt( $rel_id ) ? get_the_excerpt( $rel_id ) : wp_strip_all_tags( $rel_post->post_content ), 14, '...' ),
 		'button_label' => 'View Event',
 		'link_url'     => get_permalink( $rel_id ),
-		'image_url'    => get_the_post_thumbnail_url( $rel_id, 'medium' ) ?: 'https://placehold.co/400x225',
+		'image_url'    => get_the_post_thumbnail_url( $rel_id, 'medium' ) ?: $shared_fallback_image,
 		'image_alt'    => get_the_title( $rel_id ),
 	];
 }

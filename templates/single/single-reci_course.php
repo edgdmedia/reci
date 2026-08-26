@@ -11,6 +11,7 @@ the_post();
 
 $post_id = get_the_ID();
 $display_author = reci_media_hub_get_display_author( $post_id );
+$shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/1200x500') : 'https://placehold.co/1200x500';
 
 $category = '';
 $cats = wp_get_post_categories( $post_id, ['fields' => 'names'] );
@@ -35,7 +36,7 @@ $duration_label = $duration > 0
 
 // Featured image.
 $thumb_id  = get_post_thumbnail_id( $post_id );
-$image_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: 'https://placehold.co/1200x500';
+$image_url = get_the_post_thumbnail_url( $post_id, 'large' ) ?: $shared_fallback_image;
 $image_alt = $thumb_id
 	? ( (string) get_post_meta( $thumb_id, '_wp_attachment_image_alt', true ) ?: get_the_title() )
 	: get_the_title();

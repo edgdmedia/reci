@@ -46,6 +46,9 @@ $collage_size_classes = [
 	'w-36 h-36',
 ];
 
+$shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/387x300') : 'https://placehold.co/387x300';
+$fallback_avatar       = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('thumbnail', 'https://placehold.co/60x60') : 'https://placehold.co/60x60';
+
 $connect_image = trailingslashit(get_template_directory_uri()) . 'assets/images/connect-now3.png';
 
 $community_post = get_posts(
@@ -73,7 +76,7 @@ if ($community_quote instanceof WP_Post) {
 $community_quote_text  = $community_quote_text !== '' ? $community_quote_text : 'RECI has truly transformed how we approach market analysis. The insights are unparalleled!.';
 $community_author_name = $community_author_name !== '' ? $community_author_name : 'Jane Doe';
 $community_author_role = $community_author_role !== '' ? $community_author_role : 'Financial Analyst';
-$community_author_img  = $community_author_img !== '' ? $community_author_img : 'https://placehold.co/60x60';
+$community_author_img  = $community_author_img !== '' ? $community_author_img : $fallback_avatar;
 
 get_header();
 ?>
@@ -99,7 +102,7 @@ get_header();
 		<?php foreach (array_slice($reflection_posts, 0, count($collage_size_classes)) as $index => $reflection_post) : ?>
 			<?php
 			$collage_id    = (int) $reflection_post->ID;
-			$collage_image = get_the_post_thumbnail_url($collage_id, 'medium_large') ?: 'https://placehold.co/250x250';
+			$collage_image = get_the_post_thumbnail_url($collage_id, 'medium_large') ?: $shared_fallback_image;
 			$collage_alt   = get_post_meta((int) get_post_thumbnail_id($collage_id), '_wp_attachment_image_alt', true);
 			$collage_alt   = $collage_alt !== '' ? $collage_alt : get_the_title($collage_id);
 			?>
@@ -140,7 +143,7 @@ get_header();
 					<?php foreach ($row_posts as $reflection_post) : ?>
 						<?php
 						$post_id      = (int) $reflection_post->ID;
-						$image_url    = get_the_post_thumbnail_url($post_id, 'large') ?: 'https://placehold.co/387x300';
+						$image_url    = get_the_post_thumbnail_url($post_id, 'large') ?: $shared_fallback_image;
 						$image_alt    = get_post_meta((int) get_post_thumbnail_id($post_id), '_wp_attachment_image_alt', true);
 						$image_alt    = $image_alt !== '' ? $image_alt : get_the_title($post_id);
 						$quote        = (string) get_post_meta($post_id, '_reci_reflection_quote', true);

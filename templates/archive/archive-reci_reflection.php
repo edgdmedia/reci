@@ -13,7 +13,8 @@ if (! defined('ABSPATH')) {
 $page_title    = 'Reflection Gallery';
 $page_subtitle = "We're eager to see how these reflections can fuel conversations and positive change! We hope you enjoy!";
 
-$placeholder_avatar = 'https://placehold.co/60x60';
+$placeholder_avatar = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('thumbnail', 'https://placehold.co/60x60') : 'https://placehold.co/60x60';
+$shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/387x300') : 'https://placehold.co/387x300';
 
 $get_post_image = static function (int $post_id, string $size = 'large', string $fallback = ''): string {
 	$image = get_the_post_thumbnail_url($post_id, $size);
@@ -157,7 +158,7 @@ get_header();
 		<?php foreach (array_slice($reflection_posts, 1, count($collage_size_classes)) as $index => $reflection_post) : ?>
 			<?php
 			$collage_id    = (int) $reflection_post->ID;
-			$collage_image = get_the_post_thumbnail_url($collage_id, 'medium_large') ?: 'https://placehold.co/250x250';
+			$collage_image = get_the_post_thumbnail_url($collage_id, 'medium_large') ?: $shared_fallback_image;
 			$collage_alt   = get_post_meta((int) get_post_thumbnail_id($collage_id), '_wp_attachment_image_alt', true);
 			$collage_alt   = $collage_alt !== '' ? $collage_alt : get_the_title($collage_id);
 			?>
@@ -200,7 +201,7 @@ get_header();
 					<?php foreach ($row_posts as $reflection_post) : ?>
 						<?php
 						$post_id      = (int) $reflection_post->ID;
-						$image_url    = get_the_post_thumbnail_url($post_id, 'large') ?: 'https://placehold.co/387x300';
+						$image_url    = get_the_post_thumbnail_url($post_id, 'large') ?: $shared_fallback_image;
 						$image_alt    = get_post_meta((int) get_post_thumbnail_id($post_id), '_wp_attachment_image_alt', true);
 						$image_alt    = $image_alt !== '' ? $image_alt : get_the_title($post_id);
 						$description  = has_excerpt($post_id) ? get_the_excerpt($post_id) : get_the_title($post_id);

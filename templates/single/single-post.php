@@ -40,7 +40,7 @@ $article_author = is_array($single_payload["author"] ?? null)
     : reci_media_hub_get_display_author($post_id);
 $featured_image_url =
     (string) ($single_payload["featured_image_url"] ??
-        "https://placehold.co/800x446");
+        (function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/800x446') : 'https://placehold.co/800x446'));
 $featured_image_alt =
     (string) ($single_payload["featured_image_alt"] ?? get_the_title($post_id));
 $share_url = rawurlencode(get_permalink($post_id));

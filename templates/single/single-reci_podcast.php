@@ -55,7 +55,7 @@ $spotify     = (string) get_post_meta($post_id, '_reci_podcast_spotify_url', tru
 $apple       = (string) get_post_meta($post_id, '_reci_podcast_apple_url', true);
 $transcript  = (string) get_post_meta($post_id, '_reci_podcast_transcript_url', true);
 
-$image_url = (string) ($single_payload['featured_image_url'] ?? 'https://placehold.co/600x600');
+$image_url = (string) ($single_payload['featured_image_url'] ?? (function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/600x600') : 'https://placehold.co/600x600'));
 $image_alt = (string) ($single_payload['featured_image_alt'] ?? get_the_title());
 $excerpt   = has_excerpt() ? get_the_excerpt() : wp_trim_words(wp_strip_all_tags(get_the_content()), 30, '...');
 

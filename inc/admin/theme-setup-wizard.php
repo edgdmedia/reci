@@ -39,12 +39,27 @@ function reci_render_setup_wizard_page(): void {
 		return;
 	}
 
+	$settings = get_option( 'reci_theme_settings', [] );
+
 	$theme_version = wp_get_theme()->get( 'Version' );
 	$php_version   = phpversion();
 	$wp_version    = get_bloginfo( 'version' );
 
 	$php_ok = version_compare( $php_version, '8.0.0', '>=' );
 	$wp_ok  = version_compare( $wp_version, '6.0', '>=' );
+	$plugin_statuses = function_exists( 'reci_plugin_status_map' ) ? reci_plugin_status_map() : [];
+	$page_statuses   = function_exists( 'reci_setup_page_status_map' ) ? reci_setup_page_status_map() : [];
+	$required_paths  = [ 'articles', 'framework', 'glossary', 'learn', 'privacy-policy', 'terms-of-use', 'cookies' ];
+	$route_statuses  = [];
+	foreach ( $required_paths as $path ) {
+		$route_statuses[ $path ] = get_page_by_path( $path, OBJECT, 'page' ) instanceof WP_Post;
+	}
+	$front_page_ok = (int) get_option( 'page_on_front' ) > 0;
+	$posts_page_ok = (int) get_option( 'page_for_posts' ) > 0;
+	$plugins_ok    = ! in_array( false, array_map( static fn( $status ) => ( $status['status'] ?? '' ) === 'active', $plugin_statuses ), true );
+	$pages_ok      = ! in_array( false, array_map( static fn( $status ) => ! empty( $status['exists'] ), $page_statuses ), true );
+	$routes_ok     = ! in_array( false, $route_statuses, true );
+	$plugin_setup_url = admin_url( 'themes.php?page=reci-client-setup' );
     
     // Media Upload Limit
     $max_upload_bytes = wp_max_upload_size();
@@ -53,7 +68,25 @@ function reci_render_setup_wizard_page(): void {
     $upload_display   = size_format( $max_upload_bytes );
     
     // Check if demo is installed
-    $demo_installed = get_option( 'reci_demo_installed', false );
+	$demo_installed = get_option( 'reci_demo_installed', false );
+	$wizard_defaults = [
+		'subtitle'            => (string) ( $settings['branding_hub_subtitle'] ?? 'Media Hub' ),
+		'primaryColor'        => (string) ( $settings['branding_primary_color'] ?? '#003594' ),
+		'accentColor'         => (string) ( $settings['branding_accent_color'] ?? '#FFB81C' ),
+		'enableRegistration'  => ! empty( $settings['auth_enable_registration'] ),
+		'facebook'            => (string) ( $settings['social_facebook'] ?? 'https://www.facebook.com/PittCRSP' ),
+		'twitter'             => (string) ( $settings['social_twitter'] ?? 'https://x.com/FPittCRSP' ),
+		'instagram'           => (string) ( $settings['social_instagram'] ?? 'https://www.instagram.com/pittcrsp/' ),
+		'youtube'             => (string) ( $settings['social_youtube'] ?? 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg' ),
+		'linkedin'            => (string) ( $settings['social_linkedin'] ?? '' ),
+		'footerTagline'       => (string) ( $settings['footer_tagline'] ?? '' ),
+		'footerEmail'         => (string) ( $settings['footer_email'] ?? 'mediahub@reci.pitt.edu' ),
+		'footerPhone'         => (string) ( $settings['footer_phone'] ?? '+14126480000' ),
+		'footerAddress'       => (string) ( $settings['footer_address'] ?? "4200 Fifth Avenue\nPittsburgh, PA 15260" ),
+		'ga4Id'               => (string) ( $settings['analytics_ga4_id'] ?? '' ),
+		'gtmId'               => (string) ( $settings['analytics_gtm_id'] ?? '' ),
+		'pixelId'             => (string) ( $settings['analytics_pixel_id'] ?? '' ),
+	];
 
 	?>
 	<!-- Load Tailwind via CDN with preflight disabled to avoid breaking WP admin styles -->
@@ -132,6 +165,7 @@ function reci_render_setup_wizard_page(): void {
 							<ul class="mt-3 text-sm text-blue-700 space-y-2 list-disc list-inside">
 								<li>This wizard configures the baseline structure. You can change everything later in <strong>RECI Settings</strong>.</li>
 								<li>The Demo Content importer will securely seed immersive galleries without duplicating existing posts.</li>
+								<li>Plugin installation and activation can be completed from the dedicated <a class="underline" href="<?php echo esc_url( $plugin_setup_url ); ?>">RECI Theme Setup</a> screen.</li>
 							</ul>
 						</div>
 					</div>
@@ -212,7 +246,7 @@ function reci_render_setup_wizard_page(): void {
 					<!-- Step 3: Core Configuration -->
 					<div x-show="step === 3" x-transition.opacity.duration.300ms class="space-y-6" style="display: none;">
 						<h2 class="text-2xl font-bold text-gray-900">Core Configuration</h2>
-						<p class="text-gray-600 mb-8">Set up your baseline theme branding. These can be changed later.</p>
+						<p class="text-gray-600 mb-8">Set up your baseline theme branding, social presence, footer contact details, and analytics. These can be changed later.</p>
 						
 						<div class="space-y-6 max-w-2xl">
 							<div>
@@ -243,6 +277,66 @@ function reci_render_setup_wizard_page(): void {
 									<input type="checkbox" x-model="formData.enableRegistration" class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 h-5 w-5">
 									<span class="ml-3 text-sm text-gray-700">Enable user registration for Reflections</span>
 								</label>
+							</div>
+
+							<div class="pt-4 border-t border-gray-200 space-y-4">
+								<h3 class="text-base font-semibold text-gray-900">Social Links</h3>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Facebook URL</label>
+									<input type="url" x-model="formData.facebook" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">X / Twitter URL</label>
+									<input type="url" x-model="formData.twitter" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Instagram URL</label>
+									<input type="url" x-model="formData.instagram" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">YouTube URL</label>
+									<input type="url" x-model="formData.youtube" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn URL</label>
+									<input type="url" x-model="formData.linkedin" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+							</div>
+
+							<div class="pt-4 border-t border-gray-200 space-y-4">
+								<h3 class="text-base font-semibold text-gray-900">Footer Contact</h3>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Footer Tagline</label>
+									<textarea x-model="formData.footerTagline" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"></textarea>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+									<input type="email" x-model="formData.footerEmail" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
+									<input type="text" x-model="formData.footerPhone" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+									<textarea x-model="formData.footerAddress" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border"></textarea>
+								</div>
+							</div>
+
+							<div class="pt-4 border-t border-gray-200 space-y-4">
+								<h3 class="text-base font-semibold text-gray-900">Analytics</h3>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">GA4 Measurement ID</label>
+									<input type="text" x-model="formData.ga4Id" placeholder="G-XXXXXXXXXX" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">GTM Container ID</label>
+									<input type="text" x-model="formData.gtmId" placeholder="GTM-XXXXXXX" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Meta Pixel ID</label>
+									<input type="text" x-model="formData.pixelId" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2.5 border">
+								</div>
 							</div>
 						</div>
 					</div>
@@ -316,6 +410,22 @@ function reci_render_setup_wizard_page(): void {
 						<p class="text-lg text-gray-600 max-w-xl">
 							RECI Media Hub has been successfully configured. Your database is primed and your branding is saved. 
 						</p>
+
+						<div class="w-full max-w-2xl text-left mt-4 rounded-lg border border-gray-200 bg-gray-50 p-5">
+							<h3 class="text-base font-semibold text-gray-900 mb-3">Site Reconstruction Checklist</h3>
+							<ul class="space-y-2 text-sm text-gray-700">
+								<li><?php echo $plugins_ok ? 'OK' : 'Needs attention'; ?>: Required plugins active</li>
+								<li><?php echo $pages_ok ? 'OK' : 'Needs attention'; ?>: Core auth/community/dashboard pages exist</li>
+								<li><?php echo $front_page_ok ? 'OK' : 'Needs attention'; ?>: Front page assigned</li>
+								<li><?php echo $posts_page_ok ? 'OK' : 'Needs attention'; ?>: Posts page assigned</li>
+								<li><?php echo $routes_ok ? 'OK' : 'Needs attention'; ?>: Articles, Learn, Framework, Glossary, Privacy Policy, Terms of Use, and Cookies pages exist</li>
+								<li><?php echo $demo_installed ? 'OK' : 'Skipped'; ?>: Demo content installed</li>
+							</ul>
+							<?php if ( ! $plugins_ok || ! $pages_ok || ! $front_page_ok || ! $posts_page_ok || ! $routes_ok ) : ?>
+								<p class="mt-4 text-sm text-amber-700">This install is close, but not yet a full reconstruction. Review RECI Settings and the setup checklist before launch.</p>
+								<p class="mt-2"><a class="text-sm underline text-blue-700" href="<?php echo esc_url( $plugin_setup_url ); ?>">Open plugin and guided setup screen</a></p>
+							<?php endif; ?>
+						</div>
 						
 						<div class="flex gap-4 mt-8">
 							<a href="<?php echo esc_url( admin_url( 'admin.php?page=reci-settings' ) ); ?>" class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
@@ -376,12 +486,7 @@ function reci_render_setup_wizard_page(): void {
 					{ title: 'Demo Content' },
 					{ title: 'Liftoff' }
 				],
-				formData: {
-					subtitle: 'Media Hub',
-					primaryColor: '#003594',
-					accentColor: '#FFB81C',
-					enableRegistration: false
-				},
+				formData: <?php echo wp_json_encode( $wizard_defaults ); ?>,
 				demoTypes: [],
                 demoInstalled: <?php echo $demo_installed ? 'true' : 'false'; ?>,
                 showImporter: false,
@@ -426,11 +531,23 @@ function reci_render_setup_wizard_page(): void {
                     const body = new URLSearchParams({
                         action: 'reci_wizard_save_config',
                         nonce: '<?php echo wp_create_nonce("reci_wizard_action"); ?>',
-                        branding_hub_subtitle: this.formData.subtitle,
-                        branding_primary_color: this.formData.primaryColor,
-                        branding_accent_color: this.formData.accentColor,
-                        auth_enable_registration: this.formData.enableRegistration ? '1' : '0'
-                    });
+						branding_hub_subtitle: this.formData.subtitle,
+						branding_primary_color: this.formData.primaryColor,
+						branding_accent_color: this.formData.accentColor,
+						auth_enable_registration: this.formData.enableRegistration ? '1' : '0',
+						social_facebook: this.formData.facebook,
+						social_twitter: this.formData.twitter,
+						social_instagram: this.formData.instagram,
+						social_youtube: this.formData.youtube,
+						social_linkedin: this.formData.linkedin,
+						footer_tagline: this.formData.footerTagline,
+						footer_email: this.formData.footerEmail,
+						footer_phone: this.formData.footerPhone,
+						footer_address: this.formData.footerAddress,
+						analytics_ga4_id: this.formData.ga4Id,
+						analytics_gtm_id: this.formData.gtmId,
+						analytics_pixel_id: this.formData.pixelId
+					});
 
                     try {
                         await fetch(ajaxurl, {
@@ -547,10 +664,22 @@ function reci_ajax_wizard_save_config(): void {
 
     $options = get_option( 'reci_theme_settings', [] );
 
-    if ( isset($_POST['branding_hub_subtitle']) ) $options['branding_hub_subtitle'] = sanitize_text_field($_POST['branding_hub_subtitle']);
-    if ( isset($_POST['branding_primary_color']) ) $options['branding_primary_color'] = sanitize_text_field($_POST['branding_primary_color']);
-    if ( isset($_POST['branding_accent_color']) ) $options['branding_accent_color'] = sanitize_text_field($_POST['branding_accent_color']);
-    if ( isset($_POST['auth_enable_registration']) ) $options['auth_enable_registration'] = $_POST['auth_enable_registration'] === '1' ? '1' : '0';
+	if ( isset($_POST['branding_hub_subtitle']) ) $options['branding_hub_subtitle'] = sanitize_text_field($_POST['branding_hub_subtitle']);
+	if ( isset($_POST['branding_primary_color']) ) $options['branding_primary_color'] = sanitize_text_field($_POST['branding_primary_color']);
+	if ( isset($_POST['branding_accent_color']) ) $options['branding_accent_color'] = sanitize_text_field($_POST['branding_accent_color']);
+	if ( isset($_POST['auth_enable_registration']) ) $options['auth_enable_registration'] = $_POST['auth_enable_registration'] === '1' ? '1' : '0';
+	if ( isset($_POST['social_facebook']) ) $options['social_facebook'] = esc_url_raw($_POST['social_facebook']);
+	if ( isset($_POST['social_twitter']) ) $options['social_twitter'] = esc_url_raw($_POST['social_twitter']);
+	if ( isset($_POST['social_instagram']) ) $options['social_instagram'] = esc_url_raw($_POST['social_instagram']);
+	if ( isset($_POST['social_youtube']) ) $options['social_youtube'] = esc_url_raw($_POST['social_youtube']);
+	if ( isset($_POST['social_linkedin']) ) $options['social_linkedin'] = esc_url_raw($_POST['social_linkedin']);
+	if ( isset($_POST['footer_tagline']) ) $options['footer_tagline'] = sanitize_textarea_field($_POST['footer_tagline']);
+	if ( isset($_POST['footer_email']) ) $options['footer_email'] = sanitize_email($_POST['footer_email']);
+	if ( isset($_POST['footer_phone']) ) $options['footer_phone'] = sanitize_text_field($_POST['footer_phone']);
+	if ( isset($_POST['footer_address']) ) $options['footer_address'] = sanitize_textarea_field($_POST['footer_address']);
+	if ( isset($_POST['analytics_ga4_id']) ) $options['analytics_ga4_id'] = sanitize_text_field($_POST['analytics_ga4_id']);
+	if ( isset($_POST['analytics_gtm_id']) ) $options['analytics_gtm_id'] = sanitize_text_field($_POST['analytics_gtm_id']);
+	if ( isset($_POST['analytics_pixel_id']) ) $options['analytics_pixel_id'] = sanitize_text_field($_POST['analytics_pixel_id']);
 
     update_option( 'reci_theme_settings', $options );
     wp_send_json_success();
