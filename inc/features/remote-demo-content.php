@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function reci_remote_demo_manifest_url(): string {
-	$default_url = 'https://raw.githubusercontent.com/edgdmedia/reci/main/docs/demo-content-manifest.json';
+	$default_url = 'https://raw.githubusercontent.com/edgdmedia/reci/development/docs/demo-content-manifest.json';
 
 	return (string) apply_filters( 'reci_remote_demo_manifest_url', $default_url );
 }
