@@ -40,25 +40,19 @@
   "groups": {
     "reci_demo_images_reflections": {
       "label": "Reflection Images",
-      "description": "Remote reflection gallery media.",
-      "assets": [
-        {
-          "path": "site/reflections/we-humans/students-1959.webp",
-          "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/students-1959.webp"
-        }
-      ]
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/reflection-images.zip",
+      "extract_root": "site/reflections"
     },
     "reci_demo_images_articles": {
       "label": "Article Images",
-      "assets": [
-        {
-          "path": "site/articles/example-article-image.webp",
-          "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/example-article-image.webp"
-        }
-      ]
+      "type": "release-archive",
+      "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/article-images.zip",
+      "extract_root": "site/articles"
     },
     "reci_demo_images_events": {
       "label": "Event Images",
+      "type": "asset-list",
       "assets": [
         {
           "path": "site/events/example-event-image.webp",
