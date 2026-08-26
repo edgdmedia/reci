@@ -47,10 +47,12 @@ $base_url        = $base_url ?: home_url('/podcasts/');
 $all_filters_url = remove_query_arg(['topic', 'sphere', 'show', 'search', 'paged'], $base_url);
 $has_filters     = ($current_topic !== '') || ($current_sphere !== '') || ($current_show !== '') || ($current_search !== '');
 
+$podcasts_per_page = (int) reci_setting('content_podcasts_per_page', 9);
+
 $query_args = [
 	'post_type'      => 'reci_podcast',
 	'post_status'    => 'publish',
-	'posts_per_page' => 9,
+	'posts_per_page' => $podcasts_per_page,
 	'paged'          => max(1, (int) get_query_var('paged'), (int) get_query_var('page')),
 	'orderby'        => 'date',
 	'order'          => 'DESC',

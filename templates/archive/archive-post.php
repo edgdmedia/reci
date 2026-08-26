@@ -75,10 +75,12 @@ $all_filters_url = remove_query_arg(
 $has_filters =
     $current_topic !== "" || $current_sphere !== "" || $current_author > 0 || $current_search !== "";
 
+$articles_per_page = (int) reci_setting('content_articles_per_page', 12);
+
 $query_args = [
     "post_type" => "post",
     "post_status" => "publish",
-    "posts_per_page" => 12,
+    "posts_per_page" => $articles_per_page,
     "paged" => max(
         1,
         (int) get_query_var("paged"),

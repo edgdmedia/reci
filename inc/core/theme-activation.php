@@ -19,6 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 function reci_theme_activation_setup(): void {
 	// Pages to create: slug => [title, template path].
 	$pages = [
+		// Core site shell
+		'articles'                 => [ 'Articles',            '' ],
+		'learn'                    => [ 'Learn',               'templates/page/template-learn.php' ],
+		'framework'                => [ 'The Six Spheres of RECI', 'templates/page/template-spheres.php' ],
+		'glossary'                 => [ 'Glossary',            'templates/page/template-glossary.php' ],
+
 		// Auth
 		'sign-in'                  => [ 'Sign In',             'templates/page/template-sign-in.php' ],
 		'sign-up'                  => [ 'Sign Up',             'templates/page/template-sign-up.php' ],
@@ -52,6 +58,11 @@ function reci_theme_activation_setup(): void {
 
 		// Dashboard
 		'dashboard'          => [ 'Dashboard',           'templates/page/dashboard/template-dashboard.php' ],
+
+		// Utility / legal
+		'privacy-policy'           => [ 'Privacy Policy',      '' ],
+		'terms-of-use'             => [ 'Terms of Use',        '' ],
+		'cookies'                  => [ 'Cookies',             '' ],
 	];
 
 	// Homepage — create and set as the static front page.
@@ -67,6 +78,9 @@ function reci_theme_activation_setup(): void {
 		$id = reci_ensure_page( $slug, $title, $template );
 		if ( $id ) {
 			$page_ids[ $slug ] = $id;
+			if ( 'articles' === $slug ) {
+				update_option( 'page_for_posts', $id );
+			}
 		}
 	}
 

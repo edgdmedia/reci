@@ -21,7 +21,7 @@ if (! class_exists('RECI_Content_Feed')) {
         public static function query(array $query_args = [], array $format_args = []): array {
             $defaults = [
                 'image_size'                => 'large',
-                'fallback_image'            => 'https://placehold.co/460x232',
+                'fallback_image'            => function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/460x232') : 'https://placehold.co/460x232',
                 'excerpt_words'             => 22,
                 'tag_limit'                 => 3,
                 'date_format'               => 'd M Y',

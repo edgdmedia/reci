@@ -14,6 +14,7 @@ the_post();
 
 $post_id  = get_the_ID();
 $display_author = reci_media_hub_get_display_author($post_id);
+$shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/400x225') : 'https://placehold.co/400x225';
 
 // Meta.
 $video_url      = (string) get_post_meta($post_id, '_reci_video_url', true);
@@ -22,7 +23,7 @@ $external_id    = (string) get_post_meta($post_id, '_reci_video_external_id', tr
 $duration_label = (string) get_post_meta($post_id, '_reci_video_duration_label', true);
 
 $thumb_id  = get_post_thumbnail_id($post_id);
-$image_url = get_the_post_thumbnail_url($post_id, 'large') ?: '';
+$image_url = get_the_post_thumbnail_url($post_id, 'large') ?: $shared_fallback_image;
 $image_alt = $thumb_id ? ((string) get_post_meta($thumb_id, '_wp_attachment_image_alt', true) ?: get_the_title()) : get_the_title();
 
 $excerpt = has_excerpt() ? get_the_excerpt() : wp_trim_words(wp_strip_all_tags(get_the_content()), 30, '...');
@@ -91,7 +92,7 @@ foreach ($related_query->posts as $rel_post) {
 		'title'      => get_the_title($rel_id),
 		'link_url'   => get_permalink($rel_id),
 		'tags'       => $rel_tags,
-		'image_url'  => get_the_post_thumbnail_url($rel_id, 'medium') ?: 'https://placehold.co/400x225',
+		'image_url'  => get_the_post_thumbnail_url($rel_id, 'medium') ?: $shared_fallback_image,
 		'image_alt'  => $rel_thumb_id ? ((string) get_post_meta($rel_thumb_id, '_wp_attachment_image_alt', true) ?: get_the_title($rel_id)) : get_the_title($rel_id),
 	];
 }

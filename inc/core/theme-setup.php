@@ -224,6 +224,36 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_assets');
 
+/**
+ * Output theme color CSS custom properties from settings.
+ */
+function reci_theme_color_variables(): void {
+	$primary = reci_setting('branding_primary_color', '#003594');
+	$accent  = reci_setting('branding_accent_color', '#FFB81C');
+
+	printf(
+		'<style>:root{--reci-primary:%s;--reci-accent:%s;}</style>' . "\n",
+		esc_attr($primary),
+		esc_attr($accent)
+	);
+}
+add_action('wp_head', 'reci_theme_color_variables', 2);
+
+/**
+ * Resolve the global fallback thumbnail URL from theme settings.
+ */
+function reci_get_fallback_thumbnail_url(string $size = 'full', string $default = ''): string {
+	$fallback_id = (int) reci_setting('content_fallback_thumbnail', 0);
+	if ($fallback_id > 0) {
+		$fallback_url = wp_get_attachment_image_url($fallback_id, $size);
+		if ($fallback_url) {
+			return $fallback_url;
+		}
+	}
+
+	return $default;
+}
+
 if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
 	function reci_media_hub_enqueue_reflection_renderer(): void
 	{

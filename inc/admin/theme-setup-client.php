@@ -11,6 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 add_action( 'admin_menu', 'reci_register_client_setup_page' );
 add_action( 'wp_ajax_reci_client_setup_start_import', 'reci_client_setup_start_import' );
+add_action( 'admin_post_reci_setup_plugin_action', 'reci_handle_setup_plugin_action' );
 
 function reci_register_client_setup_page(): void {
 	add_submenu_page(
@@ -25,12 +26,36 @@ function reci_register_client_setup_page(): void {
 
 function reci_required_plugins(): array {
 	return [
-		'classic-editor'                    => 'Classic Editor',
-		'ewww-image-optimizer'             => 'EWWW Image Optimizer',
-		'really-simple-ssl'                => 'Really Simple Security',
-		'all-in-one-wp-security-and-firewall' => 'All-in-One WP Security',
-		'wordpress-seo'                    => 'Yoast SEO',
-		'wp-super-cache'                   => 'WP Super Cache',
+		'classic-editor' => [
+			'label'       => 'Classic Editor',
+			'tier'        => 'required',
+			'description' => 'Keeps the editorial experience aligned with the templates and content workflows used by this theme.',
+		],
+		'ewww-image-optimizer' => [
+			'label'       => 'EWWW Image Optimizer',
+			'tier'        => 'required',
+			'description' => 'Optimizes uploaded images so the media-heavy homepage and archive pages stay fast.',
+		],
+		'wordpress-seo' => [
+			'label'       => 'Yoast SEO',
+			'tier'        => 'required',
+			'description' => 'Provides SEO metadata and search preview support expected for published site content.',
+		],
+		'wp-super-cache' => [
+			'label'       => 'WP Super Cache',
+			'tier'        => 'recommended',
+			'description' => 'Improves frontend performance once the site is launched and content is stable.',
+		],
+		'really-simple-ssl' => [
+			'label'       => 'Really Simple Security',
+			'tier'        => 'recommended',
+			'description' => 'Helps harden SSL and security settings, but may depend on hosting and deployment choices.',
+		],
+		'all-in-one-wp-security-and-firewall' => [
+			'label'       => 'All-in-One WP Security',
+			'tier'        => 'recommended',
+			'description' => 'Adds security controls and firewall tooling, best reviewed before enabling in production.',
+		],
 	];
 }
 
@@ -38,7 +63,7 @@ function reci_plugin_status_map(): array {
 	include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 	$statuses = [];
-	foreach ( reci_required_plugins() as $slug => $label ) {
+	foreach ( reci_required_plugins() as $slug => $plugin ) {
 		$plugin_file = null;
 		foreach ( array_keys( get_plugins() ) as $file ) {
 			if ( 0 === strpos( $file, $slug . '/' ) ) {
@@ -48,7 +73,9 @@ function reci_plugin_status_map(): array {
 		}
 
 		$statuses[ $slug ] = [
-			'label'     => $label,
+			'label'     => $plugin['label'],
+			'tier'      => $plugin['tier'],
+			'description' => $plugin['description'],
 			'installed' => null !== $plugin_file,
 			'active'    => $plugin_file ? is_plugin_active( $plugin_file ) : false,
 			'file'      => $plugin_file,
@@ -58,8 +85,91 @@ function reci_plugin_status_map(): array {
 	return $statuses;
 }
 
+function reci_handle_setup_plugin_action(): void {
+	if ( ! current_user_can( 'install_plugins' ) ) {
+		wp_die( esc_html__( 'Unauthorized.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_setup_plugin_action' );
+
+	$slug   = sanitize_key( wp_unslash( $_REQUEST['plugin'] ?? '' ) );
+	$action = sanitize_key( wp_unslash( $_REQUEST['plugin_action'] ?? '' ) );
+	$plugins = reci_required_plugins();
+
+	if ( '' === $slug || ! isset( $plugins[ $slug ] ) ) {
+		wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=invalid' ) );
+		exit;
+	}
+
+	include_once ABSPATH . 'wp-admin/includes/plugin.php';
+	include_once ABSPATH . 'wp-admin/includes/file.php';
+	include_once ABSPATH . 'wp-admin/includes/misc.php';
+	include_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+
+	$plugin_file = null;
+	foreach ( array_keys( get_plugins() ) as $file ) {
+		if ( 0 === strpos( $file, $slug . '/' ) ) {
+			$plugin_file = $file;
+			break;
+		}
+	}
+
+	if ( 'install' === $action && null === $plugin_file ) {
+		$api = plugins_api( 'plugin_information', [ 'slug' => $slug, 'fields' => [ 'sections' => false ] ] );
+		if ( is_wp_error( $api ) ) {
+			wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=install_failed' ) );
+			exit;
+		}
+
+		$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+		$result   = $upgrader->install( $api->download_link );
+		if ( is_wp_error( $result ) || ! $result ) {
+			wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=install_failed' ) );
+			exit;
+		}
+
+		foreach ( array_keys( get_plugins() ) as $file ) {
+			if ( 0 === strpos( $file, $slug . '/' ) ) {
+				$plugin_file = $file;
+				break;
+			}
+		}
+	}
+
+	if ( 'activate' === $action && $plugin_file ) {
+		activate_plugin( $plugin_file );
+	}
+
+	wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=updated' ) );
+	exit;
+}
+
+function reci_setup_page_status_map(): array {
+	$pages = [
+		'sign-in'               => __( 'Sign In', 'reci-media-hub' ),
+		'sign-up'               => __( 'Sign Up', 'reci-media-hub' ),
+		'become-a-collaborator' => __( 'Become a Collaborator', 'reci-media-hub' ),
+		'community'             => __( 'Community', 'reci-media-hub' ),
+		'submit'                => __( 'Submit Content', 'reci-media-hub' ),
+		'dashboard'             => __( 'Dashboard', 'reci-media-hub' ),
+	];
+
+	$statuses = [];
+	foreach ( $pages as $slug => $label ) {
+		$page = get_page_by_path( $slug, OBJECT, 'page' );
+		$statuses[ $slug ] = [
+			'label'   => $label,
+			'exists'  => $page instanceof WP_Post,
+			'url'     => $page instanceof WP_Post ? ( get_permalink( $page ) ?: '' ) : '',
+		];
+	}
+
+	return $statuses;
+}
+
 function reci_render_client_setup_page(): void {
 	$plugin_statuses = reci_plugin_status_map();
+	$page_statuses   = reci_setup_page_status_map();
 	$remote_manifest = function_exists( 'reci_fetch_remote_demo_manifest' ) ? reci_fetch_remote_demo_manifest() : [];
 	$content_sets    = function_exists( 'reci_remote_demo_content_sets' ) ? reci_remote_demo_content_sets() : [];
 	$job_state       = function_exists( 'reci_demo_get_job' ) ? reci_demo_present_job_state( reci_demo_get_job() ) : [];
@@ -68,15 +178,54 @@ function reci_render_client_setup_page(): void {
 		<h1><?php esc_html_e( 'RECI Theme Setup', 'reci-media-hub' ); ?></h1>
 		<p><?php esc_html_e( 'Use this guided setup to install required plugins, import demo content, and configure the theme.', 'reci-media-hub' ); ?></p>
 
-		<h2><?php esc_html_e( 'Required Plugins', 'reci-media-hub' ); ?></h2>
+		<h2><?php esc_html_e( 'Plugin Setup', 'reci-media-hub' ); ?></h2>
+		<p><?php esc_html_e( 'Required plugins support the editorial and content experience. Recommended plugins improve performance or security, but may need environment-specific review.', 'reci-media-hub' ); ?></p>
 		<ul>
-			<?php foreach ( $plugin_statuses as $status ) : ?>
+			<?php foreach ( $plugin_statuses as $slug => $status ) : ?>
 				<li>
 					<strong><?php echo esc_html( $status['label'] ); ?></strong>
+					(<?php echo esc_html( ucfirst( $status['tier'] ) ); ?>)
 					- <?php echo $status['active'] ? esc_html__( 'Active', 'reci-media-hub' ) : ( $status['installed'] ? esc_html__( 'Installed, inactive', 'reci-media-hub' ) : esc_html__( 'Not installed', 'reci-media-hub' ) ); ?>
+					<?php if ( ! empty( $status['description'] ) ) : ?>
+						<br><span class="description"><?php echo esc_html( $status['description'] ); ?></span>
+					<?php endif; ?>
+					<?php if ( ! $status['installed'] ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block; margin-left:8px;">
+							<?php wp_nonce_field( 'reci_setup_plugin_action' ); ?>
+							<input type="hidden" name="action" value="reci_setup_plugin_action">
+							<input type="hidden" name="plugin" value="<?php echo esc_attr( $slug ); ?>">
+							<input type="hidden" name="plugin_action" value="install">
+							<button type="submit" class="button button-secondary"><?php esc_html_e( 'Install', 'reci-media-hub' ); ?></button>
+						</form>
+					<?php elseif ( ! $status['active'] ) : ?>
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline-block; margin-left:8px;">
+							<?php wp_nonce_field( 'reci_setup_plugin_action' ); ?>
+							<input type="hidden" name="action" value="reci_setup_plugin_action">
+							<input type="hidden" name="plugin" value="<?php echo esc_attr( $slug ); ?>">
+							<input type="hidden" name="plugin_action" value="activate">
+							<button type="submit" class="button button-secondary"><?php esc_html_e( 'Activate', 'reci-media-hub' ); ?></button>
+						</form>
+					<?php endif; ?>
 				</li>
 			<?php endforeach; ?>
 		</ul>
+
+		<h2><?php esc_html_e( 'Page & Route Checklist', 'reci-media-hub' ); ?></h2>
+		<ul>
+			<?php foreach ( $page_statuses as $status ) : ?>
+				<li>
+					<strong><?php echo esc_html( $status['label'] ); ?></strong>
+					- <?php echo $status['exists'] ? esc_html__( 'Page exists', 'reci-media-hub' ) : esc_html__( 'Missing', 'reci-media-hub' ); ?>
+					<?php if ( ! empty( $status['url'] ) ) : ?>
+						( <a href="<?php echo esc_url( $status['url'] ); ?>" target="_blank" rel="noopener noreferrer"><?php echo esc_html( $status['url'] ); ?></a> )
+					<?php endif; ?>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+
+		<div class="notice notice-warning inline-block" style="padding:12px 16px; margin:12px 0 24px;">
+			<p style="margin:0;"><strong><?php esc_html_e( 'Permalinks:', 'reci-media-hub' ); ?></strong> <?php esc_html_e( 'After activation or major route changes, visit Settings > Permalinks and click Save Changes once if dashboard, collaborator, auth, or community routes do not resolve correctly.', 'reci-media-hub' ); ?></p>
+		</div>
 
 		<h2><?php esc_html_e( 'Demo Content', 'reci-media-hub' ); ?></h2>
 		<?php if ( ! empty( $remote_manifest ) ) : ?>

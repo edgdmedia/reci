@@ -11,9 +11,10 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
-$placeholder_image_large  = 'https://placehold.co/1200x700';
-$placeholder_image_medium = 'https://placehold.co/710x700';
-$placeholder_image_card   = 'https://placehold.co/460x232';
+$shared_fallback_image    = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/1200x700') : 'https://placehold.co/1200x700';
+$placeholder_image_large  = $shared_fallback_image;
+$placeholder_image_medium = $shared_fallback_image;
+$placeholder_image_card   = $shared_fallback_image;
 $placeholder_avatar       = 'https://placehold.co/60x60';
 $today_background_image   = 'https://placehold.co/1440x750';
 $icons_url                = get_template_directory_uri() . '/assets/icons/';
@@ -57,6 +58,9 @@ $hero_feature_item = $default_article_item;
 $hero_feature_id   = 0;
 $hero_sidebar_ids  = [];
 $featured_method = (string) reci_setting('hp_featured_method', 'latest');
+$today_limit     = (int) reci_setting('hp_today_count', 4);
+$quotes_limit    = (int) reci_setting('hp_quotes_count', 4);
+$community_limit = (int) reci_setting('hp_community_count', 4);
 $hero_feed_items = RECI_Content_Feed::query(
 	[
 		'post_type'      => ['post', 'reci_podcast', 'reci_video'],
@@ -142,7 +146,7 @@ $today_posts = RECI_Post_Query_Service::get_posts(
 	[
 		'post_type'      => 'reci_event',
 		'post_status'    => 'publish',
-		'posts_per_page' => 4,
+		'posts_per_page' => $today_limit,
 		'meta_key'       => '_reci_event_start_date',
 		'orderby'        => 'meta_value',
 		'order'          => 'ASC',
@@ -361,7 +365,7 @@ $quote_posts = RECI_Post_Query_Service::get_posts(
 	[
 		'post_type'      => 'reci_quote',
 		'post_status'    => 'publish',
-		'posts_per_page' => 4,
+		'posts_per_page' => $quotes_limit,
 		'orderby'        => 'date',
 		'order'          => 'DESC',
 	]
@@ -375,7 +379,7 @@ if (! empty($quote_posts)) {
 		$text       = $quote_text ?: wp_trim_words(wp_strip_all_tags($post->post_content), 38, '...');
 		$name       = $author['name'] ?: get_the_title($post_id);
 
-		if (count($quote_items) < 4) {
+		if (count($quote_items) < $quotes_limit) {
 			$quote_items[] = [
 				'quote'        => $text,
 				'author'       => '– By ' . $name,
@@ -393,7 +397,7 @@ $testimonial_posts = RECI_Post_Query_Service::get_posts(
 	[
 		'post_type'      => 'reci_testimonial',
 		'post_status'    => 'publish',
-		'posts_per_page' => 4,
+		'posts_per_page' => $community_limit,
 		'orderby'        => 'rand',
 	]
 );

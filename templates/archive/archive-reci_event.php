@@ -30,7 +30,7 @@ $base_url        = $base_url ?: home_url('/events/');
 $all_filters_url = remove_query_arg(['location', 'search', 'paged'], $base_url);
 $has_filters     = ($current_location !== '') || ($current_search !== '');
 
-$placeholder_image = 'https://placehold.co/800x500/EEE/999?text=Event';
+$placeholder_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/800x500/EEE/999?text=Event') : 'https://placehold.co/800x500/EEE/999?text=Event';
 
 $listing_config = [
 	'post_type'                => 'reci_event',

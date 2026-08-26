@@ -38,10 +38,13 @@ $base_url        = $base_url ?: home_url('/videos/');
 $all_filters_url = remove_query_arg(['topic', 'sphere', 'search', 'paged'], $base_url);
 $has_filters     = ($current_topic !== '') || ($current_sphere !== '') || ($current_search !== '');
 
+
+$videos_per_page = (int) reci_setting('content_videos_per_page', 9);
+
 $query_args = [
 	'post_type'      => 'reci_video',
 	'post_status'    => 'publish',
-	'posts_per_page' => 9,
+	'posts_per_page' => $videos_per_page,
 	'paged'          => max(1, (int) get_query_var('paged'), (int) get_query_var('page')),
 	'orderby'        => 'date',
 	'order'          => 'DESC',

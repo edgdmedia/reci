@@ -152,7 +152,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 					'item_wrapper_class'     => '',
 					'divider_class'          => '',
 					'empty_message'          => '',
-					'fallback_image'         => 'https://placehold.co/460x232',
+					'fallback_image'         => function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/460x232') : 'https://placehold.co/460x232',
 					'button_label'           => 'Start quiz',
 					'enable_pagination'      => '0',
 					'pagination_param'       => 'paged',
@@ -240,7 +240,7 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'divider_class'            => '',
 				'empty_message'            => '',
 				'item_overrides'           => [],
-				'fallback_image'           => 'https://placehold.co/460x232',
+				'fallback_image'           => function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/460x232') : 'https://placehold.co/460x232',
 				'button_label'             => 'Start quiz',
 			];
 
