@@ -1,0 +1,70 @@
+{
+  "manifest_version": 1,
+  "demo_version": "2026-08-26",
+  "theme_compatibility": {
+    "min": "0.4.8",
+    "max": "0.5.x"
+  },
+  "content_sets": [
+    {
+      "id": "starter",
+      "label": "Starter Demo Content",
+      "description": "Remote-backed starter demo import with local content datasets and remote image assets.",
+      "groups": [
+        "reci_demo_taxonomies",
+        "reci_demo_images_reflections",
+        "reci_demo_images_articles",
+        "reci_demo_images_events",
+        "reci_demo_images_courses",
+        "reci_demo_images_podcasts",
+        "reci_demo_images_videos",
+        "reci_demo_images_quizzes",
+        "reci_demo_images_partners",
+        "post",
+        "reci_podcast",
+        "reci_video",
+        "reci_event",
+        "reci_reflection",
+        "reci_quote",
+        "reci_assessment",
+        "reci_course",
+        "reci_team",
+        "reci_testimonial",
+        "reci_glossary_term",
+        "reci_author",
+        "reci_partner",
+        "reci_page"
+      ]
+    }
+  ],
+  "groups": {
+    "reci_demo_images_reflections": {
+      "label": "Reflection Images",
+      "description": "Remote reflection gallery media.",
+      "assets": [
+        {
+          "path": "site/reflections/we-humans/students-1959.webp",
+          "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/students-1959.webp"
+        }
+      ]
+    },
+    "reci_demo_images_articles": {
+      "label": "Article Images",
+      "assets": [
+        {
+          "path": "site/articles/example-article-image.webp",
+          "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/example-article-image.webp"
+        }
+      ]
+    },
+    "reci_demo_images_events": {
+      "label": "Event Images",
+      "assets": [
+        {
+          "path": "site/events/example-event-image.webp",
+          "url": "https://github.com/edgdmedia/reci/releases/download/demo-assets-v1/example-event-image.webp"
+        }
+      ]
+    }
+  }
+}

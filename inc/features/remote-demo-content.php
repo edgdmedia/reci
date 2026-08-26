@@ -96,3 +96,17 @@ function reci_remote_demo_content_groups( string $content_set_id ): array {
 
 	return array_values( array_unique( array_filter( array_map( 'sanitize_key', $groups ) ) ) );
 }
+
+function reci_remote_demo_group_definitions(): array {
+	$manifest = reci_fetch_remote_demo_manifest();
+	$groups   = $manifest['groups'] ?? [];
+
+	return is_array( $groups ) ? $groups : [];
+}
+
+function reci_remote_demo_group_definition( string $group_id ): array {
+	$definitions = reci_remote_demo_group_definitions();
+	$group       = $definitions[ $group_id ] ?? [];
+
+	return is_array( $group ) ? $group : [];
+}
