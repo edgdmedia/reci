@@ -13,6 +13,7 @@ return [
 		'donate'          => [ 'title' => 'Donate', 'template' => 'templates/page/template-donate.php' ],
 		'sign-in'         => [ 'title' => 'Sign In', 'template' => 'templates/page/template-sign-in.php' ],
 		'sign-up'         => [ 'title' => 'Sign Up', 'template' => 'templates/page/template-sign-up.php' ],
+		'become-a-collaborator' => [ 'title' => 'Become a Collaborator', 'template' => 'templates/page/template-become-a-collaborator.php' ],
 		'forgot-password' => [ 'title' => 'Forgot Password', 'template' => 'templates/page/template-forgot-password.php' ],
 		'reset-password'  => [ 'title' => 'Reset Password',  'template' => 'templates/page/template-reset-password.php' ],
 		'verify-email'    => [ 'title' => 'Verify Email',    'template' => 'templates/page/template-verify-email.php' ],

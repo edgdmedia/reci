@@ -22,6 +22,7 @@ function reci_theme_activation_setup(): void {
 		// Auth
 		'sign-in'                  => [ 'Sign In',             'templates/page/template-sign-in.php' ],
 		'sign-up'                  => [ 'Sign Up',             'templates/page/template-sign-up.php' ],
+		'become-a-collaborator'    => [ 'Become a Collaborator', 'templates/page/template-become-a-collaborator.php' ],
 		'forgot-password'          => [ 'Forgot Password',     'templates/page/template-forgot-password.php' ],
 		'reset-password'           => [ 'Reset Password',      'templates/page/template-reset-password.php' ],
 		'verify-email'             => [ 'Verify Email',        'templates/page/template-verify-email.php' ],
@@ -40,6 +41,7 @@ function reci_theme_activation_setup(): void {
 		// Community / organisation
 		'locations'          => [ 'Locations',   'templates/page/template-location-archive.php' ],
 		'about'              => [ 'About',        'templates/page/template-about.php' ],
+		'community'          => [ 'Community',    'templates/page/template-community.php' ],
 
 		// Support / fundraising
 		'donate'             => [ 'Donate',              'templates/page/template-donate.php' ],

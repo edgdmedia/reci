@@ -403,6 +403,24 @@
     const promptText = promptTextNode ? promptTextNode.textContent.replace(/^Prompt:\s*/, '').trim() : '';
     if (!responseList) return;
 
+    const isLoggedIn = Boolean(config.isLoggedIn || Number(config.currentUserId || 0) > 0);
+
+    if (gate) {
+      gate.style.display = isLoggedIn ? 'none' : 'block';
+    }
+
+    if (formShell) {
+      formShell.style.opacity = isLoggedIn ? '1' : '0.6';
+    }
+
+    if (responseInput) {
+      responseInput.disabled = !isLoggedIn;
+    }
+
+    if (saveButton) {
+      saveButton.disabled = !isLoggedIn;
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll('&', '&amp;')
@@ -413,7 +431,7 @@
     }
 
     async function loadResponses() {
-      if (!config.isLoggedIn || !config.restUrl || !config.reflectionId) {
+      if (!isLoggedIn || !config.restUrl || !config.reflectionId) {
         responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">Log in to save and review your reflections.</div>';
         return;
       }
@@ -438,11 +456,15 @@
       `).join('');
     }
 
-    if (!config.isLoggedIn) {
-      if (gate) gate.style.display = 'block';
-    }
-
     saveButton?.addEventListener('click', async () => {
+      if (!isLoggedIn) {
+        if (status) {
+          status.textContent = 'Log in to save your reflection.';
+          status.style.display = 'block';
+        }
+        return;
+      }
+
       const response = (responseInput?.value || '').trim();
       if (!response || !config.restUrl) {
         if (status) {

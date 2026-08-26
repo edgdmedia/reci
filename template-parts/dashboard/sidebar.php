@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $current_user = wp_get_current_user();
 $current_page = get_query_var( 'dashboard_page', '' );
-$is_author    = current_user_can( 'edit_posts' );
+$is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator( $current_user->ID );
 ?>
 
 <aside class="dashboard-sidebar w-full lg:w-60 shrink-0 bg-white border-r border-zinc-200 lg:min-h-screen <?php echo empty($args['mobile']) ? 'hidden lg:block' : ''; ?>">
@@ -27,7 +27,7 @@ $is_author    = current_user_can( 'edit_posts' );
 
 			<?php if ( $is_author ) : ?>
 			<li class="pt-3">
-				<p class="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Author</p>
+				<p class="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Collaborator</p>
 			</li>
 			<li>
 				<a href="<?php echo esc_url( home_url( '/dashboard/my-content/' ) ); ?>"

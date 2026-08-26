@@ -1,6 +1,6 @@
 <?php
 /**
- * Archive for Author Profiles (reci_author).
+ * Archive for Collaborators (reci_author).
  *
  * @package reci-media-hub
  */
@@ -9,11 +9,11 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
-$page_title    = 'Authors';
+$page_title    = 'Collaborators';
 $page_subtitle = 'Meet the voices behind RECI — researchers, practitioners, and community leaders advancing equity and justice.';
 
 $current_search = isset($_GET['search']) ? sanitize_text_field((string) wp_unslash($_GET['search'])) : '';
-$base_url       = get_post_type_archive_link('reci_author') ?: home_url('/authors/');
+$base_url       = get_post_type_archive_link('reci_author') ?: home_url('/collaborators/');
 $all_filters_url = remove_query_arg(['search', 'paged'], $base_url);
 $has_filters    = $current_search !== '';
 
@@ -53,8 +53,8 @@ get_header();
 						<svg class="w-4 h-4 flex-shrink-0 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
 						</svg>
-						<label for="author-search" class="sr-only">Search authors</label>
-						<input id="author-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search Authors" class="archive-filter-search-input" />
+						<label for="author-search" class="sr-only">Search collaborators</label>
+						<input id="author-search" type="search" name="search" value="<?php echo esc_attr($current_search); ?>" placeholder="Search Collaborators" class="archive-filter-search-input" />
 					</div>
 					<?php if ($has_filters) : ?>
 						<a href="<?php echo esc_url($all_filters_url); ?>" class="px-4 py-3 text-sm font-medium text-neutral-700 hover:text-neutral-900">Reset</a>
@@ -102,7 +102,7 @@ get_header();
 				?>
 			</div>
 		<?php else : ?>
-			<p class="self-stretch text-center text-neutral-500 text-lg py-20"><?php esc_html_e('No authors found.', 'reci-media-hub'); ?></p>
+			<p class="self-stretch text-center text-neutral-500 text-lg py-20"><?php esc_html_e('No collaborators found.', 'reci-media-hub'); ?></p>
 		<?php endif; ?>
 	</section>
 </main>

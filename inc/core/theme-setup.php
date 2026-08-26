@@ -38,6 +38,15 @@ if (! function_exists('reci_media_hub_setup')) {
 
 add_action('after_setup_theme', 'reci_media_hub_setup');
 
+/**
+ * Output favicon link tag.
+ */
+function reci_media_hub_favicon(): void {
+	$favicon = get_template_directory_uri() . '/favicon.png';
+	printf('<link rel="icon" type="image/png" href="%s">' . "\n", esc_url($favicon));
+}
+add_action('wp_head', 'reci_media_hub_favicon', 1);
+
 if (! function_exists('reci_media_hub_enqueue_assets')) {
 	function reci_media_hub_enqueue_assets(): void
 	{
@@ -88,7 +97,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						'progressEndpoint' => esc_url_raw(rest_url('reci/v1/assessment-progress')),
 						'restNonce'        => wp_create_nonce('wp_rest'),
 						'loginUrl'         => esc_url_raw(wp_login_url(get_permalink())),
-						'registerUrl'      => esc_url_raw(wp_registration_url()),
+						'registerUrl'      => esc_url_raw(reci_get_sign_up_url()),
 						'currentUser'      => [
 							'isLoggedIn' => is_user_logged_in(),
 							'name'       => is_user_logged_in() ? $current_user->display_name : '',
@@ -397,7 +406,7 @@ if (! function_exists('reci_media_hub_enqueue_reflection_stage_styles')) {
 	display: grid;
 	gap: 1.5rem;
 }
-.reci-scroll-panel {
+: {
 	max-height: min(72vh, 820px);
 	overflow-y: auto;
 	padding-right: 0.5rem;

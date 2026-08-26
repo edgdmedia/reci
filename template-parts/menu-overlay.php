@@ -161,8 +161,8 @@ $authors = array_slice(reci_media_hub_get_author_profile_options(true), 0, 10);
 				<a href="<?php echo esc_url(get_post_type_archive_link('reci_course') ?: home_url('/courses/')); ?>" class="block pr-5 py-1 rounded-xl group">
 					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Learn</span>
 				</a>
-				<a href="<?php echo esc_url(get_post_type_archive_link('reci_author') ?: home_url('/authors/')); ?>" class="block pr-5 py-1 rounded-xl group">
-					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Authors</span>
+				<a href="<?php echo esc_url(get_post_type_archive_link('reci_author') ?: home_url('/collaborators/')); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Collaborators</span>
 				</a>
 			</nav>
 

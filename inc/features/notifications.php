@@ -149,6 +149,27 @@ function reci_get_interested_user_ids_for_post( int $post_id ): array {
 		}
 	}
 
+	if ( function_exists( 'reci_media_hub_get_display_author' ) && function_exists( 'reci_get_user_followed_collaborator_ids' ) ) {
+		$display_author = reci_media_hub_get_display_author( $post_id );
+		$profile_id     = absint( $display_author['profile_id'] ?? 0 );
+
+		if ( $profile_id > 0 ) {
+			$users = get_users(
+				[
+					'meta_key' => 'reci_followed_collaborators',
+					'fields'   => 'ID',
+				]
+			);
+
+			foreach ( $users as $user_id ) {
+				$saved = reci_get_user_followed_collaborator_ids( (int) $user_id );
+				if ( in_array( $profile_id, $saved, true ) ) {
+					$matching_user_ids[] = (int) $user_id;
+				}
+			}
+		}
+	}
+
 	return array_values( array_unique( $matching_user_ids ) );
 }
 
@@ -176,7 +197,7 @@ function reci_notify_interested_users_about_post( int $post_id ): void {
 			$post_id
 		);
 
-		if ( '1' === get_user_meta( $user_id, 'reci_notify_personalized_content', true ) ) {
+		if ( '1' === get_user_meta( $user_id, 'reci_notify_personalized_content', true ) || '1' === get_user_meta( $user_id, 'reci_notify_followed_collaborators', true ) ) {
 			$user = get_user_by( 'id', $user_id );
 			if ( $user && ! empty( $user->user_email ) ) {
 				wp_mail(
@@ -222,7 +243,7 @@ function reci_maybe_notify_users_about_published_content( string $new_status, st
 		return;
 	}
 
-	$allowed_post_types = [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection' ];
+	$allowed_post_types = [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ];
 	if ( ! in_array( $post->post_type, $allowed_post_types, true ) ) {
 		return;
 	}

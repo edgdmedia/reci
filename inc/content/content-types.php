@@ -91,10 +91,17 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 				'menu_position' => 29,
 			],
 			'reci_author'     => [
-				'singular'      => 'Author Profile',
-				'plural'        => 'Author Profiles',
-				'slug'          => 'authors',
+				'singular'      => 'Collaborator',
+				'plural'        => 'Collaborators',
+				'slug'          => 'collaborators',
 				'menu_icon'     => 'dashicons-admin-users',
+				'menu_position' => 30,
+			],
+			'reci_document'   => [
+				'singular'      => 'Resource',
+				'plural'        => 'Resources',
+				'slug'          => 'documents',
+				'menu_icon'     => 'dashicons-media-document',
 				'menu_position' => 30,
 			],
 			'reci_partner'    => [
@@ -124,6 +131,9 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 			$supports = ['title', 'editor', 'excerpt', 'thumbnail', 'author', 'revisions'];
 			if ($post_type === 'reci_author') {
 				$supports = ['title', 'editor', 'excerpt', 'thumbnail', 'revisions'];
+			}
+			if ($post_type === 'reci_document') {
+				$supports = ['title', 'editor', 'excerpt', 'thumbnail', 'author', 'revisions'];
 			}
 			if ($post_type === 'reci_reflection') {
 				$supports = ['title', 'excerpt', 'thumbnail', 'author', 'revisions'];

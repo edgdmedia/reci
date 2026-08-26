@@ -37,6 +37,19 @@ function reci_get_auth_page_url( string $slug ): string {
 	return $id ? ( get_permalink( $id ) ?: '' ) : '';
 }
 
+/**
+ * Canonical sign-up URL for visible UI links.
+ */
+function reci_get_sign_up_url(): string {
+	$custom = reci_get_auth_page_url( 'sign-up' );
+	if ( '' !== $custom ) {
+		return $custom;
+	}
+
+	$fallback = home_url( '/sign-up/' );
+	return is_string( $fallback ) && '' !== $fallback ? $fallback : wp_registration_url();
+}
+
 // ── URL filters ───────────────────────────────────────────────────────────────
 
 /**
@@ -134,7 +147,7 @@ add_action( 'login_init', function (): void {
 
 // ── Redirect failed logins back to custom sign-in page ───────────────────────
 
-add_action( 'wp_login_failed', function ( string $username, \WP_Error $error = null ): void {
+add_action( 'wp_login_failed', function ( string $username, ?\WP_Error $error = null ): void {
 	$sign_in = reci_get_auth_page_url( 'sign-in' );
 	if ( ! $sign_in ) {
 		return;

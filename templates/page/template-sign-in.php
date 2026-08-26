@@ -196,7 +196,7 @@ get_header();
 						<?php echo esc_html__( "Don't have an account yet? ", 'reci-media-hub' ); ?>
 					</span>
 					<a
-						href="<?php echo esc_url( wp_registration_url() ); ?>"
+						href="<?php echo esc_url( reci_get_sign_up_url() ); ?>"
 						class="text-neutral-800 font-bold hover:text-[#003594] transition-colors"
 					>
 						<?php echo esc_html__( 'Join RECI', 'reci-media-hub' ); ?>

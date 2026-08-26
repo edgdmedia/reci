@@ -691,6 +691,10 @@ get_header();
 		'enabled'      => true,
 		'show_join'    => true,
 		'show_pulse'   => true,
+		'join_tag'     => __('Community', 'reci-media-hub'),
+		'join_title'   => __('See what RECI Community makes possible, and learn how to join or contribute', 'reci-media-hub'),
+		'join_cta_label' => __('Go to Community', 'reci-media-hub'),
+		'join_cta_url' => home_url('/community/'),
 		'pulse_slides' => $community_slides,
 	]); ?>
 </main>

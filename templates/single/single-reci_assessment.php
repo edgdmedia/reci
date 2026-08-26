@@ -538,8 +538,8 @@ if (!empty($sdgs) && !is_wp_error($sdgs)) : ?>
                "Sign In",
                "reci-media-hub",
            ); ?></a>
-							<a href="<?php echo esc_url(
-               wp_registration_url(),
+						<a href="<?php echo esc_url(
+               reci_get_sign_up_url(),
            ); ?>" class="text-center text-zinc-400 hover:text-white underline underline-offset-2 transition-colors text-xs"><?php esc_html_e(
                "Create an Account",
                "reci-media-hub",

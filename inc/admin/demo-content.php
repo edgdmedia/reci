@@ -63,7 +63,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_team'      => [ 'label' => 'Team',         'count' => 3 ],
 			'reci_testimonial'    => [ 'label' => 'Testimonials',     'count' => 6 ],
 			'reci_glossary_term' => [ 'label' => 'Glossary Terms',  'count' => 42 ],
-			'reci_author'        => [ 'label' => 'Author Profiles', 'count' => 1 ],
+			'reci_author'        => [ 'label' => 'Collaborators', 'count' => 1 ],
 			'reci_partner'       => [ 'label' => 'Partners',        'count' => 7 ],
 			'reci_page'          => [ 'label' => 'Core Pages',      'count' => 18 ],
 		];
@@ -1574,6 +1574,50 @@ function reci_demo_ensure_author_profile( array $data ): int {
 	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
 
 	return (int) $post_id;
+}
+
+function reci_demo_insert_sample_collaborator_application(): void {
+	if ( ! function_exists( 'reci_get_collaborator_application_post_type' ) ) {
+		return;
+	}
+
+	$post_type = reci_get_collaborator_application_post_type();
+	$slug      = 'sample-collaborator-application';
+	$existing  = get_page_by_path( $slug, OBJECT, $post_type );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_id = wp_insert_post([
+		'post_type'    => $post_type,
+		'post_status'  => 'pending',
+		'post_name'    => $slug,
+		'post_title'   => 'Sample Collaborator Application',
+		'post_content' => 'This sample application demonstrates the collaborator review workflow in wp-admin.',
+	]);
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_reci_collaborator_application_status', 'pending' );
+	update_post_meta( $post_id, '_reci_submission_first_name', 'Jordan' );
+	update_post_meta( $post_id, '_reci_submission_last_name', 'Reed' );
+	update_post_meta( $post_id, '_reci_submission_email', 'jordan.reed@example.com' );
+	update_post_meta( $post_id, '_reci_collaborator_affiliated_with_pitt', 'Yes' );
+	update_post_meta( $post_id, '_reci_collaborator_pitt_affiliation', 'Graduate Student' );
+	update_post_meta( $post_id, '_reci_submission_organization', 'University of Pittsburgh' );
+	update_post_meta( $post_id, '_reci_collaborator_department', 'School of Social Work' );
+	update_post_meta( $post_id, '_reci_submission_role', 'Community Research Fellow' );
+	update_post_meta( $post_id, '_reci_submission_bio', 'Jordan Reed works at the intersection of community partnership, racial equity education, and public-facing research communication.' );
+	update_post_meta( $post_id, '_reci_submission_website', 'https://example.com/jordan-reed' );
+	update_post_meta( $post_id, '_reci_collaborator_social_handles', '@jordanreed' );
+	update_post_meta( $post_id, '_reci_collaborator_membership_objective', 'To contribute equity-centered resources and connect research to community learning.' );
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $slug;
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
 }
 
 function reci_demo_get_markdown_articles(): array {

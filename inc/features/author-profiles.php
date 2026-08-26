@@ -23,6 +23,7 @@ if (! function_exists('reci_media_hub_display_author_post_types')) {
 			'reci_event',
 			'reci_reflection',
 			'reci_course',
+			'reci_document',
 			'reci_assessment',
 			'reci_quote',
 			'reci_testimonial',

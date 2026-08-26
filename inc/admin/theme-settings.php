@@ -78,8 +78,10 @@ function reci_register_settings(): void {
 
 	reci_add_field( 'pages_sign_in',    'Sign In Page',         'page', 'reci-settings-pages', 'reci_pages_sec' );
 	reci_add_field( 'pages_sign_up',    'Sign Up Page',         'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_become_collaborator', 'Become a Collaborator Page', 'page', 'reci-settings-pages', 'reci_pages_sec' );
 	reci_add_field( 'pages_forgot_pw',  'Forgot Password Page', 'page', 'reci-settings-pages', 'reci_pages_sec' );
 	reci_add_field( 'pages_donate',     'Donate Page',          'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_community',  'Community Page',       'page', 'reci-settings-pages', 'reci_pages_sec' );
 	reci_add_field( 'pages_reflection', 'Reflection Gallery',   'page', 'reci-settings-pages', 'reci_pages_sec' );
 	reci_add_field( 'pages_home',       'Homepage',             'page', 'reci-settings-pages', 'reci_pages_sec' );
 

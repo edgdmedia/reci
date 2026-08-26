@@ -17,7 +17,7 @@ $search        = sanitize_text_field( $_GET['s'] ?? '' );
 
 $args = [
 	'author'         => $current_user->ID,
-	'post_type'      => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_quote', 'reci_course', 'reci_testimonial', 'reci_glossary_term' ],
+	'post_type'      => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_document' ],
 	'post_status'    => [ 'publish', 'pending', 'draft' ],
 	'posts_per_page' => 20,
 	'paged'          => $paged,
@@ -43,7 +43,7 @@ get_header('dashboard');
 		<div class="flex-1 p-6 lg:p-10">
 			<div class="flex items-center justify-between mb-8">
 				<h1 class="text-2xl font-bold font-heading text-zinc-800">My Content</h1>
-				<a href="<?php echo esc_url( home_url( '/dashboard/submit/' ) ); ?>" class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
+				<a href="<?php echo esc_url( home_url( '/dashboard/submit/' ) ); ?>" class="btn btn-primary btn-md">
 					+ Submit New
 				</a>
 			</div>
@@ -51,7 +51,7 @@ get_header('dashboard');
 			<form method="get" class="flex flex-wrap gap-3 mb-6">
 				<select name="type" class="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
 					<option value="">All Types</option>
-					<?php foreach ( [ 'post' => 'Articles', 'reci_podcast' => 'Podcasts', 'reci_video' => 'Videos', 'reci_event' => 'Events', 'reci_quote' => 'Quotes', 'reci_course' => 'Courses', 'reci_testimonial' => 'Testimonials', 'reci_glossary_term' => 'Glossary' ] as $val => $label ) : ?>
+					<?php foreach ( [ 'post' => 'Articles', 'reci_podcast' => 'Podcasts', 'reci_video' => 'Videos', 'reci_event' => 'Events', 'reci_course' => 'Courses', 'reci_document' => 'Resources' ] as $val => $label ) : ?>
 					<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $filter_type, $val ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
@@ -66,7 +66,7 @@ get_header('dashboard');
 			</form>
 
 			<?php if ( ! $content_query->have_posts() ) : ?>
-			<p class="text-zinc-500">No content found. Submit your first piece to get started.</p>
+			<p class="text-zinc-500">No contributions found yet. Submit your first piece to get started.</p>
 			<?php else : ?>
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">

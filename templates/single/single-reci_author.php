@@ -1,6 +1,6 @@
 <?php
 /**
- * Single Author Profile template.
+ * Single Collaborator template.
  *
  * @package reci-media-hub
  */
@@ -18,7 +18,7 @@ the_post();
 
 $profile_id      = get_the_ID();
 $profile         = reci_media_hub_get_author_profile_data($profile_id);
-$authored_post_ids = reci_media_hub_get_authored_content_ids($profile_id, ['post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_reflection', 'reci_course']);
+$authored_post_ids = reci_media_hub_get_authored_content_ids($profile_id, ['post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_reflection', 'reci_course', 'reci_document']);
 
 $topic_terms = get_terms([
 	'taxonomy'   => 'category',
@@ -64,16 +64,20 @@ $listing_config = [
 			'field' => 'slug',
 		],
 	],
-	'empty_message'            => 'No content found for this author yet.',
+	'empty_message'            => 'No content found for this collaborator yet.',
 ];
+
+$is_logged_in = is_user_logged_in();
+$followed_collaborators = $is_logged_in && function_exists( 'reci_get_user_followed_collaborator_ids' ) ? reci_get_user_followed_collaborator_ids( get_current_user_id() ) : [];
+$is_following = in_array( $profile_id, $followed_collaborators, true );
 
 get_header();
 ?>
 <main class="layout-page">
 	<div class="reci-container-full border-b border-zinc-400">
 		<div class="reci-container py-14">
-			<div class="flex flex-col md:flex-row justify-start items-center gap-6">
-				<div class="flex items-center w-full md:w-2/5 lg:w-1/2">
+			<div class="flex flex-col md:flex-row justify-between items-start gap-6">
+				<div class="flex items-center w-full md:flex-1 md:min-w-0">
 					<div class="flex flex-col gap-3">
 						<div class="flex items-center gap-3">
 							<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
@@ -84,6 +88,18 @@ get_header();
 						<?php endif; ?>
 					</div>
 				</div>
+				<?php if ( $is_logged_in ) : ?>
+					<div class="w-full md:w-72 md:flex-shrink-0 md:text-right">
+						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="pt-2 md:pt-0">
+							<input type="hidden" name="action" value="reci_toggle_follow_collaborator" />
+							<input type="hidden" name="collaborator_id" value="<?php echo esc_attr( (string) $profile_id ); ?>" />
+							<input type="hidden" name="redirect_to" value="<?php echo esc_url( get_permalink( $profile_id ) ); ?>" />
+							<?php wp_nonce_field( 'reci_toggle_follow_collaborator_' . $profile_id, 'reci_follow_collaborator_nonce' ); ?>
+							<button type="submit" class="btn btn-outline-primary btn-md"><?php echo esc_html( $is_following ? __( 'Following', 'reci-media-hub' ) : __( 'Follow Collaborator', 'reci-media-hub' ) ); ?></button>
+						</form>
+						<p class="pt-2 text-sm leading-6 text-zinc-600 md:ml-auto md:max-w-xs"><?php esc_html_e( 'Follow this collaborator to keep up with their published work in your dashboard feed.', 'reci-media-hub' ); ?></p>
+					</div>
+				<?php endif; ?>
 			</div>
 		</div>
 	</div>
@@ -93,7 +109,7 @@ get_header();
 			<div class="flex flex-col gap-10">
 				<div class="inline-flex items-center gap-2">
 					<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
-					<h2 class="text-neutral-700 text-2xl font-bold font-subhead"><?php esc_html_e('About the Author', 'reci-media-hub'); ?></h2>
+					<h2 class="text-neutral-700 text-2xl font-bold font-subhead"><?php esc_html_e('About the Collaborator', 'reci-media-hub'); ?></h2>
 				</div>
 				<div class="w-full h-px bg-zinc-300"></div>
 				<div class="flex flex-col md:flex-row items-start gap-6">
