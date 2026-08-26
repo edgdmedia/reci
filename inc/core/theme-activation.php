@@ -90,6 +90,7 @@ function reci_theme_activation_setup(): void {
 	// Schedule rewrite rule flush.
 	set_transient( 'reci_flush_rewrite_rules', true );
 	set_transient( 'reci_theme_setup_redirect', true, MINUTE_IN_SECONDS * 5 );
+	delete_option( 'reci_setup_notice_dismissed' );
 }
 
 add_action( 'init', function() {
