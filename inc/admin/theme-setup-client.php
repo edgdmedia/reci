@@ -17,9 +17,9 @@ add_action( 'admin_post_reci_dismiss_setup_notice', 'reci_handle_dismiss_setup_n
 
 function reci_register_client_setup_page(): void {
 	add_submenu_page(
-		'themes.php',
+		'reci-settings',
 		__( 'RECI Theme Setup', 'reci-media-hub' ),
-		__( 'RECI Theme Setup', 'reci-media-hub' ),
+		__( 'Setup', 'reci-media-hub' ),
 		'manage_options',
 		'reci-client-setup',
 		'reci_render_client_setup_page'
@@ -99,7 +99,7 @@ function reci_handle_setup_plugin_action(): void {
 	$plugins = reci_required_plugins();
 
 	if ( '' === $slug || ! isset( $plugins[ $slug ] ) ) {
-		wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=invalid' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=reci-client-setup&plugin_notice=invalid' ) );
 		exit;
 	}
 
@@ -120,14 +120,14 @@ function reci_handle_setup_plugin_action(): void {
 	if ( 'install' === $action && null === $plugin_file ) {
 		$api = plugins_api( 'plugin_information', [ 'slug' => $slug, 'fields' => [ 'sections' => false ] ] );
 		if ( is_wp_error( $api ) ) {
-			wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=install_failed' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=reci-client-setup&plugin_notice=install_failed' ) );
 			exit;
 		}
 
 		$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
 		$result   = $upgrader->install( $api->download_link );
 		if ( is_wp_error( $result ) || ! $result ) {
-			wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=install_failed' ) );
+			wp_safe_redirect( admin_url( 'admin.php?page=reci-client-setup&plugin_notice=install_failed' ) );
 			exit;
 		}
 
@@ -143,7 +143,7 @@ function reci_handle_setup_plugin_action(): void {
 		activate_plugin( $plugin_file );
 	}
 
-	wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup&plugin_notice=updated' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-client-setup&plugin_notice=updated' ) );
 	exit;
 }
 
@@ -614,11 +614,15 @@ function reci_render_setup_reminder_notice(): void {
 		return;
 	}
 
+	if ( isset( $_GET['page'] ) && sanitize_key( wp_unslash( $_GET['page'] ) ) === 'reci-client-setup' ) {
+		return;
+	}
+
 	if ( reci_is_setup_notice_dismissed() || ! reci_theme_setup_needs_attention() ) {
 		return;
 	}
 
-	$setup_url   = admin_url( 'themes.php?page=reci-client-setup' );
+	$setup_url   = admin_url( 'admin.php?page=reci-client-setup' );
 	$dismiss_url = wp_nonce_url( admin_url( 'admin-post.php?action=reci_dismiss_setup_notice' ), 'reci_dismiss_setup_notice' );
 	?>
 	<div class="notice notice-warning is-dismissible">

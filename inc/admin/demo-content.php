@@ -358,6 +358,7 @@ function reci_demo_remote_group_archive_step( string $group_id, array $group_def
 		'group' => $group_id,
 		'url'   => $url,
 		'root'  => ltrim( (string) ( $group_definition['extract_root'] ?? '' ), '/' ),
+		'registry_prefix' => ltrim( (string) ( $group_definition['registry_prefix'] ?? '' ), '/' ),
 		'label' => (string) ( $group_definition['label'] ?? $group_id ),
 	];
 }
@@ -460,6 +461,7 @@ function reci_demo_import_remote_image_asset( array $asset ): array {
 function reci_demo_import_remote_archive_group( array $step ): array {
 	$url   = esc_url_raw( (string) ( $step['url'] ?? '' ) );
 	$root  = ltrim( (string) ( $step['root'] ?? '' ), '/' );
+	$registry_prefix = ltrim( (string) ( $step['registry_prefix'] ?? $root ), '/' );
 	$label = (string) ( $step['label'] ?? ( $step['group'] ?? 'Remote archive' ) );
 
 	if ( '' === $url ) {
@@ -503,7 +505,7 @@ function reci_demo_import_remote_archive_group( array $step ): array {
 
 	foreach ( $files as $file_path ) {
 		$relative = ltrim( str_replace( trailingslashit( $base_dir ), '', $file_path ), '/' );
-		$registry_key = ( '' !== $root ? trailingslashit( $root ) : '' ) . str_replace( DIRECTORY_SEPARATOR, '/', $relative );
+		$registry_key = ( '' !== $registry_prefix ? trailingslashit( $registry_prefix ) : '' ) . str_replace( DIRECTORY_SEPARATOR, '/', $relative );
 
 		$existing = reci_demo_get_registered_asset( $registry_key );
 		if ( ! empty( $existing['attachment_id'] ) ) {

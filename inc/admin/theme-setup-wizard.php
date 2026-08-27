@@ -9,24 +9,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'admin_menu', 'reci_register_setup_wizard_page' );
-
-function reci_register_setup_wizard_page(): void {
-	// Register as a submenu under RECI Settings
-	add_submenu_page(
-		'reci-settings',
-		'Setup Wizard',
-		'Setup Wizard',
-		'manage_options',
-		'reci-setup-wizard',
-		'reci_render_setup_wizard_page'
-	);
-}
-
 add_action( 'admin_enqueue_scripts', 'reci_setup_wizard_assets' );
 
 function reci_setup_wizard_assets( string $hook_suffix ): void {
-	if ( 'reci-settings_page_reci-setup-wizard' !== $hook_suffix && 'appearance_page_reci-setup-wizard' !== $hook_suffix ) {
+	if ( 'reci-settings_page_reci-setup-wizard' !== $hook_suffix ) {
 		return;
 	}
 
@@ -59,7 +45,7 @@ function reci_render_setup_wizard_page(): void {
 	$plugins_ok    = ! in_array( false, array_map( static fn( $status ) => ( $status['status'] ?? '' ) === 'active', $plugin_statuses ), true );
 	$pages_ok      = ! in_array( false, array_map( static fn( $status ) => ! empty( $status['exists'] ), $page_statuses ), true );
 	$routes_ok     = ! in_array( false, $route_statuses, true );
-	$plugin_setup_url = admin_url( 'themes.php?page=reci-client-setup' );
+	$plugin_setup_url = admin_url( 'admin.php?page=reci-client-setup' );
     
     // Media Upload Limit
     $max_upload_bytes = wp_max_upload_size();
