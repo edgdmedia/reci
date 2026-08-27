@@ -72,7 +72,7 @@ copy_path "vite.config.js"
 
 # Runtime directories
 copy_path "assets"
-copy_path "demo-content" # Remove once remote demo content is live
+copy_path "demo-content"
 copy_path "inc"
 copy_path "legacy-block"
 copy_path "modules"
@@ -90,6 +90,16 @@ rm -rf "$THEME_DIR/scripts"
 rm -rf "$THEME_DIR/sample"
 rm -rf "$THEME_DIR/reflection-gallery"
 rm -f "$THEME_DIR/.DS_Store"
+
+# Demo content is still needed for local datasets, but bulk media is now served remotely.
+rm -rf "$THEME_DIR/demo-content/images/site/articles"
+rm -rf "$THEME_DIR/demo-content/images/site/events"
+rm -rf "$THEME_DIR/demo-content/images/site/learn"
+rm -rf "$THEME_DIR/demo-content/images/site/partners"
+rm -rf "$THEME_DIR/demo-content/images/site/podcasts"
+rm -rf "$THEME_DIR/demo-content/images/site/quizzes"
+rm -rf "$THEME_DIR/demo-content/images/site/reflections"
+rm -rf "$THEME_DIR/demo-content/images/site/videos"
 
 find "$THEME_DIR" -name '.DS_Store' -delete
 find "$THEME_DIR" -name 'node_modules' -type d -prune -exec rm -rf {} +

@@ -115,7 +115,7 @@ add_action( 'admin_init', function() {
 	}
 
 	delete_transient( 'reci_theme_setup_redirect' );
-	wp_safe_redirect( admin_url( 'themes.php?page=reci-client-setup' ) );
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-client-setup' ) );
 	exit;
 } );
 

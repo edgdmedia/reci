@@ -30,7 +30,7 @@ get_header();
 				<!-- Logo -->
 				<div class="flex hidden items-center gap-5">
 					<img
-						src="<?php echo esc_url( get_template_directory_uri() . '/assets/images/' . rawurlencode( 'RECI Logo - Version 2 1.png' ) ); ?>"
+						src="<?php echo esc_url( get_template_directory_uri() . '/assets/images/' . rawurlencode( 'reci-collab.png' ) ); ?>"
 						alt="<?php echo esc_attr__( 'RECI Logo', 'reci-media-hub' ); ?>"
 						class="h-9 w-auto"
 					/>
