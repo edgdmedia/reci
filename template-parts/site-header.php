@@ -19,12 +19,14 @@ $is_logged_in = is_user_logged_in();
 
 $partner_logo_id = (int) reci_setting("branding_partner_logo");
 $reci_logo_id = (int) reci_setting("branding_reci_logo");
-$partner_logo_url = $partner_logo_id
-    ? wp_get_attachment_image_url($partner_logo_id, "full")
-    : $assets_url . "pitt-logo.png";
-$reci_logo_url = $reci_logo_id
-    ? wp_get_attachment_image_url($reci_logo_id, "full")
-    : $assets_url . "reci-collab.png";
+$partner_logo_url = $partner_logo_id ? wp_get_attachment_image_url($partner_logo_id, "full") : '';
+if (! $partner_logo_url) {
+    $partner_logo_url = $assets_url . "pitt-logo.png";
+}
+$reci_logo_url = $reci_logo_id ? wp_get_attachment_image_url($reci_logo_id, "full") : '';
+if (! $reci_logo_url) {
+    $reci_logo_url = $assets_url . "reci-collab.png";
+}
 $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 ?>
 
