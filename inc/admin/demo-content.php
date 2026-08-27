@@ -3207,7 +3207,7 @@ function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs,
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3286,7 +3286,7 @@ function reci_demo_sideload_image_from_url( string $registry_key, string $url, i
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3350,7 +3350,7 @@ function reci_demo_sideload_image_from_path( string $registry_key, string $file_
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3383,6 +3383,25 @@ function reci_demo_collect_importable_files_from_directory( string $directory ):
 
 	sort( $paths );
 	return $paths;
+}
+
+function reci_demo_generate_attachment_metadata( int $attachment_id, string $file_path ) {
+	$disable_intermediate_sizes = static function() {
+		return [];
+	};
+	$disable_big_image_threshold = static function() {
+		return false;
+	};
+
+	add_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+	add_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+
+	try {
+		return wp_generate_attachment_metadata( $attachment_id, $file_path );
+	} finally {
+		remove_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+		remove_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+	}
 }
 
 function reci_demo_delete_directory( string $directory ): void {
