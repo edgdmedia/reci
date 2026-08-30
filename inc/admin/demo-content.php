@@ -224,6 +224,8 @@ function reci_demo_group_status_map(): array {
 			}
 		} elseif ( 'reci_demo_taxonomies' === $group ) {
 			$imported = get_option( 'reci_demo_taxonomies_seeded', false ) ? $expected : 0;
+		} elseif ( reci_demo_group_uses_demo_posts( $group ) ) {
+			$imported = reci_demo_imported_post_count_for_group( $group );
 		} else {
 			$imported = reci_demo_imported_slug_count_for_group( $group, $slugs );
 		}
@@ -248,6 +250,46 @@ function reci_demo_group_status_map(): array {
 	}
 
 	return $result;
+}
+
+function reci_demo_group_uses_demo_posts( string $group ): bool {
+	return in_array( $group, [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_quote',
+		'reci_assessment',
+		'reci_course',
+		'reci_team',
+		'reci_testimonial',
+		'reci_glossary_term',
+		'reci_author',
+		'reci_partner',
+		'reci_page',
+	], true );
+}
+
+function reci_demo_imported_post_count_for_group( string $group ): int {
+	$post_type = 'page' === $group || 'reci_page' === $group ? 'page' : $group;
+	$query = new WP_Query([
+		'post_type'              => $post_type,
+		'post_status'            => [ 'publish', 'draft', 'pending', 'private' ],
+		'posts_per_page'         => 1,
+		'fields'                 => 'ids',
+		'no_found_rows'          => false,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [
+			[
+				'key'   => '_reci_demo',
+				'value' => '1',
+			],
+		],
+	]);
+
+	return (int) $query->found_posts;
 }
 
 function reci_demo_imported_slug_count_for_group( string $group, array $slugs ): int {
