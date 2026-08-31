@@ -169,7 +169,190 @@ function reci_demo_present_job_state( array $job ): array {
 		'completed'     => array_values( is_array( $job['completed'] ?? null ) ? $job['completed'] : [] ),
 		'failed'        => array_values( is_array( $job['failed'] ?? null ) ? $job['failed'] : [] ),
 		'skipped'       => array_values( is_array( $job['skipped'] ?? null ) ? $job['skipped'] : [] ),
+		'group_status'  => reci_demo_group_status_map(),
 	];
+}
+
+function reci_demo_expected_group_paths( string $group ): array {
+	$image_groups = reci_demo_image_groups();
+	if ( isset( $image_groups[ $group ] ) && is_array( $image_groups[ $group ] ) ) {
+		return array_values( $image_groups[ $group ] );
+	}
+
+	$remote_group = function_exists( 'reci_remote_demo_group_definition' ) ? reci_remote_demo_group_definition( $group ) : [];
+	if ( ! empty( $remote_group ) ) {
+		$root = ltrim( (string) ( $remote_group['registry_prefix'] ?? $remote_group['extract_root'] ?? '' ), '/' );
+		$assets = reci_demo_remote_group_assets( $group, $remote_group );
+		if ( ! empty( $assets ) ) {
+			return array_values( array_map( static fn( $asset ) => (string) ( $asset['path'] ?? '' ), $assets ) );
+		}
+
+		if ( 'release-archive' === sanitize_key( (string) ( $remote_group['type'] ?? '' ) ) && $root !== '' ) {
+			$local_root = get_template_directory() . '/demo-content/images/' . str_replace( 'site/', '', trailingslashit( $root ) );
+			if ( is_dir( $local_root ) ) {
+				$paths = reci_demo_collect_image_paths_from_directory( trailingslashit( str_replace( 'site/', 'site/', $root ) ) );
+				if ( ! empty( $paths ) ) {
+					return $paths;
+				}
+			}
+		}
+	}
+
+	return [];
+}
+
+function reci_demo_group_status_map(): array {
+	$types    = reci_demo_content_types();
+	$registry = reci_demo_get_asset_registry();
+	$slugs    = get_option( 'reci_demo_slugs', [] );
+	$job      = reci_demo_get_job();
+	$queue    = is_array( $job['queue'] ?? null ) ? $job['queue'] : [];
+	$pending_groups = array_values( array_unique( array_map( static fn( $step ) => (string) ( $step['group'] ?? '' ), $queue ) ) );
+	$result = [];
+
+	foreach ( $types as $group => $info ) {
+		$expected = (int) ( $info['count'] ?? 0 );
+		$imported = 0;
+
+		if ( str_starts_with( $group, 'reci_demo_images_' ) ) {
+			$paths = reci_demo_expected_group_paths( $group );
+			$expected = count( $paths );
+			foreach ( $paths as $path ) {
+				if ( ! empty( $registry[ $path ]['attachment_id'] ) ) {
+					$imported++;
+				}
+			}
+		} elseif ( 'reci_demo_taxonomies' === $group ) {
+			$imported = get_option( 'reci_demo_taxonomies_seeded', false ) ? $expected : 0;
+		} elseif ( reci_demo_group_uses_demo_posts( $group ) ) {
+			$imported = reci_demo_imported_post_count_for_group( $group );
+		} else {
+			$imported = reci_demo_imported_slug_count_for_group( $group, $slugs );
+		}
+
+		$status = 'not_started';
+		if ( in_array( $group, $pending_groups, true ) ) {
+			$status = ! empty( $job['running'] ) ? 'in_progress' : 'partial';
+		}
+		if ( $expected > 0 && $imported >= $expected ) {
+			$status = 'completed';
+		} elseif ( $imported > 0 ) {
+			$status = 'partial';
+		}
+
+		$result[ $group ] = [
+			'label'     => (string) ( $info['label'] ?? $group ),
+			'expected'  => $expected,
+			'imported'  => $imported,
+			'remaining' => max( 0, $expected - $imported ),
+			'status'    => $status,
+		];
+	}
+
+	return $result;
+}
+
+function reci_demo_group_uses_demo_posts( string $group ): bool {
+	return in_array( $group, [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_quote',
+		'reci_assessment',
+		'reci_course',
+		'reci_team',
+		'reci_testimonial',
+		'reci_glossary_term',
+		'reci_author',
+		'reci_partner',
+		'reci_page',
+	], true );
+}
+
+function reci_demo_imported_post_count_for_group( string $group ): int {
+	$post_type = 'page' === $group || 'reci_page' === $group ? 'page' : $group;
+	$query = new WP_Query([
+		'post_type'              => $post_type,
+		'post_status'            => [ 'publish', 'draft', 'pending', 'private' ],
+		'posts_per_page'         => 1,
+		'fields'                 => 'ids',
+		'no_found_rows'          => false,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [
+			[
+				'key'   => '_reci_demo',
+				'value' => '1',
+			],
+		],
+	]);
+
+	return (int) $query->found_posts;
+}
+
+function reci_demo_imported_slug_count_for_group( string $group, array $slugs ): int {
+	if ( empty( $slugs ) ) {
+		return 0;
+	}
+
+	$matched = [];
+	$datasets = [
+		'post' => 'articles',
+		'reci_podcast' => 'podcasts',
+		'reci_video' => 'videos',
+		'reci_event' => 'events',
+		'reci_quote' => 'quotes',
+		'reci_assessment' => 'assessments',
+		'reci_course' => 'courses',
+		'reci_team' => 'team',
+		'reci_testimonial' => 'testimonials',
+		'reci_glossary_term' => 'glossary',
+		'reci_author' => 'authors',
+		'reci_partner' => 'partners',
+	];
+
+	if ( 'reci_reflection' === $group ) {
+		foreach ( reci_demo_reflection_queue_items() as $item ) {
+			$matched[] = (string) ( $item['slug'] ?? '' );
+		}
+	} elseif ( 'reci_page' === $group ) {
+		$page_dataset = reci_demo_load_php_dataset( 'pages' );
+		foreach ( (array) ( $page_dataset['core'] ?? [] ) as $slug => $cfg ) {
+			$matched[] = (string) $slug;
+		}
+		$matched[] = 'dashboard';
+		foreach ( (array) ( $page_dataset['dashboard']['children'] ?? [] ) as $slug => $cfg ) {
+			$matched[] = 'dashboard/' . (string) $slug;
+		}
+	} elseif ( isset( $datasets[ $group ] ) ) {
+		$items = reci_demo_load_group_items( $datasets[ $group ] );
+		foreach ( (array) $items as $item ) {
+			if ( is_array( $item ) && ! empty( $item['slug'] ) ) {
+				$matched[] = (string) $item['slug'];
+			}
+		}
+	}
+
+	return count( array_intersect( array_unique( array_filter( $matched ) ), array_unique( $slugs ) ) );
+}
+
+function reci_demo_load_group_items( string $dataset_name ): array {
+	$path = get_template_directory() . '/demo-content/' . $dataset_name;
+	if ( is_dir( $path ) ) {
+		$items = [];
+		foreach ( glob( trailingslashit( $path ) . '*.php' ) ?: [] as $file ) {
+			$data = require $file;
+			if ( is_array( $data ) ) {
+				$items = array_merge( $items, $data );
+			}
+		}
+		return $items;
+	}
+
+	$data = reci_demo_load_php_dataset( $dataset_name );
+	return isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : ( is_array( $data ) ? $data : [] );
 }
 
 function reci_demo_result_entry( string $status, string $label, string $message, array $extra = [] ): array {
@@ -321,6 +504,7 @@ function reci_demo_build_import_queue( array $selected ): array {
 
 		if ( 'reci_demo_taxonomies' === $group ) {
 			reci_demo_bootstrap_taxonomies();
+			update_option( 'reci_demo_taxonomies_seeded', 1, false );
 			$queue[] = [ 'type' => 'skip', 'group' => $group, 'message' => 'Taxonomies seeded.' ];
 			continue;
 		}
@@ -1533,6 +1717,7 @@ function reci_reset_demo_content(): void {
 
 	delete_option( 'reci_demo_installed' );
 	delete_option( 'reci_demo_slugs' );
+	delete_option( 'reci_demo_taxonomies_seeded' );
 	delete_option( reci_demo_asset_registry_option_key() );
 	delete_option( reci_demo_job_option_key() );
 }
@@ -3207,7 +3392,7 @@ function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs,
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3286,7 +3471,7 @@ function reci_demo_sideload_image_from_url( string $registry_key, string $url, i
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3350,7 +3535,7 @@ function reci_demo_sideload_image_from_path( string $registry_key, string $file_
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -3383,6 +3568,25 @@ function reci_demo_collect_importable_files_from_directory( string $directory ):
 
 	sort( $paths );
 	return $paths;
+}
+
+function reci_demo_generate_attachment_metadata( int $attachment_id, string $file_path ) {
+	$disable_intermediate_sizes = static function() {
+		return [];
+	};
+	$disable_big_image_threshold = static function() {
+		return false;
+	};
+
+	add_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+	add_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+
+	try {
+		return wp_generate_attachment_metadata( $attachment_id, $file_path );
+	} finally {
+		remove_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+		remove_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+	}
 }
 
 function reci_demo_delete_directory( string $directory ): void {

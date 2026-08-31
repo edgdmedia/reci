@@ -176,6 +176,7 @@ function reci_render_client_setup_page(): void {
 	$remote_manifest = function_exists( 'reci_fetch_remote_demo_manifest' ) ? reci_fetch_remote_demo_manifest() : [];
 	$content_sets    = function_exists( 'reci_remote_demo_content_sets' ) ? reci_remote_demo_content_sets() : [];
 	$job_state       = function_exists( 'reci_demo_get_job' ) ? reci_demo_present_job_state( reci_demo_get_job() ) : [];
+	$group_statuses  = function_exists( 'reci_demo_group_status_map' ) ? reci_demo_group_status_map() : [];
 	$required_plugins = array_filter( $plugin_statuses, static fn( $status ) => ( $status['tier'] ?? '' ) === 'required' );
 	$recommended_plugins = array_filter( $plugin_statuses, static fn( $status ) => ( $status['tier'] ?? '' ) === 'recommended' );
 	$required_total = count( $required_plugins );
@@ -376,6 +377,32 @@ function reci_render_client_setup_page(): void {
 										</ul>
 									</div>
 								</div>
+								<div class="mt-8 overflow-hidden rounded-2xl border border-slate-200">
+									<table class="min-w-full divide-y divide-slate-200">
+										<thead class="bg-slate-50">
+											<tr>
+												<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><input type="checkbox" id="reci-demo-select-all" checked></th>
+												<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><?php esc_html_e( 'Content Type', 'reci-media-hub' ); ?></th>
+												<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><?php esc_html_e( 'Status', 'reci-media-hub' ); ?></th>
+												<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><?php esc_html_e( 'Imported', 'reci-media-hub' ); ?></th>
+												<th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><?php esc_html_e( 'Remaining', 'reci-media-hub' ); ?></th>
+											</tr>
+										</thead>
+										<tbody class="divide-y divide-slate-200 bg-white">
+											<?php foreach ( $group_statuses as $group => $status ) : ?>
+												<tr>
+													<td class="px-4 py-3"><input type="checkbox" name="selected_groups[]" value="<?php echo esc_attr( $group ); ?>" class="reci-demo-group-checkbox" <?php checked( $status['remaining'] > 0 || $status['status'] === 'failed' || $status['status'] === 'partial' || $status['status'] === 'not_started' ); ?>></td>
+													<td class="px-4 py-3 text-sm font-medium text-slate-900"><?php echo esc_html( $status['label'] ); ?></td>
+													<td class="px-4 py-3 text-sm">
+														<span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold <?php echo $status['status'] === 'completed' ? 'bg-emerald-100 text-emerald-800' : ( $status['status'] === 'partial' || $status['status'] === 'in_progress' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700' ); ?>"><?php echo esc_html( ucwords( str_replace( '_', ' ', $status['status'] ) ) ); ?></span>
+													</td>
+													<td class="px-4 py-3 text-sm text-slate-700"><?php echo esc_html( (string) $status['imported'] ); ?> / <?php echo esc_html( (string) $status['expected'] ); ?></td>
+													<td class="px-4 py-3 text-sm text-slate-700"><?php echo esc_html( (string) $status['remaining'] ); ?></td>
+												</tr>
+											<?php endforeach; ?>
+										</tbody>
+									</table>
+								</div>
 								<div class="mt-6 flex items-center gap-3">
 									<button type="submit" class="button button-primary" id="reci-client-start-import"><?php esc_html_e( 'Import Starter Content', 'reci-media-hub' ); ?></button>
 								</div>
@@ -463,6 +490,16 @@ function reci_render_client_setup_page(): void {
 		const completed = document.getElementById('reci-client-completed');
 		const failed = document.getElementById('reci-client-failed');
 		const skipped = document.getElementById('reci-client-skipped');
+		const selectAll = document.getElementById('reci-demo-select-all');
+		const groupCheckboxes = Array.from(form.querySelectorAll('.reci-demo-group-checkbox'));
+
+		if (selectAll) {
+			selectAll.addEventListener('change', function() {
+				groupCheckboxes.forEach(function(checkbox) {
+					checkbox.checked = selectAll.checked;
+				});
+			});
+		}
 
 		const config = <?php echo wp_json_encode([
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
@@ -536,9 +573,20 @@ function reci_render_client_setup_page(): void {
 		form.addEventListener('submit', async function(event) {
 			event.preventDefault();
 			const contentSet = form.querySelector('[name="content_set"]').value;
+			const selectedGroups = groupCheckboxes.filter(function(checkbox) {
+				return checkbox.checked;
+			}).map(function(checkbox) {
+				return checkbox.value;
+			});
+			if (!selectedGroups.length) {
+				meta.textContent = 'Select at least one content group to import.';
+				progressWrap.style.display = 'block';
+				label.textContent = 'Nothing selected';
+				return;
+			}
 			startBtn.disabled = true;
 			try {
-				const payload = await postAction('reci_client_setup_start_import', { content_set: contentSet });
+				const payload = await postAction('reci_client_setup_start_import', { content_set: contentSet, selected_groups: JSON.stringify(selectedGroups) });
 				if (!payload || !payload.success) {
 					throw new Error(payload && payload.data && payload.data.message ? payload.data.message : 'Could not start import.');
 				}
@@ -661,6 +709,17 @@ function reci_client_setup_start_import(): void {
 	$groups = function_exists( 'reci_remote_demo_content_groups' ) ? reci_remote_demo_content_groups( $content_set ) : [];
 	if ( empty( $groups ) ) {
 		wp_send_json_error( [ 'message' => 'The selected content set does not declare any import groups.' ], 400 );
+	}
+
+	$selected_groups = [];
+	if ( isset( $_POST['selected_groups'] ) ) {
+		$decoded = json_decode( wp_unslash( $_POST['selected_groups'] ), true );
+		if ( is_array( $decoded ) ) {
+			$selected_groups = array_values( array_unique( array_map( 'sanitize_key', $decoded ) ) );
+		}
+	}
+	if ( ! empty( $selected_groups ) ) {
+		$groups = array_values( array_intersect( $groups, $selected_groups ) );
 	}
 
 	$job = [
