@@ -382,7 +382,20 @@ add_action( 'after_setup_theme', function (): void {
  * Redirect non-editors away from wp-admin (except AJAX).
  */
 add_action( 'admin_init', function (): void {
-	if ( ! wp_doing_ajax() && ! current_user_can( 'edit_pages' ) ) {
+	if ( wp_doing_ajax() ) {
+		return;
+	}
+
+	// admin-post.php is a form endpoint, not admin UI. Front-end handlers post
+	// here as guests (collaborator applications, newsletter) and as members
+	// without `edit_pages`, and admin_init runs before admin_post_* — so
+	// guarding it here would bounce them home before their handler ever runs.
+	$script = isset( $_SERVER['SCRIPT_NAME'] ) ? basename( sanitize_text_field( wp_unslash( $_SERVER['SCRIPT_NAME'] ) ) ) : '';
+	if ( 'admin-post.php' === $script ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_pages' ) ) {
 		wp_safe_redirect( home_url( '/' ) );
 		exit;
 	}

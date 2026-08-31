@@ -608,6 +608,9 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 }
 
 add_action( 'admin_post_reci_collaborator_application', 'reci_handle_collaborator_application' );
+// The handler creates the account for guests, so it must also run unauthenticated —
+// this is the entry point for the whole /submit/ contribution flow.
+add_action( 'admin_post_nopriv_reci_collaborator_application', 'reci_handle_collaborator_application' );
 
 if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 	function reci_sync_collaborator_application_status( string $new_status, string $old_status, WP_Post $post ): void {
