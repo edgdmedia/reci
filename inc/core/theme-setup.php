@@ -138,15 +138,30 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 				$website      = '';
 
 				if ($is_logged_in_user) {
-					$first_name_meta = (string) get_user_meta($current_user->ID, 'first_name', true);
-					$last_name_meta  = (string) get_user_meta($current_user->ID, 'last_name', true);
+					// Canonical contributor fields first — the same source the collaborator
+					// application and the dashboard profile editor read and write.
+					$profile = function_exists('reci_get_user_collaborator_profile_data')
+						? reci_get_user_collaborator_profile_data($current_user->ID)
+						: [];
 
-					$first_name = $first_name_meta !== '' ? $first_name_meta : (string) ($current_user->user_firstname ?? '');
-					$last_name  = $last_name_meta !== '' ? $last_name_meta : (string) ($current_user->user_lastname ?? '');
-					$email      = (string) $current_user->user_email;
+					$first_name   = (string) ($profile['reci_firstname'] ?? '');
+					$last_name    = (string) ($profile['reci_lastname'] ?? '');
+					$email        = (string) ($profile['user_email'] ?? $current_user->user_email);
+					$organization = (string) ($profile['submission_organization'] ?? '');
+					$role         = (string) ($profile['submission_role'] ?? '');
+					$bio          = (string) ($profile['submission_bio'] ?? '');
+					$website      = (string) ($profile['submission_website'] ?? '');
 
+					if ($first_name === '') {
+						$first_name = (string) ($current_user->user_firstname ?? '');
+					}
+					if ($last_name === '') {
+						$last_name = (string) ($current_user->user_lastname ?? '');
+					}
+
+					// Legacy meta keys, for accounts created before the fields were unified.
 					$organization_candidates = [
-						(string) get_user_meta($current_user->ID, 'organization', true),
+						$organization,
 						(string) get_user_meta($current_user->ID, 'company', true),
 						(string) get_user_meta($current_user->ID, 'institution', true),
 						(string) get_user_meta($current_user->ID, 'affiliation', true),
@@ -160,7 +175,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 					}
 
 					$role_candidates = [
-						(string) get_user_meta($current_user->ID, 'user_title', true),
+						$role,
 						(string) get_user_meta($current_user->ID, 'title', true),
 						(string) get_user_meta($current_user->ID, 'job_title', true),
 						(string) get_user_meta($current_user->ID, 'role_label', true),
@@ -173,8 +188,12 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						}
 					}
 
-					$bio = (string) get_user_meta($current_user->ID, 'description', true);
-					$website = (string) $current_user->user_url;
+					if ($bio === '') {
+						$bio = (string) get_user_meta($current_user->ID, 'description', true);
+					}
+					if ($website === '') {
+						$website = (string) $current_user->user_url;
+					}
 				}
 
 				wp_enqueue_script(
