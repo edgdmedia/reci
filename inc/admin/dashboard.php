@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 add_action( 'init', 'reci_dashboard_rewrite_rules' );
 function reci_dashboard_rewrite_rules(): void {
 	$pages = [
+		'feed'       => 'template-dashboard-feed.php',
 		'my-content' => 'template-dashboard-my-content.php',
 		'submit'     => 'template-dashboard-submit.php',
 		'bookmarks'  => 'template-dashboard-bookmarks.php',
@@ -78,6 +79,23 @@ function reci_dashboard_auth_check(): void {
 		wp_safe_redirect( wp_login_url( home_url( '/dashboard/' ) ) );
 		exit;
 	}
+}
+
+/**
+ * `/submit/` is the single canonical submission route — the dashboard no longer
+ * runs a separate submit experience, so send the legacy route there.
+ */
+add_action( 'template_redirect', 'reci_dashboard_submit_redirect' );
+function reci_dashboard_submit_redirect(): void {
+	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
+		return;
+	}
+	if ( 'submit' !== get_query_var( 'dashboard_page' ) ) {
+		return;
+	}
+
+	wp_safe_redirect( home_url( '/submit/' ), 301 );
+	exit;
 }
 
 add_action( 'template_redirect', 'reci_dashboard_author_guard' );
