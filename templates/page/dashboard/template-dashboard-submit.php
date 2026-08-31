@@ -11,19 +11,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-get_header('dashboard');
-?>
-<main class="layout-page">
-	<div class="flex flex-col lg:flex-row min-h-screen">
-		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
-		<div class="flex-1 p-6 lg:p-10">
-			<h1 class="text-2xl font-bold font-heading text-zinc-800 mb-8">Submit Content</h1>
-			<?php if ( function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator() ) : ?>
-				<div id="reci-submission-root"></div>
-			<?php else : ?>
-				<?php reci_render_submit_gate( 'dashboard' ); ?>
-			<?php endif; ?>
-		</div>
-	</div>
-</main>
-<?php get_footer(); ?>
+wp_safe_redirect( home_url( '/submit/' ) );
+exit;
