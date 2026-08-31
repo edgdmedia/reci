@@ -16,7 +16,6 @@ $is_logged_in    = is_user_logged_in();
 $is_collaborator = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator( $current_user_id );
 
 $member_cta_url = $is_logged_in ? home_url( '/dashboard/' ) : ( reci_get_auth_page_url( 'sign-up' ) ?: wp_registration_url() );
-$submit_url     = home_url( '/submit/' );
 $collab_url     = function_exists( 'reci_get_collaborator_page_url' ) ? reci_get_collaborator_page_url() : home_url( '/become-a-collaborator/' );
 ?>
 
@@ -51,11 +50,11 @@ $collab_url     = function_exists( 'reci_get_collaborator_page_url' ) ? reci_get
 				</h2>
 			</div>
 
-			<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 				<?php
 				$explore_links = [
 					[
-						'label' => $is_logged_in ? 'Open Dashboard' : 'Join as a Member',
+						'label' => $is_logged_in ? 'Go to Dashboard' : 'Join as a Member',
 						'icon'  => '<svg class="w-8 h-8 mb-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>',
 						'url'   => $member_cta_url,
 					],
@@ -65,19 +64,9 @@ $collab_url     = function_exists( 'reci_get_collaborator_page_url' ) ? reci_get
 						'url'   => $collab_url,
 					],
 					[
-						'label' => $is_collaborator ? 'Submit Content' : 'Learn Submission Rules',
-						'icon'  => '<svg class="w-8 h-8 mb-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
-						'url'   => $submit_url,
-					],
-					[
 						'label' => 'Find Collaborators',
 						'icon'  => '<svg class="w-8 h-8 mb-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>',
 						'url'   => get_post_type_archive_link( 'reci_author' ) ?: home_url( '/collaborators/' ),
-					],
-					[
-						'label' => 'Go to Dashboard Feed',
-						'icon'  => '<svg class="w-8 h-8 mb-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M3 6h18M3 18h18"></path></svg>',
-						'url'   => home_url( '/dashboard/' ),
 					],
 				];
 				foreach ( $explore_links as $link ) :
@@ -105,7 +94,7 @@ $collab_url     = function_exists( 'reci_get_collaborator_page_url' ) ? reci_get
 				],
 				[
 					'title' => 'How It Works',
-					'desc'  => 'Join as a Member, follow the work that matters to you, use your dashboard to discover and manage engagement, and apply separately if you want to contribute as a Collaborator.',
+					'desc'  => 'Join as a Member, follow the work that matters to you, and use your dashboard to discover and manage engagement. If you want to contribute as a Collaborator, use the dedicated Become a Collaborator flow.',
 				],
 			];
 			foreach ( $pillars as $pillar ) :
@@ -127,10 +116,10 @@ $collab_url     = function_exists( 'reci_get_collaborator_page_url' ) ? reci_get
 		<div class="rounded-xl bg-white border border-zinc-200 p-10 shadow-sm flex flex-col gap-6">
 			<div class="flex items-center gap-3">
 				<span class="w-3 h-3 bg-amber-400 rounded-sm inline-block"></span>
-				<h2 class="text-3xl font-bold text-neutral-900 font-heading"><?php echo esc_html( 'Where Your Personal Feed Lives' ); ?></h2>
+				<h2 class="text-3xl font-bold text-neutral-900 font-heading"><?php echo esc_html( 'Member Dashboard' ); ?></h2>
 			</div>
 			<p class="text-neutral-600 text-lg leading-8">
-				<?php echo esc_html( 'Community explains the ecosystem. Your private dashboard is where your personalized feed, bookmarks, notifications, journal, and contribution tools live. That is where the platform becomes tailored to the collaborators and interests you choose to follow.' ); ?>
+				<?php echo esc_html( 'Community explains how RECI participation works. Your dashboard is where your personalized feed, bookmarks, notifications, journal, and contribution tools live once you are signed in.' ); ?>
 			</p>
 			<div>
 				<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" class="inline-flex items-center px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-semibold rounded-lg transition-colors">

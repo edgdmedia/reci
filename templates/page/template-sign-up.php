@@ -227,8 +227,8 @@ get_header();
 
 				<div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-900">
 					<p class="font-semibold"><?php esc_html_e( 'Want to contribute to RECI?', 'reci-media-hub' ); ?></p>
-					<p class="mt-1 text-amber-800"><?php esc_html_e( 'Create your member account here, then apply separately to become a Collaborator.', 'reci-media-hub' ); ?></p>
-					<a href="<?php echo esc_url( function_exists( 'reci_get_collaborator_page_url' ) ? reci_get_collaborator_page_url() : home_url( '/become-a-collaborator/' ) ); ?>" class="mt-3 inline-flex items-center text-sm font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"><?php esc_html_e( 'Become a Collaborator', 'reci-media-hub' ); ?></a>
+					<p class="mt-1 text-amber-800"><?php esc_html_e( 'If your goal is to become a Collaborator, go straight to the Collaborator page to create your account and apply in one flow.', 'reci-media-hub' ); ?></p>
+					<a href="<?php echo esc_url( function_exists( 'reci_get_collaborator_page_url' ) ? reci_get_collaborator_page_url() : home_url( '/become-a-collaborator/' ) ); ?>" class="mt-3 inline-flex items-center text-sm font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"><?php esc_html_e( 'Go to Become a Collaborator', 'reci-media-hub' ); ?></a>
 				</div>
 
 				<!-- Divider -->
