@@ -22,7 +22,6 @@ return [
 	'dashboard' => [
 		'parent'   => [ 'slug' => 'dashboard', 'title' => 'Dashboard', 'template' => 'templates/page/dashboard/template-dashboard.php' ],
 		'children' => [
-			'feed'       => [ 'title' => 'Dashboard – Feed', 'template' => 'templates/page/dashboard/template-dashboard-feed.php' ],
 			'my-content' => [ 'title' => 'Dashboard – My Content', 'template' => 'templates/page/dashboard/template-dashboard-my-content.php' ],
 			'submit'     => [ 'title' => 'Dashboard – Submit', 'template' => 'templates/page/dashboard/template-dashboard-submit.php' ],
 			'bookmarks'  => [ 'title' => 'Dashboard – Bookmarks', 'template' => 'templates/page/dashboard/template-dashboard-bookmarks.php' ],

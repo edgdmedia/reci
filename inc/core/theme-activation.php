@@ -84,20 +84,10 @@ function reci_theme_activation_setup(): void {
 		}
 	}
 
-	// Dashboard child pages. The dashboard feed is the signed-in content home, so
-	// it must exist on activation and not only after a demo-content import.
-	if ( ! empty( $page_ids['dashboard'] ) ) {
-		$dashboard_children = [
-			'feed' => [ 'Dashboard – Feed', 'templates/page/dashboard/template-dashboard-feed.php' ],
-		];
-
-		foreach ( $dashboard_children as $child_slug => [ $child_title, $child_template ] ) {
-			$child_id = reci_ensure_page( $child_slug, $child_title, $child_template, (int) $page_ids['dashboard'] );
-			if ( $child_id ) {
-				$page_ids[ 'dashboard/' . $child_slug ] = $child_id;
-			}
-		}
-	}
+	// `/dashboard/feed/` deliberately has no page of its own: `feed` is a reserved
+	// slug (it collides with WP's /feed/ rewrite endpoint, so wp_unique_post_slug
+	// renames it to feed-2, feed-3, ... on every run). The route is served by the
+	// rewrite rule in inc/admin/dashboard.php, same as /dashboard/notifications/.
 
 	// Persist the map so auth helpers can look up page IDs quickly.
 	update_option( 'reci_pages', $page_ids );
@@ -142,10 +132,8 @@ add_action( 'admin_init', function() {
  *
  * @return int  Page ID, or 0 on failure.
  */
-function reci_ensure_page( string $slug, string $title, string $template, int $parent_id = 0 ): int {
-	$existing = $parent_id > 0
-		? get_page_by_path( get_post_field( 'post_name', $parent_id ) . '/' . $slug )
-		: get_page_by_path( $slug );
+function reci_ensure_page( string $slug, string $title, string $template ): int {
+	$existing = get_page_by_path( $slug );
 
 	if ( $existing ) {
 		$current_template = get_post_meta( $existing->ID, '_wp_page_template', true );
@@ -160,7 +148,6 @@ function reci_ensure_page( string $slug, string $title, string $template, int $p
 		'post_name'      => $slug,
 		'post_status'    => 'publish',
 		'post_type'      => 'page',
-		'post_parent'    => $parent_id,
 		'comment_status' => 'closed',
 		'ping_status'    => 'closed',
 	] );

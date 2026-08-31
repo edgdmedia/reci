@@ -342,7 +342,7 @@ Expected: `No syntax errors detected` for all files.
 **Files:**
 - Modify only if verification reveals issues.
 
-- [ ] **Step 1: Verify canonical submit path behavior**
+- [x] **Step 1: Verify canonical submit path behavior**
 
 Manual checks on a WP install:
 - guest opens `/submit/`
@@ -354,14 +354,14 @@ Expected:
 - state-aware flow
 - no separate dashboard-only submission behavior
 
-- [ ] **Step 2: Verify dashboard feed route**
+- [x] **Step 2: Verify dashboard feed route**
 
 Manual check:
 - open `/dashboard/feed/`
 - confirm sidebar highlights Feed
 - confirm personalized content loads
 
-- [ ] **Step 3: Verify profile/collaborator field consistency**
+- [x] **Step 3: Verify profile/collaborator field consistency**
 
 Manual check:
 - compare fields on:
