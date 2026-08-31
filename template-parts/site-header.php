@@ -165,9 +165,7 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 
 					</div>
 				</div>
-			</div>
-
-			<!-- Mobile search drawer -->
+				<!-- Mobile search drawer -->
 			<div
 				id="search-drawer"
 				class="md:hidden hidden absolute left-0 right-0 top-full bg-white border-b border-zinc-300 shadow-lg z-50"
@@ -198,7 +196,8 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 							</svg>
 						</button>
 					</form>
-		</div>
-	</div>
+					</div>
+				</div>
+			</div>
 
 <?php get_template_part("template-parts/menu", "overlay"); 

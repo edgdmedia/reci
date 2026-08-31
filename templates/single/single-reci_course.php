@@ -170,6 +170,8 @@ if (!empty($sdgs) && !is_wp_error($sdgs)) : ?>
 <?php endif; ?>
 
 
+			</div><!-- /LEFT: Course content -->
+
 			<!-- ── RIGHT: Course details sidebar ─────────────────────────── -->
 			<aside class="w-full lg:w-1/3 lg:py-14 lg:self-start lg:sticky lg:top-10">
 				<div class="bg-white rounded-lg shadow-sm overflow-hidden border border-zinc-200">

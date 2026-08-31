@@ -97,8 +97,11 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_author_social_links'      => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_author_cv_id'             => ['type' => 'integer', 'single' => true, 'default' => 0],
 				'_reci_author_highlighted_links' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_pitt_affiliated'   => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_author_source_url'        => ['type' => 'string', 'single' => true, 'default' => ''],
 				'_reci_author_import_slug'       => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_import_name_parts' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_import_review'     => ['type' => 'string', 'single' => true, 'default' => ''],
 			],
 			'reci_partner'    => [
 				'_reci_partner_url' => ['type' => 'string', 'single' => true, 'default' => ''],
