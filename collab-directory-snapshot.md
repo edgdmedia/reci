@@ -1,0 +1,61 @@
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - banner "Site header" [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e8]:
+          - link "University of Pittsburgh shield" [ref=e9]:
+            - /url: https://www.pitt.edu
+            - img "University of Pittsburgh shield" [ref=e10]
+          - link "School of Social Work Center on Race and Social Problems" [ref=e11]:
+            - /url: /
+            - generic [ref=e12]: School of Social Work
+            - text: Center on Race and Social Problems
+        - navigation [ref=e14]:
+          - navigation "Main Navigation" [ref=e16]:
+            - list [ref=e18]
+        - generic [ref=e29]:
+          - button "Toggle search" [ref=e30] [cursor=pointer]: 
+          - button " Open Navigation" [ref=e31] [cursor=pointer]:
+            - text: 
+            - generic [ref=e32]: Open Navigation
+    - generic [ref=e41]:
+      - generic [ref=e42]: Racial Equity Collaboratory
+      - heading "Searchable Collaboratory Database" [level=1] [ref=e43]
+    - main [ref=e44]:
+      - generic [ref=e46]:
+        - generic [ref=e48]:
+          - article [ref=e51]:
+            - generic [ref=e54]
+          - generic [ref=e66]:
+            - generic [ref=e69]
+            - generic [ref=e82]
+            - navigation "Pagination" [ref=e383]
+        - navigation "Racial Equity Collaboratory" [ref=e406]:
+          - link "Racial Equity Collaboratory" [ref=e408]:
+            - /url: /racial-equity-collaboratory
+          - list [ref=e409]:
+            - listitem [ref=e410]
+            - listitem [ref=e412]
+            - listitem [ref=e414]
+            - listitem [ref=e416]
+            - listitem [ref=e418]
+            - listitem [ref=e420]
+    - contentinfo [ref=e422]:
+      - generic [ref=e423]:
+        - generic [ref=e427]:
+          - link "University of Pittsburgh shield" [ref=e428]:
+            - /url: https://www.pitt.edu
+            - img "University of Pittsburgh shield" [ref=e429]
+          - link "School of Social Work Center on Race and Social Problems" [ref=e430]:
+            - /url: /
+            - generic [ref=e431]: School of Social Work
+            - text: Center on Race and Social Problems
+        - generic [ref=e433]:
+          - navigation "Main Navigation" [ref=e436]:
+            - list [ref=e438]
+          - generic [ref=e459]:
+            - generic [ref=e461]
+            - generic [ref=e497]
+      - text: 

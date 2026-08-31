@@ -663,19 +663,42 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 add_action( 'transition_post_status', 'reci_sync_collaborator_application_status', 10, 3 );
 
 if ( ! function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
+	/**
+	 * Publish a user's collaborator profile to their public `reci_author` post.
+	 *
+	 * The user account is the source of truth; this projects it outward. Fields
+	 * that exist only to review an application — the membership objective above
+	 * all — stay on the application post and are never published here.
+	 */
 	function reci_sync_collaborator_profile_from_application( int $application_id, int $user_id ): void {
+		$profile = function_exists( 'reci_get_user_collaborator_profile_data' )
+			? reci_get_user_collaborator_profile_data( $user_id )
+			: [];
+
+		$full_name = trim( (string) ( $profile['reci_firstname'] ?? '' ) . ' ' . (string) ( $profile['reci_lastname'] ?? '' ) );
+		if ( '' === $full_name ) {
+			$full_name = trim(
+				(string) get_post_meta( $application_id, '_reci_submission_first_name', true ) . ' ' .
+				(string) get_post_meta( $application_id, '_reci_submission_last_name', true )
+			);
+		}
+
+		$bio          = (string) ( $profile['submission_bio'] ?? '' );
+		$title        = (string) ( $profile['submission_role'] ?? '' );
+		$website      = (string) ( $profile['submission_website'] ?? '' );
+		$organization = (string) ( $profile['submission_organization'] ?? '' );
+		$department   = (string) ( $profile['reci_department'] ?? '' );
+		$social       = (string) ( $profile['reci_social_handles'] ?? '' );
+		$email        = (string) ( $profile['user_email'] ?? '' );
+		$pitt         = (string) ( $profile['reci_pitt_affiliation'] ?? '' );
+
 		$profile_id = function_exists( 'reci_media_hub_get_author_profile_by_user_id' ) ? reci_media_hub_get_author_profile_by_user_id( $user_id ) : 0;
-		$full_name  = trim(
-			(string) get_post_meta( $application_id, '_reci_submission_first_name', true ) . ' ' .
-			(string) get_post_meta( $application_id, '_reci_submission_last_name', true )
-		);
-		$bio        = (string) get_post_meta( $application_id, '_reci_submission_bio', true );
-		$title      = (string) get_post_meta( $application_id, '_reci_submission_role', true );
-		$website    = (string) get_post_meta( $application_id, '_reci_submission_website', true );
-		$organization = (string) get_post_meta( $application_id, '_reci_submission_organization', true );
-		$department   = (string) get_post_meta( $application_id, '_reci_collaborator_department', true );
-		$social       = (string) get_post_meta( $application_id, '_reci_collaborator_social_handles', true );
-		$objective    = (string) get_post_meta( $application_id, '_reci_collaborator_membership_objective', true );
+
+		// An imported profile may already exist for this person under the same
+		// email — claim it rather than creating a duplicate.
+		if ( $profile_id <= 0 && '' !== $email && function_exists( 'reci_media_hub_find_author_profile_by_email' ) ) {
+			$profile_id = reci_media_hub_find_author_profile_by_email( $email );
+		}
 
 		if ( $profile_id <= 0 && function_exists( 'reci_media_hub_create_or_get_author_profile' ) ) {
 			$profile_id = reci_media_hub_create_or_get_author_profile( $full_name, $title, $bio );
@@ -688,20 +711,34 @@ if ( ! function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 		wp_update_post([
 			'ID'           => $profile_id,
 			'post_title'   => $full_name !== '' ? $full_name : get_the_title( $profile_id ),
-			'post_content' => trim( implode( "\n\n", array_filter( [ $bio, $organization !== '' ? 'Organization: ' . $organization : '', $department !== '' ? 'Department: ' . $department : '', $social !== '' ? 'Social: ' . $social : '', $objective !== '' ? 'Main objective: ' . $objective : '' ] ) ) ),
+			'post_content' => $bio,
 			'post_excerpt' => $bio,
 			'post_status'  => 'publish',
 		]);
 
-		update_post_meta( $profile_id, '_reci_author_profile_user_id', $user_id );
-		update_post_meta( $profile_id, '_reci_author_profile_title', $title );
-		if ( $website !== '' ) {
-			update_post_meta( $profile_id, '_reci_submission_website', $website );
+		$meta = [
+			'_reci_author_profile_user_id'  => $user_id,
+			'_reci_author_profile_title'    => $title,
+			'_reci_author_email'            => $email,
+			'_reci_author_organization'     => $organization,
+			'_reci_author_department'       => $department,
+			'_reci_author_pitt_affiliation' => $pitt,
+			'_reci_author_website'          => $website,
+			'_reci_author_social_links'     => $social,
+		];
+
+		foreach ( $meta as $key => $value ) {
+			update_post_meta( $profile_id, $key, $value );
 		}
 
 		$profile_image_id = absint( get_post_meta( $application_id, '_reci_collaborator_profile_image_id', true ) );
 		if ( $profile_image_id > 0 ) {
 			set_post_thumbnail( $profile_id, $profile_image_id );
+		}
+
+		$cv_id = absint( get_post_meta( $application_id, '_reci_collaborator_cv_attachment_id', true ) );
+		if ( $cv_id > 0 ) {
+			update_post_meta( $profile_id, '_reci_author_cv_id', $cv_id );
 		}
 	}
 }

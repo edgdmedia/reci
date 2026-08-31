@@ -2567,6 +2567,11 @@ video {
        column-gap: 1.25rem;
 }
 
+.gap-x-8 {
+  -moz-column-gap: 2rem;
+       column-gap: 2rem;
+}
+
 .gap-y-1 {
   row-gap: 0.25rem;
 }
@@ -5461,6 +5466,11 @@ video {
 
 .hover\:bg-\[var\(--reflection-heading\)\]:hover {
   background-color: var(--reflection-heading);
+}
+
+.hover\:bg-amber-200:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(253 230 138 / var(--tw-bg-opacity, 1));
 }
 
 .hover\:bg-amber-300:hover {

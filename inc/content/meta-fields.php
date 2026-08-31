@@ -87,8 +87,18 @@ if (! function_exists('reci_media_hub_meta_definitions')) {
 				'_reci_display_author_profile_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
 			],
 			'reci_author'     => [
-				'_reci_author_profile_user_id' => ['type' => 'integer', 'single' => true, 'default' => 0],
-				'_reci_author_profile_title'   => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_profile_user_id'   => ['type' => 'integer', 'single' => true, 'default' => 0],
+				'_reci_author_profile_title'     => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_email'             => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_organization'      => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_department'        => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_pitt_affiliation'  => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_website'           => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_social_links'      => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_cv_id'             => ['type' => 'integer', 'single' => true, 'default' => 0],
+				'_reci_author_highlighted_links' => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_source_url'        => ['type' => 'string', 'single' => true, 'default' => ''],
+				'_reci_author_import_slug'       => ['type' => 'string', 'single' => true, 'default' => ''],
 			],
 			'reci_partner'    => [
 				'_reci_partner_url' => ['type' => 'string', 'single' => true, 'default' => ''],
@@ -965,10 +975,19 @@ if (! function_exists('reci_media_hub_render_author_profile_metabox')) {
 			$user_options[(string) $user->ID] = $user->display_name;
 		}
 	?>
-		<p class="description"><?php esc_html_e('Use the post title as the public author name. Featured image becomes the avatar, excerpt/content becomes the bio, and the linked account is optional.', 'reci-media-hub'); ?></p>
+		<p class="description"><?php esc_html_e('Use the post title as the public author name. Featured image becomes the avatar, excerpt/content becomes the bio, and the linked account is optional. When an account is linked, these fields are overwritten from that user on approval — edit the user profile instead.', 'reci-media-hub'); ?></p>
 		<div class="reci-meta-grid">
 			<?php reci_media_hub_render_select_field('_reci_author_profile_user_id', __('Linked User Account', 'reci-media-hub'), $linked_user_id, $user_options, 'reci-meta-row--full'); ?>
 			<?php reci_media_hub_render_field('_reci_author_profile_title', __('Role / Title', 'reci-media-hub'), $profile_title, 'text', 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_field('_reci_author_email', __('Contact Email', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_email', true), 'text'); ?>
+			<?php reci_media_hub_render_field('_reci_author_website', __('Primary Link', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_website', true), 'text'); ?>
+			<?php reci_media_hub_render_field('_reci_author_organization', __('Organization', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_organization', true), 'text'); ?>
+			<?php reci_media_hub_render_field('_reci_author_department', __('Department', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_department', true), 'text'); ?>
+			<?php reci_media_hub_render_field('_reci_author_pitt_affiliation', __('Pitt Affiliation', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_pitt_affiliation', true), 'text', 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_field('_reci_author_social_links', __('Social Links (one per line)', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_social_links', true), 'textarea', 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_field('_reci_author_highlighted_links', __('Highlighted Work (one per line)', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_highlighted_links', true), 'textarea', 'reci-meta-row--full'); ?>
+			<?php reci_media_hub_render_field('_reci_author_cv_id', __('CV Attachment ID', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_cv_id', true), 'number'); ?>
+			<?php reci_media_hub_render_field('_reci_author_source_url', __('Imported From', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_source_url', true), 'text'); ?>
 		</div>
 	<?php
 	}

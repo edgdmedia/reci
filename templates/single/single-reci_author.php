@@ -86,6 +86,16 @@ get_header();
 						<?php if (! empty($profile['title'])) : ?>
 							<p class="text-neutral-500 text-lg font-medium"><?php echo esc_html((string) $profile['title']); ?></p>
 						<?php endif; ?>
+						<?php
+						$affiliation_chips = get_the_terms($profile_id, 'reci_affiliation');
+						if (! is_wp_error($affiliation_chips) && ! empty($affiliation_chips)) :
+						?>
+							<div class="flex flex-wrap gap-2 pt-1">
+								<?php foreach ($affiliation_chips as $chip) : ?>
+									<a href="<?php echo esc_url((string) get_term_link($chip)); ?>" class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800 transition-colors hover:bg-amber-200"><?php echo esc_html($chip->name); ?></a>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
 					</div>
 				</div>
 				<?php if ( $is_logged_in ) : ?>
@@ -120,10 +130,79 @@ get_header();
 							<span class="text-zinc-400 text-5xl font-bold font-heading"><?php echo esc_html(substr($profile['name'] ?? get_the_title(), 0, 2)); ?></span>
 						</div>
 					<?php endif; ?>
-					<div class="flex flex-col gap-4">
+					<div class="flex min-w-0 flex-1 flex-col gap-6">
 						<div class="text-neutral-700 text-xl font-normal leading-7">
 							<?php the_content(); ?>
 						</div>
+
+						<?php
+						$detail_rows = array_filter([
+							__('Organization', 'reci-media-hub')     => (string) ($profile['organization'] ?? ''),
+							__('Department', 'reci-media-hub')       => (string) ($profile['department'] ?? ''),
+							__('Pitt Affiliation', 'reci-media-hub') => (string) ($profile['pitt'] ?? ''),
+						], static fn($value) => '' !== $value);
+
+						if (! empty($detail_rows)) :
+						?>
+							<dl class="grid gap-x-8 gap-y-3 sm:grid-cols-2">
+								<?php foreach ($detail_rows as $detail_label => $detail_value) : ?>
+									<div>
+										<dt class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php echo esc_html($detail_label); ?></dt>
+										<dd class="mt-1 text-base text-neutral-700"><?php echo esc_html($detail_value); ?></dd>
+									</div>
+								<?php endforeach; ?>
+							</dl>
+						<?php endif; ?>
+
+						<?php
+						$expertise_terms = get_the_terms($profile_id, 'reci_expertise');
+						if (! is_wp_error($expertise_terms) && ! empty($expertise_terms)) :
+						?>
+							<div>
+								<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Subject Areas', 'reci-media-hub'); ?></p>
+								<div class="mt-2 flex flex-wrap gap-2">
+									<?php foreach ($expertise_terms as $expertise_term) : ?>
+										<a href="<?php echo esc_url((string) get_term_link($expertise_term)); ?>" class="inline-flex rounded-lg border border-zinc-300 px-3 py-1 text-sm text-neutral-700 transition-colors hover:border-amber-400 hover:text-amber-800"><?php echo esc_html($expertise_term->name); ?></a>
+									<?php endforeach; ?>
+								</div>
+							</div>
+						<?php endif; ?>
+
+						<?php
+						$profile_links = [];
+						if (! empty($profile['website'])) {
+							$profile_links[] = ['url' => (string) $profile['website'], 'label' => __('Website', 'reci-media-hub')];
+						}
+						foreach ((array) ($profile['social_links'] ?? []) as $social_link) {
+							$social_host = (string) wp_parse_url((string) $social_link, PHP_URL_HOST);
+							$profile_links[] = [
+								'url'   => (string) $social_link,
+								'label' => '' !== $social_host ? (string) preg_replace('/^www\./', '', $social_host) : __('Profile', 'reci-media-hub'),
+							];
+						}
+						if (! empty($profile['cv_url'])) {
+							$profile_links[] = ['url' => (string) $profile['cv_url'], 'label' => __('Download CV', 'reci-media-hub')];
+						}
+
+						if (! empty($profile_links)) :
+						?>
+							<div class="flex flex-wrap gap-3">
+								<?php foreach ($profile_links as $profile_link) : ?>
+									<a href="<?php echo esc_url($profile_link['url']); ?>" class="btn btn-outline-primary btn-md" rel="noopener noreferrer" target="_blank"><?php echo esc_html($profile_link['label']); ?></a>
+								<?php endforeach; ?>
+							</div>
+						<?php endif; ?>
+
+						<?php if (! empty($profile['highlighted'])) : ?>
+							<div>
+								<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Highlighted Work', 'reci-media-hub'); ?></p>
+								<ul class="mt-2 flex flex-col gap-1">
+									<?php foreach ((array) $profile['highlighted'] as $highlighted_link) : ?>
+										<li><a href="<?php echo esc_url((string) $highlighted_link); ?>" class="break-words text-amber-700 underline underline-offset-2 hover:text-amber-800" rel="noopener noreferrer" target="_blank"><?php echo esc_html((string) $highlighted_link); ?></a></li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
 					</div>
 				</div>
 			</div>

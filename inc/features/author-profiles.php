@@ -69,6 +69,50 @@ if (! function_exists('reci_media_hub_get_author_profile_by_user_id')) {
 	}
 }
 
+if (! function_exists('reci_media_hub_find_author_profile_by_email')) {
+	/**
+	 * Find a collaborator profile by its contact email.
+	 *
+	 * Lets an imported profile be claimed by the person it describes when they
+	 * later register with the same address, instead of creating a duplicate.
+	 */
+	function reci_media_hub_find_author_profile_by_email(string $email): int {
+		$email = sanitize_email($email);
+		if ($email === '') {
+			return 0;
+		}
+
+		$profile_ids = get_posts([
+			'post_type'      => 'reci_author',
+			'post_status'    => ['publish', 'draft', 'pending', 'private'],
+			'fields'         => 'ids',
+			'posts_per_page' => 1,
+			'meta_key'       => '_reci_author_email',
+			'meta_value'     => $email,
+			'no_found_rows'  => true,
+		]);
+
+		return ! empty($profile_ids) ? (int) $profile_ids[0] : 0;
+	}
+}
+
+if (! function_exists('reci_media_hub_get_author_profile_website')) {
+	/**
+	 * Primary link for a collaborator profile.
+	 *
+	 * Reads the canonical key and falls back to the pre-unification
+	 * `_reci_submission_website` so existing profiles keep their link.
+	 */
+	function reci_media_hub_get_author_profile_website(int $profile_id): string {
+		$url = (string) get_post_meta($profile_id, '_reci_author_website', true);
+		if ($url === '') {
+			$url = (string) get_post_meta($profile_id, '_reci_submission_website', true);
+		}
+
+		return $url;
+	}
+}
+
 if (! function_exists('reci_media_hub_get_author_profile_data')) {
 	/**
 	 * Build frontend-safe author profile data.
@@ -94,17 +138,33 @@ if (! function_exists('reci_media_hub_get_author_profile_data')) {
 		$bio = str_replace('Contributor to the RECI Media Hub demo library.', '', $bio);
 		$bio = trim($bio);
 
+		$lines = static function (string $meta_key) use ($profile_id): array {
+			$raw = (string) get_post_meta($profile_id, $meta_key, true);
+			return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])));
+		};
+
+		$cv_id = absint(get_post_meta($profile_id, '_reci_author_cv_id', true));
+
 		return [
-			'id'         => $profile_id,
-			'source'     => 'profile',
-			'profile_id' => $profile_id,
-			'user_id'    => reci_media_hub_get_author_profile_linked_user_id($profile_id),
-			'name'       => get_the_title($profile_id),
-			'title'      => (string) get_post_meta($profile_id, '_reci_author_profile_title', true),
-			'bio'        => (string) $bio,
-			'image_url'  => get_the_post_thumbnail_url($profile_id, 'medium') ?: '',
-			'image_alt'  => $image_alt,
-			'permalink'  => get_permalink($profile_id),
+			'id'           => $profile_id,
+			'source'       => 'profile',
+			'profile_id'   => $profile_id,
+			'user_id'      => reci_media_hub_get_author_profile_linked_user_id($profile_id),
+			'name'         => get_the_title($profile_id),
+			'title'        => (string) get_post_meta($profile_id, '_reci_author_profile_title', true),
+			'bio'          => (string) $bio,
+			'image_url'    => get_the_post_thumbnail_url($profile_id, 'medium') ?: '',
+			'image_alt'    => $image_alt,
+			'permalink'    => get_permalink($profile_id),
+			'email'        => (string) get_post_meta($profile_id, '_reci_author_email', true),
+			'organization' => (string) get_post_meta($profile_id, '_reci_author_organization', true),
+			'department'   => (string) get_post_meta($profile_id, '_reci_author_department', true),
+			'pitt'         => (string) get_post_meta($profile_id, '_reci_author_pitt_affiliation', true),
+			'website'      => reci_media_hub_get_author_profile_website($profile_id),
+			'social_links' => $lines('_reci_author_social_links'),
+			'highlighted'  => $lines('_reci_author_highlighted_links'),
+			'cv_id'        => $cv_id,
+			'cv_url'       => $cv_id > 0 ? (string) wp_get_attachment_url($cv_id) : '',
 		];
 	}
 }

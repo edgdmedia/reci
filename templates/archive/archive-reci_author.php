@@ -13,9 +13,31 @@ $page_title    = 'Collaborators';
 $page_subtitle = 'Meet the voices behind RECI — researchers, practitioners, and community leaders advancing equity and justice.';
 
 $current_search = isset($_GET['search']) ? sanitize_text_field((string) wp_unslash($_GET['search'])) : '';
+$current_focus  = isset($_GET['focus']) ? sanitize_title((string) wp_unslash($_GET['focus'])) : '';
+$current_affiliation = isset($_GET['affiliation']) ? sanitize_title((string) wp_unslash($_GET['affiliation'])) : '';
 $base_url       = get_post_type_archive_link('reci_author') ?: home_url('/collaborators/');
-$all_filters_url = remove_query_arg(['search', 'paged'], $base_url);
-$has_filters    = $current_search !== '';
+$all_filters_url = remove_query_arg(['search', 'focus', 'affiliation', 'paged'], $base_url);
+$has_filters    = $current_search !== '' || $current_focus !== '' || $current_affiliation !== '';
+
+// Ordered by how many collaborators hold each subject, so the dozen that
+// actually describe the directory sit at the top of a 47-term vocabulary.
+$focus_terms = get_terms([
+	'taxonomy'   => 'reci_expertise',
+	'hide_empty' => true,
+	'orderby'    => 'count',
+	'order'      => 'DESC',
+]);
+if (is_wp_error($focus_terms)) {
+	$focus_terms = [];
+}
+
+$affiliation_terms = get_terms([
+	'taxonomy'   => 'reci_affiliation',
+	'hide_empty' => true,
+]);
+if (is_wp_error($affiliation_terms)) {
+	$affiliation_terms = [];
+}
 
 $paged = max(1, (int) get_query_var('paged'), (int) get_query_var('page'));
 
@@ -32,6 +54,25 @@ if ($current_search !== '') {
 	$query_args['s'] = $current_search;
 }
 
+$query_args['tax_query'] = ['relation' => 'AND'];
+if ($current_focus !== '') {
+	$query_args['tax_query'][] = [
+		'taxonomy' => 'reci_expertise',
+		'field'    => 'slug',
+		'terms'    => [$current_focus],
+	];
+}
+if ($current_affiliation !== '') {
+	$query_args['tax_query'][] = [
+		'taxonomy' => 'reci_affiliation',
+		'field'    => 'slug',
+		'terms'    => [$current_affiliation],
+	];
+}
+if (count($query_args['tax_query']) === 1) {
+	unset($query_args['tax_query']);
+}
+
 $author_query = new WP_Query($query_args);
 
 get_header();
@@ -44,11 +85,30 @@ get_header();
 
 	<section class="reci-container pt-5 pb-14 flex flex-col justify-start items-start gap-10">
 		<div class="self-stretch pb-5 border-b border-zinc-400">
-			<form method="get" action="<?php echo esc_url($base_url); ?>" class="self-stretch flex flex-col sm:flex-row justify-between items-center gap-5" data-archive-filter-form data-search-min="3" data-search-debounce="350">
+			<form method="get" action="<?php echo esc_url($base_url); ?>" class="self-stretch flex flex-col gap-5" data-archive-filter-form data-search-min="3" data-search-debounce="350">
 				<div class="flex justify-start items-center gap-5 flex-wrap">
 					<span class="text-neutral-800 text-base font-bold">Filter by:</span>
 				</div>
-				<div class="w-full sm:w-auto flex items-center gap-2.5">
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+					<div>
+						<label for="author-focus" class="mb-2 block text-sm font-medium text-neutral-700">Research or Work Focus</label>
+						<select id="author-focus" name="focus" class="w-full rounded-lg border border-zinc-300 px-4 py-3">
+							<option value="">- Any -</option>
+							<?php foreach ($focus_terms as $term) : ?>
+								<option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_focus, $term->slug); ?>><?php echo esc_html($term->name); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div>
+						<label for="author-affiliation" class="mb-2 block text-sm font-medium text-neutral-700">Affiliation</label>
+						<select id="author-affiliation" name="affiliation" class="w-full rounded-lg border border-zinc-300 px-4 py-3">
+							<option value="">- Any -</option>
+							<?php foreach ($affiliation_terms as $term) : ?>
+								<option value="<?php echo esc_attr($term->slug); ?>" <?php selected($current_affiliation, $term->slug); ?>><?php echo esc_html($term->name); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="w-full sm:w-auto flex items-center gap-2.5">
 					<div class="archive-filter-search-wrap" role="search">
 						<svg class="w-4 h-4 flex-shrink-0 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -59,6 +119,7 @@ get_header();
 					<?php if ($has_filters) : ?>
 						<a href="<?php echo esc_url($all_filters_url); ?>" class="px-4 py-3 text-sm font-medium text-neutral-700 hover:text-neutral-900">Reset</a>
 					<?php endif; ?>
+					</div>
 				</div>
 			</form>
 		</div>
