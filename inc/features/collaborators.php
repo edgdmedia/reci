@@ -124,9 +124,295 @@ if ( ! function_exists( 'reci_get_user_collaborator_application' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_collaborator_profile_field_definitions' ) ) {
+	/**
+	 * Canonical contributor identity fields.
+	 *
+	 * Shared by collaborator onboarding, the canonical /submit/ flow, and the
+	 * dashboard profile editor so all three surfaces stay in sync.
+	 */
+	function reci_collaborator_profile_field_definitions(): array {
+		return [
+			'reci_firstname'            => [ 'label' => __( 'First Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
+			'reci_lastname'             => [ 'label' => __( 'Last Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
+			'user_email'                => [ 'label' => __( 'Email', 'reci-media-hub' ), 'type' => 'email', 'required' => true, 'width' => 'half' ],
+			'reci_affiliated_with_pitt' => [ 'label' => __( 'Affiliated with Pitt', 'reci-media-hub' ), 'type' => 'select', 'required' => true, 'width' => 'half', 'options' => [ 'Yes', 'No' ] ],
+			'reci_pitt_affiliation'     => [ 'label' => __( 'Pitt Affiliation', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half' ],
+			'submission_organization'   => [ 'label' => __( 'Affiliation / Organization', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
+			'reci_department'           => [ 'label' => __( 'Department (School / Organization)', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
+			'submission_role'           => [ 'label' => __( 'Role / Title', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
+			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6 ],
+			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half' ],
+			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.' ],
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_only_field_definitions' ) ) {
+	/**
+	 * Fields that belong to the collaborator application only.
+	 *
+	 * These never appear in the dashboard profile editor.
+	 */
+	function reci_collaborator_application_only_field_definitions(): array {
+		return [
+			'reci_profile_picture'      => [ 'label' => __( 'Profile Picture (Professional headshot)', 'reci-media-hub' ), 'type' => 'file', 'required' => true, 'width' => 'full', 'accept' => 'image/*' ],
+			'reci_cv_upload'            => [ 'label' => __( 'Attach CV', 'reci-media-hub' ), 'type' => 'file', 'required' => false, 'width' => 'full', 'accept' => '.pdf,.doc,.docx' ],
+			'reci_membership_objective' => [ 'label' => __( 'Main Objective for Membership', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 4 ],
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_account_field_definitions' ) ) {
+	/**
+	 * Account-creation fields, rendered only when the visitor is a guest.
+	 */
+	function reci_collaborator_account_field_definitions(): array {
+		return [
+			'user_pass'        => [ 'label' => __( 'Password', 'reci-media-hub' ), 'type' => 'password', 'required' => true, 'width' => 'half' ],
+			'reci_pass_confirm' => [ 'label' => __( 'Confirm Password', 'reci-media-hub' ), 'type' => 'password', 'required' => true, 'width' => 'half' ],
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_get_user_collaborator_profile_data' ) ) {
+	/**
+	 * Read the shared profile fields for a user, keyed by canonical field name.
+	 */
+	function reci_get_user_collaborator_profile_data( int $user_id ): array {
+		$user = $user_id > 0 ? get_user_by( 'id', $user_id ) : null;
+		if ( ! $user instanceof WP_User ) {
+			return [];
+		}
+
+		return [
+			'reci_firstname'            => (string) get_user_meta( $user_id, 'first_name', true ),
+			'reci_lastname'             => (string) get_user_meta( $user_id, 'last_name', true ),
+			'user_email'                => (string) $user->user_email,
+			'reci_affiliated_with_pitt' => (string) get_user_meta( $user_id, 'reci_affiliated_with_pitt', true ),
+			'reci_pitt_affiliation'     => (string) get_user_meta( $user_id, 'reci_pitt_affiliation', true ),
+			'submission_organization'   => (string) get_user_meta( $user_id, 'organization', true ),
+			'reci_department'           => (string) get_user_meta( $user_id, 'reci_department', true ),
+			'submission_role'           => (string) get_user_meta( $user_id, 'user_title', true ),
+			'submission_bio'            => (string) get_user_meta( $user_id, 'description', true ),
+			'submission_website'        => (string) $user->user_url,
+			'reci_social_handles'       => (string) get_user_meta( $user_id, 'reci_social_handles', true ),
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_save_user_collaborator_profile_data' ) ) {
+	/**
+	 * Persist the shared profile fields for a user.
+	 *
+	 * Only keys present in $data are written, so partial saves are safe.
+	 */
+	function reci_save_user_collaborator_profile_data( int $user_id, array $data ): void {
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		$user_args = [ 'ID' => $user_id ];
+
+		if ( array_key_exists( 'reci_firstname', $data ) ) {
+			$user_args['first_name'] = (string) $data['reci_firstname'];
+		}
+		if ( array_key_exists( 'reci_lastname', $data ) ) {
+			$user_args['last_name'] = (string) $data['reci_lastname'];
+		}
+		if ( array_key_exists( 'submission_website', $data ) ) {
+			$user_args['user_url'] = (string) $data['submission_website'];
+		}
+
+		$full_name = trim( (string) ( $data['reci_firstname'] ?? '' ) . ' ' . (string) ( $data['reci_lastname'] ?? '' ) );
+		if ( '' !== $full_name && ! isset( $data['display_name'] ) ) {
+			$user_args['display_name'] = $full_name;
+		} elseif ( isset( $data['display_name'] ) && '' !== trim( (string) $data['display_name'] ) ) {
+			$user_args['display_name'] = (string) $data['display_name'];
+		}
+
+		if ( count( $user_args ) > 1 ) {
+			wp_update_user( $user_args );
+		}
+
+		$meta_map = [
+			'reci_affiliated_with_pitt' => 'reci_affiliated_with_pitt',
+			'reci_pitt_affiliation'     => 'reci_pitt_affiliation',
+			'submission_organization'   => 'organization',
+			'reci_department'           => 'reci_department',
+			'submission_role'           => 'user_title',
+			'submission_bio'            => 'description',
+			'reci_social_handles'       => 'reci_social_handles',
+		];
+
+		foreach ( $meta_map as $field => $meta_key ) {
+			if ( array_key_exists( $field, $data ) ) {
+				update_user_meta( $user_id, $meta_key, (string) $data[ $field ] );
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_render_collaborator_field' ) ) {
+	/**
+	 * Render one shared field from a field definition.
+	 */
+	function reci_render_collaborator_field( string $key, array $field, string $value = '' ): void {
+		$type     = (string) ( $field['type'] ?? 'text' );
+		$required = ! empty( $field['required'] );
+		$id       = 'reci-field-' . str_replace( '_', '-', $key );
+		$classes  = 'w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500';
+		$span     = 'full' === ( $field['width'] ?? 'full' ) ? ' sm:col-span-2' : '';
+
+		echo '<div class="' . esc_attr( trim( $span ) ) . '">';
+		echo '<label class="mb-2 block text-sm font-medium text-zinc-800" for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) );
+		if ( ! $required && ( $field['optional_hint'] ?? true ) ) {
+			echo ' <span class="font-normal text-zinc-400">' . esc_html__( '(optional)', 'reci-media-hub' ) . '</span>';
+		}
+		echo '</label>';
+
+		if ( 'textarea' === $type ) {
+			printf(
+				'<textarea id="%1$s" name="%2$s" rows="%3$d" class="%4$s"%5$s>%6$s</textarea>',
+				esc_attr( $id ),
+				esc_attr( $key ),
+				(int) ( $field['rows'] ?? 4 ),
+				esc_attr( $classes ),
+				$required ? ' required' : '',
+				esc_textarea( $value )
+			);
+		} elseif ( 'select' === $type ) {
+			printf(
+				'<select id="%1$s" name="%2$s" class="%3$s"%4$s>',
+				esc_attr( $id ),
+				esc_attr( $key ),
+				esc_attr( $classes ),
+				$required ? ' required' : ''
+			);
+			echo '<option value="">' . esc_html__( 'Select one', 'reci-media-hub' ) . '</option>';
+			foreach ( (array) ( $field['options'] ?? [] ) as $option_key => $option_label ) {
+				$option_value = is_int( $option_key ) ? (string) $option_label : (string) $option_key;
+				printf(
+					'<option value="%1$s"%2$s>%3$s</option>',
+					esc_attr( $option_value ),
+					selected( $value, $option_value, false ),
+					esc_html( (string) $option_label )
+				);
+			}
+			echo '</select>';
+		} elseif ( 'file' === $type ) {
+			printf(
+				'<input id="%1$s" name="%2$s" type="file" accept="%3$s" class="%4$s"%5$s />',
+				esc_attr( $id ),
+				esc_attr( $key ),
+				esc_attr( (string) ( $field['accept'] ?? '' ) ),
+				esc_attr( $classes ),
+				$required ? ' required' : ''
+			);
+		} else {
+			printf(
+				'<input id="%1$s" name="%2$s" type="%3$s" value="%4$s" placeholder="%5$s" class="%6$s"%7$s />',
+				esc_attr( $id ),
+				esc_attr( $key ),
+				esc_attr( $type ),
+				esc_attr( 'password' === $type ? '' : $value ),
+				esc_attr( (string) ( $field['placeholder'] ?? '' ) ),
+				esc_attr( $classes ),
+				$required ? ' required' : ''
+			);
+		}
+
+		echo '</div>';
+	}
+}
+
+if ( ! function_exists( 'reci_render_collaborator_fields' ) ) {
+	/**
+	 * Render a group of shared fields inside a two-column responsive grid.
+	 */
+	function reci_render_collaborator_fields( array $fields, array $values = [] ): void {
+		echo '<div class="grid gap-5 sm:grid-cols-2">';
+		foreach ( $fields as $key => $field ) {
+			reci_render_collaborator_field( (string) $key, (array) $field, (string) ( $values[ $key ] ?? '' ) );
+		}
+		echo '</div>';
+	}
+}
+
+if ( ! function_exists( 'reci_get_collaborator_application_notices' ) ) {
+	/**
+	 * Human-readable copy for the application_success / application_error query args.
+	 */
+	function reci_get_collaborator_application_notices(): array {
+		return [
+			'success' => [
+				'already_approved'     => __( 'Your collaborator access is already active.', 'reci-media-hub' ),
+				'pending'              => __( 'Your collaborator application is under review.', 'reci-media-hub' ),
+				'pending_with_account' => __( 'Your member account has been created and your collaborator application is under review. Please verify your email address if prompted.', 'reci-media-hub' ),
+			],
+			'error'   => [
+				'invalid_nonce'          => __( 'Security check failed. Please try again.', 'reci-media-hub' ),
+				'missing_fields'         => __( 'Please complete the required fields.', 'reci-media-hub' ),
+				'missing_account_fields' => __( 'Please complete the required account fields.', 'reci-media-hub' ),
+				'password_mismatch'      => __( 'Passwords do not match.', 'reci-media-hub' ),
+				'password_too_short'     => __( 'Password must be at least 8 characters.', 'reci-media-hub' ),
+				'registration_disabled'  => __( 'Registration is currently disabled.', 'reci-media-hub' ),
+				'existing_user_email'    => __( 'An account with this email address already exists.', 'reci-media-hub' ),
+				'existing_user_login'    => __( 'That username already exists.', 'reci-media-hub' ),
+				'save_failed'            => __( 'We could not save your application. Please try again.', 'reci-media-hub' ),
+			],
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_just_submitted' ) ) {
+	/**
+	 * True right after an application was saved.
+	 *
+	 * A guest who just applied is not logged in yet, so their collaborator status
+	 * still reads as `guest`. Callers use this to show the hold state instead of
+	 * re-rendering an empty form under a success notice.
+	 */
+	function reci_collaborator_application_just_submitted(): bool {
+		if ( ! isset( $_GET['application_success'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return false;
+		}
+
+		$key = sanitize_key( wp_unslash( $_GET['application_success'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+		return in_array( $key, [ 'pending', 'pending_with_account' ], true );
+	}
+}
+
+if ( ! function_exists( 'reci_render_collaborator_application_notices' ) ) {
+	/**
+	 * Render success/error notices for the collaborator application flow.
+	 */
+	function reci_render_collaborator_application_notices(): void {
+		$notices = reci_get_collaborator_application_notices();
+
+		if ( isset( $_GET['application_success'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$key = sanitize_key( wp_unslash( $_GET['application_success'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			echo '<div class="mb-8 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">';
+			echo esc_html( $notices['success'][ $key ] ?? __( 'Your collaborator application is under review.', 'reci-media-hub' ) );
+			echo '</div>';
+		}
+
+		if ( isset( $_GET['application_error'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$key = sanitize_key( wp_unslash( $_GET['application_error'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			echo '<div class="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">';
+			echo esc_html( $notices['error'][ $key ] ?? __( 'Something went wrong. Please try again.', 'reci-media-hub' ) );
+			echo '</div>';
+		}
+	}
+}
+
 if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 	function reci_handle_collaborator_application(): void {
-		$target_url = reci_get_collaborator_page_url();
+		// The application form is rendered on both /become-a-collaborator/ and the
+		// canonical /submit/ flow; return the user to whichever one they started on.
+		$context    = sanitize_key( wp_unslash( $_POST['reci_application_context'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$target_url = 'submit' === $context ? home_url( '/submit/' ) : reci_get_collaborator_page_url();
 
 		if ( empty( $_POST['reci_collaborator_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['reci_collaborator_nonce'] ) ), 'reci_collaborator_application' ) ) {
 			wp_safe_redirect( add_query_arg( 'application_error', 'invalid_nonce', $target_url ) );
@@ -292,6 +578,24 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			update_post_meta( $post_id, '_reci_collaborator_cv_attachment_id', $cv_attachment_id );
 		}
 		update_user_meta( $user_id, '_reci_collaborator_status', 'pending' );
+
+		// Mirror the shared profile fields onto the user so /submit/ and the
+		// dashboard profile editor can pre-fill from a single source of truth.
+		reci_save_user_collaborator_profile_data(
+			$user_id,
+			[
+				'reci_firstname'            => $first_name,
+				'reci_lastname'             => $last_name,
+				'reci_affiliated_with_pitt' => $affiliated_with_pitt,
+				'reci_pitt_affiliation'     => $pitt_affiliation,
+				'submission_organization'   => $organization,
+				'reci_department'           => $department,
+				'submission_role'           => $role,
+				'submission_bio'            => $bio,
+				'submission_website'        => $website,
+				'reci_social_handles'       => $social_handles,
+			]
+		);
 
 		if ( function_exists( 'reci_send_staff_submission_notification' ) ) {
 			reci_send_staff_submission_notification( (int) $post_id );
