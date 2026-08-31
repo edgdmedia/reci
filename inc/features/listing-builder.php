@@ -1343,7 +1343,8 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				'reci_quote'     => ['label' => 'Quote',      'badge' => 'bg-rose-600', 'text' => 'text-white'],
 				'reci_assessment'=> ['label' => 'Quiz',       'badge' => 'bg-indigo-600', 'text' => 'text-white'],
 				'reci_course'    => ['label' => 'Course',     'badge' => 'bg-emerald-600', 'text' => 'text-white'],
-				'post'           => ['label' => 'Article',    'badge' => 'bg-reci-blue', 'text' => 'text-white'],
+				'reci_document'  => ['label' => 'Resource',   'badge' => 'bg-sky-700', 'text' => 'text-white'],
+				'reci_author'    => ['label' => 'Collaborator', 'badge' => 'bg-amber-600', 'text' => 'text-white'],
 			];
 
 			return $map[$post_type] ?? $map['post'];
@@ -1376,7 +1377,8 @@ if (! class_exists('RECI_Media_Hub_Listing_Builder')) {
 				];
 			}
 
-			if ( in_array( $post_type, [ 'reci_course', 'reci_assessment' ], true ) ) {
+			// Types with no duration or read time of their own.
+			if ( in_array( $post_type, [ 'reci_course', 'reci_assessment', 'reci_author', 'reci_document' ], true ) ) {
 				return [
 					'icon'  => '',
 					'value' => '',

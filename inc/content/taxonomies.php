@@ -208,6 +208,26 @@ if (! function_exists('reci_media_hub_default_target_audience_terms')) {
 	}
 }
 
+if (! function_exists('reci_media_hub_default_collaborator_affiliation_terms')) {
+	/**
+	 * Canonical collaborator affiliation terms.
+	 *
+	 * @return array<int,string>
+	 */
+	function reci_media_hub_default_collaborator_affiliation_terms(): array {
+		return [
+			'Alumni',
+			'Community Partner',
+			'Consultant',
+			'Faculty',
+			'Researcher',
+			'Student',
+			'Community Leader',
+			'Staff',
+		];
+	}
+}
+
 if (! function_exists('reci_media_hub_default_sdgs')) {
 	/**
 	 * Canonical SDG defaults.
@@ -233,6 +253,36 @@ if (! function_exists('reci_media_hub_default_sdgs')) {
 			['name' => 'Life on Land', 'slug' => 'sdg-15', 'color' => '#56C02B', 'desc' => 'Protect, restore, and promote sustainable use of terrestrial ecosystems. Land access and environmental justice are deeply connected to racial equity.'],
 			['name' => 'Peace, Justice and Strong Institutions', 'slug' => 'sdg-16', 'color' => '#00689D', 'desc' => 'Promote peaceful and inclusive societies, provide access to justice for all, and build effective and accountable institutions. Racial justice requires transforming systems of oppression.'],
 			['name' => 'Partnerships for the Goals', 'slug' => 'sdg-17', 'color' => '#191C7C', 'desc' => 'Strengthen the means of implementation and revitalize the global partnership for sustainable development. Collective action across differences is vital for racial equity.'],
+		];
+	}
+}
+
+if (! function_exists('reci_media_hub_default_expertise_terms')) {
+	/**
+	 * Subject areas a collaborator works in.
+	 *
+	 * The starting vocabulary is the head of the imported collaborator data —
+	 * every subject held by four or more people. The long tail imports on top of
+	 * this as free terms rather than being forced into these buckets.
+	 *
+	 * @return array<int,string>
+	 */
+	function reci_media_hub_default_expertise_terms(): array {
+		return [
+			'Behavioral Health',
+			'Community Development',
+			'Economics',
+			'Education',
+			'Family',
+			'Law',
+			'Mental Health',
+			'Occupational Health',
+			'Older Adults',
+			'Physical Health',
+			'Public Health',
+			'Race Relations',
+			'Racial Equity',
+			'Youth Development',
 		];
 	}
 }
@@ -401,6 +451,53 @@ if (! function_exists('reci_media_hub_register_taxonomies')) {
 		);
 
 		register_taxonomy(
+			'reci_affiliation',
+			['reci_author'],
+			[
+				'labels'            => [
+					'name'          => __('Affiliations', 'reci-media-hub'),
+					'singular_name' => __('Affiliation', 'reci-media-hub'),
+					'search_items'  => __('Search Affiliations', 'reci-media-hub'),
+					'all_items'     => __('All Affiliations', 'reci-media-hub'),
+					'edit_item'     => __('Edit Affiliation', 'reci-media-hub'),
+					'update_item'   => __('Update Affiliation', 'reci-media-hub'),
+					'add_new_item'  => __('Add New Affiliation', 'reci-media-hub'),
+					'menu_name'     => __('Affiliations', 'reci-media-hub'),
+				],
+				'public'            => true,
+				'show_in_rest'      => true,
+				'hierarchical'      => true,
+				'show_admin_column' => true,
+				'rewrite'           => ['slug' => 'affiliation'],
+			]
+		);
+
+		// Subject areas a collaborator works in. Deliberately separate from
+		// reci_practice_focus, which classifies *how* a contribution works
+		// (Research / Evaluation, Policy / Legislation) rather than its topic.
+		register_taxonomy(
+			'reci_expertise',
+			['reci_author'],
+			[
+				'labels'            => [
+					'name'          => __('Subject Areas', 'reci-media-hub'),
+					'singular_name' => __('Subject Area', 'reci-media-hub'),
+					'search_items'  => __('Search Subject Areas', 'reci-media-hub'),
+					'all_items'     => __('All Subject Areas', 'reci-media-hub'),
+					'edit_item'     => __('Edit Subject Area', 'reci-media-hub'),
+					'update_item'   => __('Update Subject Area', 'reci-media-hub'),
+					'add_new_item'  => __('Add New Subject Area', 'reci-media-hub'),
+					'menu_name'     => __('Subject Areas', 'reci-media-hub'),
+				],
+				'public'            => true,
+				'show_in_rest'      => true,
+				'hierarchical'      => true,
+				'show_admin_column' => true,
+				'rewrite'           => ['slug' => 'subject-area'],
+			]
+		);
+
+		register_taxonomy(
 			'reci_target_audience',
 			$submission_post_types,
 			[
@@ -537,6 +634,8 @@ if (! function_exists('reci_media_hub_seed_default_taxonomy_terms')) {
 	function reci_media_hub_seed_default_taxonomy_terms(): void {
 		$taxonomy_defaults = [
 			'reci_practice_focus'  => reci_media_hub_default_practice_focus_terms(),
+			'reci_affiliation'     => reci_media_hub_default_collaborator_affiliation_terms(),
+			'reci_expertise'       => reci_media_hub_default_expertise_terms(),
 			'reci_target_audience' => reci_media_hub_default_target_audience_terms(),
 		];
 

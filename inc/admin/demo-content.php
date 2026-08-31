@@ -63,7 +63,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_team'      => [ 'label' => 'Team',         'count' => 3 ],
 			'reci_testimonial'    => [ 'label' => 'Testimonials',     'count' => 6 ],
 			'reci_glossary_term' => [ 'label' => 'Glossary Terms',  'count' => 42 ],
-			'reci_author'        => [ 'label' => 'Collaborators', 'count' => 1 ],
+			'reci_author'        => [ 'label' => 'Collaborators', 'count' => 110 ],
 			'reci_partner'       => [ 'label' => 'Partners',        'count' => 7 ],
 			'reci_page'          => [ 'label' => 'Core Pages',      'count' => 18 ],
 		];
@@ -1595,6 +1595,16 @@ function reci_install_demo_content( array $only_types = [] ): void {
 		$authors = reci_demo_load_php_dataset( 'authors' );
 		foreach ( $authors as $d ) {
 			reci_demo_insert_author( $d );
+		}
+
+		// The real CRSP collaboratory directory. Idempotent and asset-heavy, so
+		// it runs in batches and skips anything already imported.
+		if ( function_exists( 'reci_collaborator_import_run' ) ) {
+			$offset = 0;
+			do {
+				$batch  = reci_collaborator_import_run( 10, $offset );
+				$offset = (int) ( $batch['offset'] ?? 0 );
+			} while ( empty( $batch['done'] ) );
 		}
 	}
 

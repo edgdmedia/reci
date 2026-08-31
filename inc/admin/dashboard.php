@@ -13,19 +13,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Rewrite rules
 // ---------------------------------------------------------------------------
 
+/**
+ * Dashboard sub-routes: slug => template file.
+ *
+ * These are served by rewrite rules, not by pages, so a slug here needs no
+ * corresponding WP page (and `feed` could not have one — it is a reserved slug).
+ */
+function reci_dashboard_route_map(): array {
+	return [
+		'feed'          => 'template-dashboard-feed.php',
+		'my-content'    => 'template-dashboard-my-content.php',
+		'submit'        => 'template-dashboard-submit.php',
+		'bookmarks'     => 'template-dashboard-bookmarks.php',
+		'notifications' => 'template-dashboard-notifications.php',
+		'journal'       => 'template-dashboard-journal.php',
+		'comments'      => 'template-dashboard-comments.php',
+		'profile'       => 'template-dashboard-profile.php',
+		'settings'      => 'template-dashboard-settings.php',
+	];
+}
+
 add_action( 'init', 'reci_dashboard_rewrite_rules' );
 function reci_dashboard_rewrite_rules(): void {
-	$pages = [
-		'feed'       => 'template-dashboard-feed.php',
-		'my-content' => 'template-dashboard-my-content.php',
-		'submit'     => 'template-dashboard-submit.php',
-		'bookmarks'  => 'template-dashboard-bookmarks.php',
-		'notifications' => 'template-dashboard-notifications.php',
-		'journal'    => 'template-dashboard-journal.php',
-		'comments'   => 'template-dashboard-comments.php',
-		'profile'    => 'template-dashboard-profile.php',
-		'settings'   => 'template-dashboard-settings.php',
-	];
+	$pages = reci_dashboard_route_map();
 
 	foreach ( $pages as $slug => $template_file ) {
 		add_rewrite_rule(
@@ -41,6 +51,52 @@ add_filter( 'query_vars', 'reci_dashboard_query_vars' );
 function reci_dashboard_query_vars( array $vars ): array {
 	$vars[] = 'dashboard_page';
 	$vars[] = 'dashboard_template';
+	return $vars;
+}
+
+/**
+ * Flush rewrite rules when the dashboard routes change.
+ *
+ * Adding a route to reci_dashboard_rewrite_rules() is useless until the rules are
+ * regenerated, and a theme update does not do that on its own — a stale install
+ * silently loses the new route. Key a flush off the route list itself so any
+ * change to it heals on the next request.
+ */
+add_action( 'init', 'reci_dashboard_maybe_flush_rewrite_rules', 99 );
+function reci_dashboard_maybe_flush_rewrite_rules(): void {
+	$signature = md5( (string) wp_json_encode( array_keys( reci_dashboard_route_map() ) ) );
+
+	if ( get_option( 'reci_dashboard_routes_version' ) === $signature ) {
+		return;
+	}
+
+	flush_rewrite_rules();
+	update_option( 'reci_dashboard_routes_version', $signature );
+}
+
+/**
+ * Reclaim `/dashboard/feed/` from WordPress's feed endpoint.
+ *
+ * `feed` is a reserved rewrite endpoint: /dashboard/feed/ also matches core's
+ * page-feed rule, (.?.+?)/(feed|rdf|rss|rss2|atom)/?$, which renders the page's
+ * comments feed as RSS instead of the dashboard. Our rule is registered at 'top'
+ * and wins whenever the rules are current, but this makes the route correct even
+ * on an install whose rules are stale or reordered by a plugin.
+ *
+ * Side effect: the dashboard page has no comments feed. It is a private utility
+ * page with comments closed, so there is nothing to syndicate.
+ */
+add_filter( 'request', 'reci_dashboard_reclaim_feed_route' );
+function reci_dashboard_reclaim_feed_route( array $vars ): array {
+	if ( empty( $vars['feed'] ) || 'dashboard' !== ( $vars['pagename'] ?? '' ) ) {
+		return $vars;
+	}
+
+	unset( $vars['feed'], $vars['withcomments'] );
+
+	$vars['dashboard_page']     = 'feed';
+	$vars['dashboard_template'] = 'template-dashboard-feed.php';
+
 	return $vars;
 }
 

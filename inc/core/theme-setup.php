@@ -553,3 +553,31 @@ CSS;
 	}
 }
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_reflection_stage_styles', 20);
+
+/**
+ * Scope site search to content.
+ *
+ * Collaborators have their own directory at the reci_author archive, with its
+ * own search plus subject and affiliation filters. Leaving them in general
+ * search buries actual content — a query for "Racism" returned 11 collaborators
+ * in the first 12 results. Keeps the main query's found_posts in step with what
+ * search.php renders.
+ */
+add_action('pre_get_posts', 'reci_scope_search_to_content');
+function reci_scope_search_to_content(WP_Query $query): void {
+	if (is_admin() || ! $query->is_main_query() || ! $query->is_search()) {
+		return;
+	}
+
+	$query->set('post_type', [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_course',
+		'reci_document',
+		'reci_assessment',
+	]);
+}
+
