@@ -25,7 +25,6 @@ $listing_config = [
 		'reci_course',
 		'reci_document',
 		'reci_assessment',
-		'reci_author',
 	],
 	'posts_per_page'      => 12,
 	'orderby'             => 'relevance',
@@ -56,10 +55,10 @@ get_header();
 			'subtitle' => '' !== $search_query
 				? sprintf(
 					/* translators: %d: number of results. */
-					_n('%d result across articles, media, courses, and collaborators.', '%d results across articles, media, courses, and collaborators.', $result_count, 'reci-media-hub'),
+					_n('%d result across articles, media, courses, and resources.', '%d results across articles, media, courses, and resources.', $result_count, 'reci-media-hub'),
 					$result_count
 				)
-				: __('Search articles, media, courses, and collaborators across the RECI Media Hub.', 'reci-media-hub'),
+				: __('Search articles, media, courses, and resources across the RECI Media Hub.', 'reci-media-hub'),
 		]
 	);
 	?>
