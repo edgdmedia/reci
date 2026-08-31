@@ -639,6 +639,10 @@ if (! function_exists('reci_media_hub_seed_default_taxonomy_terms')) {
 			'reci_target_audience' => reci_media_hub_default_target_audience_terms(),
 		];
 
+		if (get_option('reci_media_hub_taxonomy_terms_seeded') === REci_TAXONOMY_SEED_VERSION) {
+			return;
+		}
+
 		foreach ($taxonomy_defaults as $taxonomy => $terms) {
 			foreach ($terms as $term_name) {
 				$clean_name = sanitize_text_field((string) $term_name);
@@ -654,8 +658,22 @@ if (! function_exists('reci_media_hub_seed_default_taxonomy_terms')) {
 				wp_insert_term($clean_name, $taxonomy);
 			}
 		}
+
+		update_option('reci_media_hub_taxonomy_terms_seeded', REci_TAXONOMY_SEED_VERSION);
 	}
 }
+
+/**
+ * Bump when the default term lists change so existing sites pick up additions.
+ */
+if (! defined('REci_TAXONOMY_SEED_VERSION')) {
+	define('REci_TAXONOMY_SEED_VERSION', '2');
+}
+
+// The seeder existed but was never hooked, so no default term ever got created —
+// reci_target_audience sat empty and reci_affiliation only held terms the
+// importer happened to create. Run it late on init, once per seed version.
+add_action('init', 'reci_media_hub_seed_default_taxonomy_terms', 20);
 
 if (! function_exists('reci_media_hub_render_sphere_fields')) {
 	/**

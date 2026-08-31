@@ -40,8 +40,21 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['reci_profile_nonce'
 
 	$submitted = [];
 	foreach ( $fields as $key => $field ) {
+		$type = $field['type'] ?? 'text';
+
+		// Multi-value fields post an array, plus an optional free-text companion.
+		if ( 'taxonomy_checkboxes' === $type ) {
+			$values = array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ $key ] ?? [] ) );
+			$other  = sanitize_text_field( wp_unslash( $_POST[ $key . '_other' ] ?? '' ) );
+			if ( '' !== $other ) {
+				$values = array_merge( $values, array_map( 'trim', explode( ',', $other ) ) );
+			}
+			$submitted[ $key ] = array_values( array_unique( array_filter( $values ) ) );
+			continue;
+		}
+
 		$raw               = wp_unslash( $_POST[ $key ] ?? '' );
-		$sanitizer         = $sanitizers[ $field['type'] ?? 'text' ] ?? 'sanitize_text_field';
+		$sanitizer         = $sanitizers[ $type ] ?? 'sanitize_text_field';
 		$submitted[ $key ] = call_user_func( $sanitizer, (string) $raw );
 	}
 
@@ -51,6 +64,21 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['reci_profile_nonce'
 	}
 
 	reci_save_user_collaborator_profile_data( $current_user_id, $submitted );
+
+	// Approved collaborators already have a public profile — keep its terms in step
+	// rather than waiting for another approval that will never come.
+	$profile_post_id = function_exists( 'reci_media_hub_get_author_profile_by_user_id' )
+		? reci_media_hub_get_author_profile_by_user_id( $current_user_id )
+		: 0;
+
+	if ( $profile_post_id > 0 && function_exists( 'reci_assign_profile_terms' ) ) {
+		if ( isset( $submitted['reci_affiliation_term'] ) && '' !== $submitted['reci_affiliation_term'] ) {
+			reci_assign_profile_terms( $profile_post_id, 'reci_affiliation', [ $submitted['reci_affiliation_term'] ] );
+		}
+		if ( isset( $submitted['reci_expertise_terms'] ) ) {
+			reci_assign_profile_terms( $profile_post_id, 'reci_expertise', (array) $submitted['reci_expertise_terms'], true );
+		}
+	}
 
 	$message      = __( 'Profile updated.', 'reci-media-hub' );
 	$user         = wp_get_current_user();

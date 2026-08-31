@@ -162,46 +162,6 @@ if ( ! function_exists( 'reci_collaborator_import_sideload' ) ) {
 	}
 }
 
-if ( ! function_exists( 'reci_collaborator_import_assign_terms' ) ) {
-	/**
-	 * Assign term names to a taxonomy, creating any that do not exist yet.
-	 *
-	 * @param array<int,string> $names
-	 */
-	function reci_collaborator_import_assign_terms( int $post_id, string $taxonomy, array $names ): int {
-		if ( ! taxonomy_exists( $taxonomy ) ) {
-			return 0;
-		}
-
-		$term_ids = [];
-		foreach ( $names as $name ) {
-			$name = trim( (string) $name );
-			if ( '' === $name ) {
-				continue;
-			}
-
-			$existing = term_exists( $name, $taxonomy );
-			if ( ! $existing ) {
-				$existing = wp_insert_term( $name, $taxonomy );
-			}
-
-			if ( is_wp_error( $existing ) ) {
-				continue;
-			}
-
-			$term_ids[] = (int) ( is_array( $existing ) ? $existing['term_id'] : $existing );
-		}
-
-		if ( empty( $term_ids ) ) {
-			return 0;
-		}
-
-		wp_set_object_terms( $post_id, $term_ids, $taxonomy, false );
-
-		return count( $term_ids );
-	}
-}
-
 if ( ! function_exists( 'reci_collaborator_import_profile' ) ) {
 	/**
 	 * Import or update one collaborator profile.
@@ -273,8 +233,8 @@ if ( ! function_exists( 'reci_collaborator_import_profile' ) ) {
 			update_post_meta( $profile_id, $key, $value );
 		}
 
-		$affiliations = reci_collaborator_import_assign_terms( $profile_id, 'reci_affiliation', (array) ( $record['affiliation'] ?? [] ) );
-		$expertise    = reci_collaborator_import_assign_terms( $profile_id, 'reci_expertise', (array) ( $record['practice_focus'] ?? [] ) );
+		$affiliations = reci_assign_profile_terms( $profile_id, 'reci_affiliation', (array) ( $record['affiliation'] ?? [] ) );
+		$expertise    = reci_assign_profile_terms( $profile_id, 'reci_expertise', (array) ( $record['practice_focus'] ?? [] ) );
 
 		// Assets are the slow part; never re-download one we already hold.
 		$image_id = 0;

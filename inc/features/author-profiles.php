@@ -69,6 +69,53 @@ if (! function_exists('reci_media_hub_get_author_profile_by_user_id')) {
 	}
 }
 
+if (! function_exists('reci_assign_profile_terms')) {
+	/**
+	 * Assign term names to a taxonomy on a profile, creating any that are new.
+	 *
+	 * Shared by the collaborator application and the directory importer so both
+	 * routes build the vocabulary the same way. Terms created from free text are
+	 * flagged for review rather than silently joining the governed list.
+	 *
+	 * @param array<int,string> $names
+	 */
+	function reci_assign_profile_terms(int $post_id, string $taxonomy, array $names, bool $flag_new = false): int {
+		if ($post_id <= 0 || ! taxonomy_exists($taxonomy)) {
+			return 0;
+		}
+
+		$term_ids = [];
+		foreach ($names as $name) {
+			$name = trim(wp_strip_all_tags((string) $name));
+			if ($name === '') {
+				continue;
+			}
+
+			$existing = term_exists($name, $taxonomy);
+			$is_new   = empty($existing);
+
+			if ($is_new) {
+				$existing = wp_insert_term($name, $taxonomy);
+			}
+
+			if (is_wp_error($existing)) {
+				continue;
+			}
+
+			$term_id    = (int) (is_array($existing) ? $existing['term_id'] : $existing);
+			$term_ids[] = $term_id;
+
+			if ($is_new && $flag_new) {
+				update_term_meta($term_id, '_reci_term_needs_review', '1');
+			}
+		}
+
+		wp_set_object_terms($post_id, $term_ids, $taxonomy, false);
+
+		return count($term_ids);
+	}
+}
+
 if (! function_exists('reci_media_hub_find_author_profile_by_email')) {
 	/**
 	 * Find a collaborator profile by its contact email.

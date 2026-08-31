@@ -144,6 +144,9 @@ if ( ! function_exists( 'reci_collaborator_profile_field_definitions' ) ) {
 			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6 ],
 			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half' ],
 			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.' ],
+			// Multi-value fields; these become taxonomy terms on the public profile.
+			'reci_affiliation_term'     => [ 'label' => __( 'Your Affiliation', 'reci-media-hub' ), 'type' => 'taxonomy_select', 'taxonomy' => 'reci_affiliation', 'required' => true, 'width' => 'half' ],
+			'reci_expertise_terms'      => [ 'label' => __( 'Subject Areas You Work In', 'reci-media-hub' ), 'type' => 'taxonomy_checkboxes', 'taxonomy' => 'reci_expertise', 'required' => false, 'width' => 'full', 'allow_other' => true, 'optional_hint' => false, 'choices' => function_exists( 'reci_media_hub_default_expertise_terms' ) ? reci_media_hub_default_expertise_terms() : [] ],
 		];
 	}
 }
@@ -197,6 +200,8 @@ if ( ! function_exists( 'reci_get_user_collaborator_profile_data' ) ) {
 			'submission_bio'            => (string) get_user_meta( $user_id, 'description', true ),
 			'submission_website'        => (string) $user->user_url,
 			'reci_social_handles'       => (string) get_user_meta( $user_id, 'reci_social_handles', true ),
+			'reci_affiliation_term'     => (string) get_user_meta( $user_id, 'reci_affiliation_term', true ),
+			'reci_expertise_terms'      => (array) ( get_user_meta( $user_id, 'reci_expertise_terms', true ) ?: [] ),
 		];
 	}
 }
@@ -250,6 +255,18 @@ if ( ! function_exists( 'reci_save_user_collaborator_profile_data' ) ) {
 				update_user_meta( $user_id, $meta_key, (string) $data[ $field ] );
 			}
 		}
+
+		// Multi-value fields keep their shape; the sync turns them into terms.
+		if ( array_key_exists( 'reci_affiliation_term', $data ) ) {
+			update_user_meta( $user_id, 'reci_affiliation_term', (string) $data['reci_affiliation_term'] );
+		}
+		if ( array_key_exists( 'reci_expertise_terms', $data ) ) {
+			$terms = array_values( array_unique( array_filter( array_map(
+				static fn( $term ) => trim( wp_strip_all_tags( (string) $term ) ),
+				(array) $data['reci_expertise_terms']
+			) ) ) );
+			update_user_meta( $user_id, 'reci_expertise_terms', $terms );
+		}
 	}
 }
 
@@ -257,12 +274,16 @@ if ( ! function_exists( 'reci_render_collaborator_field' ) ) {
 	/**
 	 * Render one shared field from a field definition.
 	 */
-	function reci_render_collaborator_field( string $key, array $field, string $value = '' ): void {
+	function reci_render_collaborator_field( string $key, array $field, $value = '' ): void {
 		$type     = (string) ( $field['type'] ?? 'text' );
 		$required = ! empty( $field['required'] );
 		$id       = 'reci-field-' . str_replace( '_', '-', $key );
 		$classes  = 'w-full rounded-lg border border-zinc-300 px-4 py-3 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500';
 		$span     = 'full' === ( $field['width'] ?? 'full' ) ? ' sm:col-span-2' : '';
+		$selected = is_array( $value ) ? array_map( 'strval', $value ) : [];
+		if ( ! is_array( $value ) ) {
+			$value = (string) $value;
+		}
 
 		echo '<div class="' . esc_attr( trim( $span ) ) . '">';
 		echo '<label class="mb-2 block text-sm font-medium text-zinc-800" for="' . esc_attr( $id ) . '">' . esc_html( (string) ( $field['label'] ?? $key ) );
@@ -300,6 +321,63 @@ if ( ! function_exists( 'reci_render_collaborator_field' ) ) {
 				);
 			}
 			echo '</select>';
+		} elseif ( 'taxonomy_checkboxes' === $type ) {
+			// Offer the governed vocabulary, not every term in the taxonomy — the
+			// imported directory carries a long tail of one-off subjects, and listing
+			// them all invites more. Anything the person already holds stays checked
+			// so editing a profile never silently drops their existing terms.
+			$choices = (array) ( $field['choices'] ?? [] );
+			if ( empty( $choices ) ) {
+				$terms   = get_terms( [ 'taxonomy' => (string) ( $field['taxonomy'] ?? '' ), 'hide_empty' => false, 'orderby' => 'name' ] );
+				$choices = is_wp_error( $terms ) ? [] : wp_list_pluck( $terms, 'name' );
+			}
+			$choices = array_values( array_unique( array_merge( $choices, $selected ) ) );
+			sort( $choices );
+
+			echo '<div class="grid gap-2 sm:grid-cols-2">';
+			foreach ( $choices as $choice ) {
+				printf(
+					'<label class="flex items-start gap-2 text-sm text-zinc-700"><input type="checkbox" name="%1$s[]" value="%2$s"%3$s class="mt-1 rounded border-zinc-300 text-amber-600 focus:ring-amber-500" /><span>%4$s</span></label>',
+					esc_attr( $key ),
+					esc_attr( $choice ),
+					checked( in_array( (string) $choice, $selected, true ), true, false ),
+					esc_html( (string) $choice )
+				);
+			}
+			echo '</div>';
+
+			if ( ! empty( $field['allow_other'] ) ) {
+				$other_key = $key . '_other';
+				printf(
+					'<label class="mt-3 mb-2 block text-sm font-medium text-zinc-800" for="%1$s">%2$s</label><input id="%1$s" name="%3$s" type="text" value="" placeholder="%4$s" class="%5$s" />',
+					esc_attr( 'reci-field-' . str_replace( '_', '-', $other_key ) ),
+					esc_html__( 'Something else? Add your own, separated by commas', 'reci-media-hub' ),
+					esc_attr( $other_key ),
+					esc_attr__( 'e.g. Housing Policy, Restorative Justice', 'reci-media-hub' ),
+					esc_attr( $classes )
+				);
+			}
+		} elseif ( 'taxonomy_select' === $type ) {
+			$terms = get_terms( [ 'taxonomy' => (string) ( $field['taxonomy'] ?? '' ), 'hide_empty' => false, 'orderby' => 'name' ] );
+			printf(
+				'<select id="%1$s" name="%2$s" class="%3$s"%4$s>',
+				esc_attr( $id ),
+				esc_attr( $key ),
+				esc_attr( $classes ),
+				$required ? ' required' : ''
+			);
+			echo '<option value="">' . esc_html__( 'Select one', 'reci-media-hub' ) . '</option>';
+			if ( ! is_wp_error( $terms ) ) {
+				foreach ( $terms as $term ) {
+					printf(
+						'<option value="%1$s"%2$s>%3$s</option>',
+						esc_attr( $term->name ),
+						selected( $value, $term->name, false ),
+						esc_html( $term->name )
+					);
+				}
+			}
+			echo '</select>';
 		} elseif ( 'file' === $type ) {
 			printf(
 				'<input id="%1$s" name="%2$s" type="file" accept="%3$s" class="%4$s"%5$s />',
@@ -333,7 +411,7 @@ if ( ! function_exists( 'reci_render_collaborator_fields' ) ) {
 	function reci_render_collaborator_fields( array $fields, array $values = [] ): void {
 		echo '<div class="grid gap-5 sm:grid-cols-2">';
 		foreach ( $fields as $key => $field ) {
-			reci_render_collaborator_field( (string) $key, (array) $field, (string) ( $values[ $key ] ?? '' ) );
+			reci_render_collaborator_field( (string) $key, (array) $field, $values[ $key ] ?? '' );
 		}
 		echo '</div>';
 	}
@@ -512,9 +590,17 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 		$website      = esc_url_raw( wp_unslash( $_POST['submission_website'] ?? '' ) );
 		$social_handles = sanitize_text_field( wp_unslash( $_POST['reci_social_handles'] ?? '' ) );
 		$membership_objective = sanitize_textarea_field( wp_unslash( $_POST['reci_membership_objective'] ?? '' ) );
+		$affiliation_term     = sanitize_text_field( wp_unslash( $_POST['reci_affiliation_term'] ?? '' ) );
+		$expertise_terms      = array_map( 'sanitize_text_field', (array) wp_unslash( $_POST['reci_expertise_terms'] ?? [] ) );
+		// Free-text additions arrive comma separated and are flagged on creation.
+		$expertise_other      = sanitize_text_field( wp_unslash( $_POST['reci_expertise_terms_other'] ?? '' ) );
+		if ( '' !== $expertise_other ) {
+			$expertise_terms = array_merge( $expertise_terms, array_map( 'trim', explode( ',', $expertise_other ) ) );
+		}
+		$expertise_terms = array_values( array_unique( array_filter( $expertise_terms ) ) );
 		$full_name    = trim( $first_name . ' ' . $last_name );
 
-		if ( '' === $full_name || ! is_email( $email ) || '' === $organization || '' === $department || '' === $role || '' === $bio || '' === $affiliated_with_pitt || '' === $membership_objective ) {
+		if ( '' === $full_name || ! is_email( $email ) || '' === $organization || '' === $department || '' === $role || '' === $bio || '' === $affiliated_with_pitt || '' === $membership_objective || '' === $affiliation_term ) {
 			wp_safe_redirect( add_query_arg( 'application_error', 'missing_fields', $target_url ) );
 			exit;
 		}
@@ -548,6 +634,8 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 		update_post_meta( $post_id, '_reci_submission_website', $website );
 		update_post_meta( $post_id, '_reci_collaborator_social_handles', $social_handles );
 		update_post_meta( $post_id, '_reci_collaborator_membership_objective', $membership_objective );
+		update_post_meta( $post_id, '_reci_collaborator_affiliation_term', $affiliation_term );
+		update_post_meta( $post_id, '_reci_collaborator_expertise_terms', wp_json_encode( $expertise_terms ) );
 		update_post_meta( $post_id, '_reci_collaborator_application_status', 'pending' );
 
 		$profile_image_id = 0;
@@ -594,6 +682,8 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 				'submission_bio'            => $bio,
 				'submission_website'        => $website,
 				'reci_social_handles'       => $social_handles,
+				'reci_affiliation_term'     => $affiliation_term,
+				'reci_expertise_terms'      => $expertise_terms,
 			]
 		);
 
@@ -739,6 +829,19 @@ if ( ! function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 		$cv_id = absint( get_post_meta( $application_id, '_reci_collaborator_cv_attachment_id', true ) );
 		if ( $cv_id > 0 ) {
 			update_post_meta( $profile_id, '_reci_author_cv_id', $cv_id );
+		}
+
+		if ( function_exists( 'reci_assign_profile_terms' ) ) {
+			$affiliation_term = (string) ( $profile['reci_affiliation_term'] ?? '' );
+			if ( '' !== $affiliation_term ) {
+				reci_assign_profile_terms( $profile_id, 'reci_affiliation', [ $affiliation_term ] );
+			}
+
+			$expertise_terms = (array) ( $profile['reci_expertise_terms'] ?? [] );
+			if ( ! empty( $expertise_terms ) ) {
+				// Terms the collaborator typed themselves are flagged for review.
+				reci_assign_profile_terms( $profile_id, 'reci_expertise', $expertise_terms, true );
+			}
 		}
 	}
 }
