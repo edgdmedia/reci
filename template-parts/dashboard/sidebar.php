@@ -24,10 +24,25 @@ $is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_c
 					Dashboard
 				</a>
 			</li>
+			<li>
+				<a href="<?php echo esc_url( home_url( '/dashboard/feed/' ) ); ?>"
+				   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors <?php echo $current_page === 'feed' ? 'bg-amber-50 text-amber-800' : 'text-zinc-700 hover:bg-zinc-100'; ?>">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9H5m14 6H5m14-12H5" /></svg>
+					Feed
+				</a>
+			</li>
 
 			<?php if ( $is_author ) : ?>
 			<li class="pt-3">
 				<p class="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Collaborator</p>
+			</li>
+			<li>
+				<?php // `/submit/` is the canonical submission route — the dashboard links out to it. ?>
+				<a href="<?php echo esc_url( home_url( '/submit/' ) ); ?>"
+				   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-100">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+					Submit Content
+				</a>
 			</li>
 			<li>
 				<a href="<?php echo esc_url( home_url( '/dashboard/my-content/' ) ); ?>"

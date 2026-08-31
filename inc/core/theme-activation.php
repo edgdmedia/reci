@@ -84,6 +84,11 @@ function reci_theme_activation_setup(): void {
 		}
 	}
 
+	// `/dashboard/feed/` deliberately has no page of its own: `feed` is a reserved
+	// slug (it collides with WP's /feed/ rewrite endpoint, so wp_unique_post_slug
+	// renames it to feed-2, feed-3, ... on every run). The route is served by the
+	// rewrite rule in inc/admin/dashboard.php, same as /dashboard/notifications/.
+
 	// Persist the map so auth helpers can look up page IDs quickly.
 	update_option( 'reci_pages', $page_ids );
 

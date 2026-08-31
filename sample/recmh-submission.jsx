@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 
+// Contributor identity comes from the account when the visitor is signed in, so
+// collaborators never retype what their profile already holds. Mirrors the shared
+// field model used by the collaborator application and the dashboard profile.
+const bootConfig = typeof window !== "undefined" ? (window.RECISubmissionConfig || {}) : {};
+const bootUser = bootConfig.currentUser || {};
+const isSignedIn = Boolean(bootUser.isLoggedIn);
+
 const RECMHSubmission = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [contentType, setContentType] = useState(null);
@@ -9,8 +16,14 @@ const RECMHSubmission = () => {
     title: "", abstract: "", evidenceBasis: "", processOrientation: "",
     targetAudience: [], keywords: "", contentLink: "", fileDescription: "",
     practiceType: "", equityFocus: "",
-    firstName: "", lastName: "", email: "", organization: "", role: "",
-    bio: "", website: "", agreeTerms: false, agreeReview: false, agreeAuthorProfile: false, location: "",
+    firstName: bootUser.firstName || "",
+    lastName: bootUser.lastName || "",
+    email: bootUser.email || "",
+    organization: bootUser.organization || "",
+    role: bootUser.role || "",
+    bio: bootUser.bio || "",
+    website: bootUser.website || "",
+    agreeTerms: false, agreeReview: false, agreeAuthorProfile: false, location: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [showGuidelinesPanel, setShowGuidelinesPanel] = useState(false);
@@ -1028,10 +1041,20 @@ const RECMHSubmission = () => {
               {currentStep === 3 && (
                 <div>
                   <div style={{ marginBottom: 36 }}>
-                    <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>About You</h2>
+                    <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>
+                      {isSignedIn ? "Confirm Your Details" : "About You"}
+                    </h2>
                     <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600 }}>
-                      Help us know who you are so we can attribute your contribution properly as a Collaborator and reach out about the editorial process.
+                      {isSignedIn
+                        ? "These come from your collaborator profile. Adjust anything you want to appear on this submission — edits here apply to this contribution only."
+                        : "Help us know who you are so we can attribute your contribution properly as a Collaborator and reach out about the editorial process."}
                     </p>
+                    {isSignedIn && (
+                      <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600, marginTop: 8 }}>
+                        To change them everywhere, update your{" "}
+                        <a href="/dashboard/profile/" style={{ textDecoration: "underline" }}>profile</a>.
+                      </p>
+                    )}
                   </div>
 
                   <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

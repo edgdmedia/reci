@@ -119,12 +119,10 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 			);
 		}
 
-		$submit_templates = [
-			'templates/page/template-submit-content.php',
-			'templates/page/dashboard/template-dashboard-submit.php',
-		];
-		$is_dashboard_submit_page = get_query_var( 'pagename' ) === 'dashboard' && get_query_var( 'dashboard_page' ) === 'submit';
-		$is_submit_page = $is_dashboard_submit_page || (bool) array_reduce( $submit_templates, fn( $carry, $t ) => $carry || is_page_template( $t ), false );
+		// `/submit/` is the single canonical submission route. The React app only
+		// mounts for approved collaborators, so only load it for that state.
+		$is_submit_page = is_page_template( 'templates/page/template-submit-content.php' )
+			&& ( ! function_exists( 'reci_get_submit_experience_state' ) || 'approved_collaborator' === reci_get_submit_experience_state() );
 		if ( $is_submit_page ) {
 			$submission_path = get_template_directory() . '/assets/js/submission-form.js';
 			if (file_exists($submission_path)) {
@@ -140,15 +138,30 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 				$website      = '';
 
 				if ($is_logged_in_user) {
-					$first_name_meta = (string) get_user_meta($current_user->ID, 'first_name', true);
-					$last_name_meta  = (string) get_user_meta($current_user->ID, 'last_name', true);
+					// Canonical contributor fields first — the same source the collaborator
+					// application and the dashboard profile editor read and write.
+					$profile = function_exists('reci_get_user_collaborator_profile_data')
+						? reci_get_user_collaborator_profile_data($current_user->ID)
+						: [];
 
-					$first_name = $first_name_meta !== '' ? $first_name_meta : (string) ($current_user->user_firstname ?? '');
-					$last_name  = $last_name_meta !== '' ? $last_name_meta : (string) ($current_user->user_lastname ?? '');
-					$email      = (string) $current_user->user_email;
+					$first_name   = (string) ($profile['reci_firstname'] ?? '');
+					$last_name    = (string) ($profile['reci_lastname'] ?? '');
+					$email        = (string) ($profile['user_email'] ?? $current_user->user_email);
+					$organization = (string) ($profile['submission_organization'] ?? '');
+					$role         = (string) ($profile['submission_role'] ?? '');
+					$bio          = (string) ($profile['submission_bio'] ?? '');
+					$website      = (string) ($profile['submission_website'] ?? '');
 
+					if ($first_name === '') {
+						$first_name = (string) ($current_user->user_firstname ?? '');
+					}
+					if ($last_name === '') {
+						$last_name = (string) ($current_user->user_lastname ?? '');
+					}
+
+					// Legacy meta keys, for accounts created before the fields were unified.
 					$organization_candidates = [
-						(string) get_user_meta($current_user->ID, 'organization', true),
+						$organization,
 						(string) get_user_meta($current_user->ID, 'company', true),
 						(string) get_user_meta($current_user->ID, 'institution', true),
 						(string) get_user_meta($current_user->ID, 'affiliation', true),
@@ -162,7 +175,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 					}
 
 					$role_candidates = [
-						(string) get_user_meta($current_user->ID, 'user_title', true),
+						$role,
 						(string) get_user_meta($current_user->ID, 'title', true),
 						(string) get_user_meta($current_user->ID, 'job_title', true),
 						(string) get_user_meta($current_user->ID, 'role_label', true),
@@ -175,8 +188,12 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						}
 					}
 
-					$bio = (string) get_user_meta($current_user->ID, 'description', true);
-					$website = (string) $current_user->user_url;
+					if ($bio === '') {
+						$bio = (string) get_user_meta($current_user->ID, 'description', true);
+					}
+					if ($website === '') {
+						$website = (string) $current_user->user_url;
+					}
 				}
 
 				wp_enqueue_script(

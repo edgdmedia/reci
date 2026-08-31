@@ -23,6 +23,105 @@ function reci_maybe_notify_staff_about_submission( string $new_status, string $o
 	}
 }
 
+if (! function_exists('reci_get_submit_experience_state')) {
+	/**
+	 * Which stage of the canonical /submit/ contribution flow the visitor is in.
+	 *
+	 * The flow reads as one continuous path to the user, but each stage is
+	 * persisted separately so a failure at one step never loses the earlier ones.
+	 *
+	 * @return string guest|member_needs_collaborator|pending_collaborator|approved_collaborator
+	 */
+	function reci_get_submit_experience_state(): string {
+		if ( ! is_user_logged_in() ) {
+			return 'guest';
+		}
+
+		$collaborator_status = function_exists( 'reci_get_collaborator_status' ) ? reci_get_collaborator_status() : 'guest';
+
+		if ( 'approved' === $collaborator_status ) {
+			return 'approved_collaborator';
+		}
+
+		if ( 'pending' === $collaborator_status ) {
+			return 'pending_collaborator';
+		}
+
+		return 'member_needs_collaborator';
+	}
+}
+
+if (! function_exists('reci_get_submit_flow_steps')) {
+	/**
+	 * Progress steps shown on /submit/, with the current state resolved to a step index.
+	 *
+	 * @return array{steps:array<int,array{label:string,description:string}>,current:int}
+	 */
+	function reci_get_submit_flow_steps( string $state ): array {
+		$steps = [
+			[
+				'label'       => __( 'Create your account', 'reci-media-hub' ),
+				'description' => __( 'Become a RECI member.', 'reci-media-hub' ),
+			],
+			[
+				'label'       => __( 'Complete your contributor profile', 'reci-media-hub' ),
+				'description' => __( 'Tell us who you are and how to credit your work.', 'reci-media-hub' ),
+			],
+			[
+				'label'       => __( 'Review', 'reci-media-hub' ),
+				'description' => __( 'Our team reviews your collaborator application.', 'reci-media-hub' ),
+			],
+			[
+				'label'       => __( 'Submit your content', 'reci-media-hub' ),
+				'description' => __( 'Share your work with the RECI Media Hub.', 'reci-media-hub' ),
+			],
+		];
+
+		$current = [
+			'guest'                    => 0,
+			'member_needs_collaborator' => 1,
+			'pending_collaborator'     => 2,
+			'approved_collaborator'    => 3,
+		];
+
+		return [
+			'steps'   => $steps,
+			'current' => $current[ $state ] ?? 0,
+		];
+	}
+}
+
+if (! function_exists('reci_render_submit_flow_progress')) {
+	/**
+	 * Render the /submit/ progress rail so the staged backend still reads as one flow.
+	 */
+	function reci_render_submit_flow_progress( string $state ): void {
+		$flow = reci_get_submit_flow_steps( $state );
+
+		echo '<ol class="mb-8 grid gap-3 sm:grid-cols-4">';
+		foreach ( $flow['steps'] as $index => $step ) {
+			$is_done    = $index < $flow['current'];
+			$is_current = $index === $flow['current'];
+
+			$tone = 'border-zinc-200 bg-white text-zinc-500';
+			if ( $is_current ) {
+				$tone = 'border-amber-300 bg-amber-50 text-amber-900';
+			} elseif ( $is_done ) {
+				$tone = 'border-zinc-200 bg-white text-zinc-700';
+			}
+
+			echo '<li class="rounded-2xl border px-4 py-3 shadow-sm ' . esc_attr( $tone ) . '">';
+			echo '<p class="text-xs font-semibold uppercase tracking-[0.14em]">';
+			echo $is_done ? '&#10003; ' : esc_html( sprintf( '%d. ', $index + 1 ) );
+			echo esc_html( $step['label'] );
+			echo '</p>';
+			echo '<p class="mt-1 text-xs leading-5 opacity-80">' . esc_html( $step['description'] ) . '</p>';
+			echo '</li>';
+		}
+		echo '</ol>';
+	}
+}
+
 if (! function_exists('reci_media_hub_submission_type_map')) {
 	/**
 	 * Front-end submission content type map.
