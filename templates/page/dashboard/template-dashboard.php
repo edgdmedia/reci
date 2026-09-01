@@ -46,11 +46,13 @@ get_header('dashboard');
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 
 		<div class="flex-1 p-6 lg:p-10">
-			<div class="mb-8 max-w-3xl">
-				<p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Dashboard</p>
-				<h1 class="mt-3 font-heading text-3xl font-bold text-zinc-900">Welcome back, <?php echo esc_html( $current_user->display_name ); ?></h1>
-				<p class="mt-3 text-base leading-7 text-zinc-600">A quick overview of your RECI activity. Head to your feed for the full personalized reading list.</p>
-			</div>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[ 'title' => sprintf( 'Welcome back, %s', $current_user->display_name ), 'subtitle' => 'A quick overview of your RECI activity. Your feed has the full reading list.' ]
+			);
+			?>
 
 			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<?php if ( $is_author && $pending_count > 0 ) : ?>
@@ -64,7 +66,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm col-span-full">
 					<div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-						<h2 class="text-lg font-semibold text-zinc-900">Your Feed</h2>
+						<h2 class="text-neutral-800 text-xl font-bold font-subhead leading-7">Your Feed</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/feed/' ) ); ?>" class="text-sm font-semibold text-amber-700 hover:text-amber-800">Open your feed &rarr;</a>
 					</div>
 					<?php if ( ! empty( $personalized_posts ) ) : ?>
@@ -85,7 +87,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-zinc-900">Notifications</h2>
+						<h2 class="text-neutral-800 text-xl font-bold font-subhead leading-7">Notifications</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/notifications/' ) ); ?>" class="text-sm font-semibold text-amber-700 hover:text-amber-800">View all</a>
 					</div>
 					<?php get_template_part( 'template-parts/dashboard/notifications-list', null, [ 'items' => $recent_notifications, 'empty_message' => 'No notifications yet.' ] ); ?>
@@ -93,7 +95,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-zinc-900">Recent Bookmarks</h2>
+						<h2 class="text-neutral-800 text-xl font-bold font-subhead leading-7">Recent Bookmarks</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/bookmarks/' ) ); ?>" class="text-sm font-semibold text-amber-700 hover:text-amber-800">View all</a>
 					</div>
 					<?php if ( ! empty( $recent_bookmarks ) ) : ?>
@@ -114,7 +116,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-zinc-900">Recent Journal</h2>
+						<h2 class="text-neutral-800 text-xl font-bold font-subhead leading-7">Recent Journal</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/journal/' ) ); ?>" class="text-sm font-semibold text-amber-700 hover:text-amber-800">View all</a>
 					</div>
 					<?php if ( ! empty( $recent_journals ) ) : ?>
@@ -133,7 +135,7 @@ get_header('dashboard');
 
 				<div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
 					<div class="flex items-center justify-between mb-4">
-						<h2 class="text-lg font-semibold text-zinc-900">Recent Comments</h2>
+						<h2 class="text-neutral-800 text-xl font-bold font-subhead leading-7">Recent Comments</h2>
 						<a href="<?php echo esc_url( home_url( '/dashboard/comments/' ) ); ?>" class="text-sm font-semibold text-amber-700 hover:text-amber-800">View all</a>
 					</div>
 					<?php if ( ! empty( $recent_comments ) ) : ?>
