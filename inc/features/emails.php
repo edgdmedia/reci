@@ -35,7 +35,36 @@ if ( ! function_exists( 'reci_email_palette' ) ) {
 
 if ( ! function_exists( 'reci_email_from_name' ) ) {
 	function reci_email_from_name(): string {
-		return (string) apply_filters( 'reci_email_from_name', get_bloginfo( 'name' ) ?: 'RECI Media Hub' );
+		$name = function_exists( 'reci_setting' )
+			? trim( (string) reci_setting( 'email_from_name', '' ) )
+			: '';
+
+		if ( '' === $name ) {
+			$name = get_bloginfo( 'name' ) ?: 'RECI Media Hub';
+		}
+
+		return (string) apply_filters( 'reci_email_from_name', $name );
+	}
+}
+
+if ( ! function_exists( 'reci_email_from_address' ) ) {
+	/**
+	 * Sender address for transactional email.
+	 *
+	 * Set under Settings → Email. Falls back to admin_email only if that is
+	 * cleared, since a From address off the site's domain fails SPF and DKIM and
+	 * gets the mail filed as spam.
+	 */
+	function reci_email_from_address(): string {
+		$address = function_exists( 'reci_setting' )
+			? sanitize_email( (string) reci_setting( 'email_from_address', 'lekan@pentascopellc.com' ) )
+			: '';
+
+		if ( '' === $address ) {
+			$address = (string) get_option( 'admin_email' );
+		}
+
+		return (string) apply_filters( 'reci_email_from_address', $address );
 	}
 }
 
@@ -187,7 +216,7 @@ if ( ! function_exists( 'reci_send_email' ) ) {
 		$text = reci_email_plain_text( $heading, $blocks );
 
 		$from_name  = reci_email_from_name();
-		$from_email = (string) apply_filters( 'reci_email_from_address', get_option( 'admin_email' ) );
+		$from_email = reci_email_from_address();
 
 		$headers = [
 			'Content-Type: text/html; charset=UTF-8',

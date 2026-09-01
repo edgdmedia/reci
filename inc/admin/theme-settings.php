@@ -61,6 +61,8 @@ function reci_theme_setting_defaults(): array {
 		'social_instagram'           => 'https://www.instagram.com/pittcrsp/',
 		'social_youtube'             => 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg',
 		'social_linkedin'            => '',
+		'email_from_address'         => 'lekan@pentascopellc.com',
+		'email_from_name'            => '',
 		'footer_email'               => 'mediahub@reci.pitt.edu',
 		'footer_phone'               => '+14126480000',
 		'footer_address'             => "4200 Fifth Avenue\nPittsburgh, PA 15260",
@@ -190,6 +192,12 @@ function reci_register_settings(): void {
 	reci_add_field( 'branding_hub_subtitle',    'Site Subtitle',         'text',   'reci-settings-branding', 'reci_branding', 'e.g. Media Hub' );
 	reci_add_field( 'branding_primary_color',   'Primary Colour',        'color',  'reci-settings-branding', 'reci_branding' );
 	reci_add_field( 'branding_accent_color',    'Accent Colour',         'color',  'reci-settings-branding', 'reci_branding' );
+
+	// ── 1b. Email ─────────────────────────────────────────────────────────
+	add_settings_section( 'reci_email', 'Email', '__return_false', 'reci-settings-email' );
+
+	reci_add_field( 'email_from_address', 'From Address', 'email', 'reci-settings-email', 'reci_email', 'Sender for all transactional email. Use an address on this site\'s domain so SPF and DKIM can pass.' );
+	reci_add_field( 'email_from_name',    'From Name',    'text',  'reci-settings-email', 'reci_email', 'Leave blank to use the site title.' );
 
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
@@ -418,6 +426,7 @@ function reci_sanitize_settings( $input ): array {
 		'branding_hub_subtitle', 'branding_primary_color', 'branding_accent_color',
 		'analytics_ga4_id', 'analytics_gtm_id', 'analytics_pixel_id',
 		'footer_phone', 'footer_copyright',
+		'email_from_name',
 		'hp_featured_method',
 		'about_c1_title', 'about_c1_icon',
 		'about_c2_title', 'about_c2_icon',
@@ -427,7 +436,7 @@ function reci_sanitize_settings( $input ): array {
 		'social_facebook', 'social_twitter', 'social_instagram', 'social_youtube',
 		'social_linkedin',
 	];
-	$email_fields = [ 'footer_email' ];
+	$email_fields = [ 'footer_email', 'email_from_address' ];
 	$textarea_fields = [ 'footer_address' ];
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
@@ -551,6 +560,7 @@ function reci_settings_page_html(): void {
 
 	$tabs = [
 		'branding'  => 'Branding',
+		'email'     => 'Email',
 		'social'    => 'Social Links',
 		'homepage'  => 'Homepage Content',
 		'footer'    => 'Footer',
