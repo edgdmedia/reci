@@ -291,10 +291,9 @@ if ( ! function_exists( 'reci_smtp_config' ) ) {
 	/**
 	 * SMTP transport settings.
 	 *
-	 * Everything but the password comes from Settings → Email. The password is
-	 * read from a wp-config.php constant so the secret never lands in
-	 * wp_options, which is carried by every database backup, export and
-	 * migration this project performs.
+	 * All of it comes from Settings → Email, including the password. Defining
+	 * RECI_SMTP_PASSWORD in wp-config.php overrides the stored value, which keeps
+	 * the secret out of the database and therefore out of database backups.
 	 *
 	 * @return array<string,mixed>
 	 */
@@ -304,7 +303,11 @@ if ( ! function_exists( 'reci_smtp_config' ) ) {
 			'port'       => function_exists( 'reci_setting' ) ? (int) reci_setting( 'email_smtp_port', 587 ) : 587,
 			'encryption' => function_exists( 'reci_setting' ) ? (string) reci_setting( 'email_smtp_encryption', 'tls' ) : 'tls',
 			'username'   => function_exists( 'reci_setting' ) ? trim( (string) reci_setting( 'email_smtp_username', '' ) ) : '',
-			'password'   => defined( 'RECI_SMTP_PASSWORD' ) ? (string) RECI_SMTP_PASSWORD : '',
+			// The wp-config constant wins when present; otherwise the stored
+			// setting is used, which is how the site is configured by default.
+			'password'   => defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD
+				? (string) RECI_SMTP_PASSWORD
+				: ( function_exists( 'reci_setting' ) ? (string) reci_setting( 'email_smtp_password', '' ) : '' ),
 		];
 	}
 }

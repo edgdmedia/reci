@@ -203,7 +203,7 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.' );
 	reci_add_field( 'email_smtp_encryption','Encryption',   'select', 'reci-settings-email', 'reci_email', '', [ 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ] );
 	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
-	reci_add_field( 'email_smtp_password_note', 'SMTP Password', 'password_note', 'reci-settings-email', 'reci_email' );
+	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
 	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
 
 	// ── 2. Social & Platform Links ────────────────────────────────────────
@@ -363,6 +363,21 @@ function reci_render_field( array $args ): void {
 			echo '</select>';
 			break;
 
+		case 'password':
+			// A wp-config constant, if present, wins over whatever is stored here.
+			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
+				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php — this field is ignored.', 'reci-media-hub' ) . '</p>';
+				break;
+			}
+			printf(
+				'<input type="password" id="%s" name="%s" value="%s" class="regular-text" autocomplete="new-password" />',
+				esc_attr( $id ),
+				esc_attr( $name ),
+				esc_attr( $val )
+			);
+			echo '<p class="description">' . wp_kses_post( __( 'Stored in the database. To keep it out of the database instead, define <code>RECI_SMTP_PASSWORD</code> in wp-config.php and it will take precedence.', 'reci-media-hub' ) ) . '</p>';
+			break;
+
 		case 'password_note':
 			// The secret is never stored in wp_options — options ride along in every
 			// database backup, migration and export. It lives in wp-config.php.
@@ -478,7 +493,15 @@ function reci_sanitize_settings( $input ): array {
 		'branding_reci_logo', 'branding_partner_logo', 'content_fallback_thumbnail',
 	];
 	$checkbox_fields = [ 'auth_enable_registration' ];
+	// Not sanitize_text_field: it strips tags and encodes entities, corrupting
+	// passwords that legitimately contain < & or quotes.
+	$password_fields = [ 'email_smtp_password' ];
 
+	foreach ( $password_fields as $field ) {
+		if ( isset( $input[ $field ] ) ) {
+			$clean[ $field ] = trim( (string) $input[ $field ] );
+		}
+	}
 	foreach ( $text_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$clean[ $field ] = sanitize_text_field( $input[ $field ] );
