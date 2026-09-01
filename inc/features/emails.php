@@ -57,7 +57,7 @@ if ( ! function_exists( 'reci_email_from_address' ) ) {
 	 */
 	function reci_email_from_address(): string {
 		$address = function_exists( 'reci_setting' )
-			? sanitize_email( (string) reci_setting( 'email_from_address', 'lekan@pentascopellc.com' ) )
+			? sanitize_email( (string) reci_setting( 'email_from_address', '' ) )
 			: '';
 
 		if ( '' === $address ) {

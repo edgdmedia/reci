@@ -61,7 +61,7 @@ function reci_theme_setting_defaults(): array {
 		'social_instagram'           => 'https://www.instagram.com/pittcrsp/',
 		'social_youtube'             => 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg',
 		'social_linkedin'            => '',
-		'email_from_address'         => 'lekan@pentascopellc.com',
+		'email_from_address'         => '',
 		'email_from_name'            => '',
 		'footer_email'               => 'mediahub@reci.pitt.edu',
 		'footer_phone'               => '+14126480000',
