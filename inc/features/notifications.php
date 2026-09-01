@@ -88,17 +88,24 @@ function reci_send_staff_submission_notification( int $post_id ): void {
 	$edit_link = get_edit_post_link( $post_id ) ?: admin_url( 'post.php?post=' . $post_id . '&action=edit' );
 	$title     = get_the_title( $post ) ?: '(untitled)';
 	$subject   = sprintf( 'New content submission: %s', $title );
-	$message   = sprintf(
-		"A new content submission is ready for review.\n\nTitle: %s\nType: %s\nStatus: %s\n\nReview: %s",
-		$title,
-		$post->post_type,
-		$post->post_status,
-		$edit_link
-	);
+
+	$type_object = get_post_type_object( $post->post_type );
+	$blocks      = [
+		[ 'type' => 'text', 'text' => __( 'A new content submission is ready for editorial review.', 'reci-media-hub' ) ],
+		[
+			'type' => 'details',
+			'rows' => [
+				__( 'Title', 'reci-media-hub' )  => $title,
+				__( 'Type', 'reci-media-hub' )   => $type_object->labels->singular_name ?? $post->post_type,
+				__( 'Status', 'reci-media-hub' ) => $post->post_status,
+			],
+		],
+		[ 'type' => 'button', 'label' => __( 'Review this submission', 'reci-media-hub' ), 'url' => $edit_link ],
+	];
 
 	foreach ( reci_get_staff_notification_recipients() as $user ) {
 		if ( ! empty( $user->user_email ) ) {
-			wp_mail( $user->user_email, $subject, $message );
+			reci_send_email( (string) $user->user_email, $subject, __( 'New submission for review', 'reci-media-hub' ), $blocks, $title );
 		}
 
 		if ( ! empty( $user->ID ) ) {
@@ -200,10 +207,17 @@ function reci_notify_interested_users_about_post( int $post_id ): void {
 		if ( '1' === get_user_meta( $user_id, 'reci_notify_personalized_content', true ) || '1' === get_user_meta( $user_id, 'reci_notify_followed_collaborators', true ) ) {
 			$user = get_user_by( 'id', $user_id );
 			if ( $user && ! empty( $user->user_email ) ) {
-				wp_mail(
-					$user->user_email,
-					'New RECI content matching your interests',
-					sprintf( "A new piece of content matches your interests:\n\n%s\n\nView it here: %s", $title, $url )
+				reci_send_email(
+					(string) $user->user_email,
+					__( 'New RECI content matching your interests', 'reci-media-hub' ),
+					__( 'New in your feed', 'reci-media-hub' ),
+					[
+						[ 'type' => 'text', 'text' => __( 'Something new was published that matches the topics and collaborators you follow.', 'reci-media-hub' ) ],
+						[ 'type' => 'text', 'text' => $title ],
+						[ 'type' => 'button', 'label' => __( 'Read it now', 'reci-media-hub' ), 'url' => $url ],
+						[ 'type' => 'note', 'text' => __( 'Change what lands here any time from your dashboard settings.', 'reci-media-hub' ) ],
+					],
+					$title
 				);
 			}
 		}
@@ -233,7 +247,16 @@ function reci_notify_submitter_about_approval( int $post_id ): void {
 	reci_create_notification( $user_id, 'submission_approved', 'Submission approved', $message, $url, $post_id );
 
 	if ( '1' === get_user_meta( $user_id, 'reci_notify_submission_approved', true ) && ! empty( $user->user_email ) ) {
-		wp_mail( $user->user_email, 'RECI submission update', $message . "\n\n" . $url );
+		reci_send_email(
+			(string) $user->user_email,
+			__( 'Your RECI submission is live', 'reci-media-hub' ),
+			__( 'Your submission has been published', 'reci-media-hub' ),
+			[
+				[ 'type' => 'text', 'text' => sprintf( __( 'Your submission "%s" has been reviewed and published. Thank you for contributing to RECI.', 'reci-media-hub' ), $title ) ],
+				[ 'type' => 'button', 'label' => __( 'View it on the site', 'reci-media-hub' ), 'url' => $url ],
+			],
+			$message
+		);
 	}
 }
 

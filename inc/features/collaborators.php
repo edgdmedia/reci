@@ -550,21 +550,7 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			update_user_meta( $user_id, '_reci_verify_token', $token );
 			update_user_meta( $user_id, '_reci_is_verified', '0' );
 
-			$verify_url = add_query_arg([
-				'action' => 'reci_verify_email',
-				'u'      => $user_id,
-				't'      => $token,
-			], admin_url( 'admin-post.php' ) );
-
-			wp_mail(
-				$email,
-				__( 'Verify your email address', 'reci-media-hub' ),
-				sprintf(
-					"Hello %s,\n\nPlease verify your email address by clicking the link below:\n\n%s\n\nIf you did not request this, please ignore this email.",
-					$full_name,
-					$verify_url
-				)
-			);
+			reci_send_verification_email( (int) $user_id, $email, $full_name, $token );
 		}
 
 		if ( reci_user_is_collaborator( $user_id ) ) {
@@ -728,7 +714,18 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
 				$user = get_user_by( 'id', $user_id );
 				if ( $user && ! empty( $user->user_email ) ) {
-					wp_mail( $user->user_email, __( 'Your collaborator application was approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now sign in and submit content on RECI.', 'reci-media-hub' ) );
+					reci_send_email(
+						(string) $user->user_email,
+						__( 'Your collaborator application was approved', 'reci-media-hub' ),
+						__( 'You are now a RECI Collaborator', 'reci-media-hub' ),
+						[
+							[ 'type' => 'text', 'text' => sprintf( __( 'Congratulations %s — your collaborator application has been approved.', 'reci-media-hub' ), $user->display_name ) ],
+							[ 'type' => 'text', 'text' => __( 'Your public collaborator profile is live, and content submission is now open to you.', 'reci-media-hub' ) ],
+							[ 'type' => 'button', 'label' => __( 'Submit your first contribution', 'reci-media-hub' ), 'url' => home_url( '/submit/' ) ],
+							[ 'type' => 'note', 'text' => __( 'Keep your profile current from your dashboard — it is what readers see beside your work.', 'reci-media-hub' ) ],
+						],
+						__( 'Your collaborator application has been approved.', 'reci-media-hub' )
+					);
 				}
 			}
 			return;
@@ -743,7 +740,17 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
 				$user = get_user_by( 'id', $user_id );
 				if ( $user && ! empty( $user->user_email ) ) {
-					wp_mail( $user->user_email, __( 'Your collaborator application was updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time. You can update your information and apply again later.', 'reci-media-hub' ) );
+					reci_send_email(
+						(string) $user->user_email,
+						__( 'Your collaborator application was updated', 'reci-media-hub' ),
+						__( 'An update on your application', 'reci-media-hub' ),
+						[
+							[ 'type' => 'text', 'text' => sprintf( __( 'Hello %s, thank you for applying to contribute to RECI.', 'reci-media-hub' ), $user->display_name ) ],
+							[ 'type' => 'text', 'text' => __( 'Your application was not approved at this time. This is not a closed door — you are welcome to update your details and apply again.', 'reci-media-hub' ) ],
+							[ 'type' => 'button', 'label' => __( 'Update your details', 'reci-media-hub' ), 'url' => home_url( '/dashboard/profile/' ) ],
+						],
+						__( 'An update on your RECI collaborator application.', 'reci-media-hub' )
+					);
 				}
 			}
 		}

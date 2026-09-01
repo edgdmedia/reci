@@ -252,19 +252,7 @@ function reci_handle_registration(): void {
 	update_user_meta( $user_id, '_reci_verify_token', $token );
 	update_user_meta( $user_id, '_reci_is_verified', '0' );
 
-	$verify_url = add_query_arg( [
-		'action' => 'reci_verify_email',
-		'u'      => $user_id,
-		't'      => $token,
-	], admin_url( 'admin-post.php' ) );
-
-	$subject = 'Verify your email address';
-	$message = sprintf(
-		"Hello %s,\n\nPlease verify your email address by clicking the link below:\n\n%s\n\nIf you did not request this, please ignore this email.",
-		$full_name,
-		$verify_url
-	);
-	wp_mail( $email, $subject, $message );
+	reci_send_verification_email( (int) $user_id, $email, $full_name, $token );
 
 	// Redirect to sign-in page with success message.
 	$sign_in = reci_get_auth_page_url( 'sign-in' );
@@ -336,19 +324,7 @@ function reci_handle_resend_verification(): void {
 	$token = wp_generate_password( 24, false );
 	update_user_meta( $user->ID, '_reci_verify_token', $token );
 	
-	$verify_url = add_query_arg( [
-		'action' => 'reci_verify_email',
-		'u'      => $user->ID,
-		't'      => $token,
-	], admin_url( 'admin-post.php' ) );
-	
-	$subject = 'Verify your email address';
-	$message = sprintf(
-		"Hello %s,\n\nPlease verify your email address by clicking the link below:\n\n%s\n\nIf you did not request this, please ignore this email.",
-		$user->display_name ?: $user->user_login,
-		$verify_url
-	);
-	wp_mail( $user->user_email, $subject, $message );
+	reci_send_verification_email( (int) $user->ID, (string) $user->user_email, (string) ( $user->display_name ?: $user->user_login ), $token );
 	
 	wp_safe_redirect( add_query_arg( 'reg_success', 'email_resent', $sign_in ) );
 	exit;
