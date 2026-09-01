@@ -200,7 +200,7 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_from_name',    'From Name',    'text',  'reci-settings-email', 'reci_email', 'Leave blank to use the site title.' );
 
 	reci_add_field( 'email_smtp_host',     'SMTP Host',     'text',   'reci-settings-email', 'reci_email', 'Leave blank to send with the server\'s own mail() — no SMTP.' );
-	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.' );
+	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.', [], [ 'min' => 1, 'max' => 65535 ] );
 	reci_add_field( 'email_smtp_encryption','Encryption',   'select', 'reci-settings-email', 'reci_email', '', [ 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ] );
 	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
 	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
@@ -258,7 +258,8 @@ function reci_add_field(
 	string $page,
 	string $section,
 	string $description = '',
-	array $choices = []
+	array $choices = [],
+	array $atts = []
 ): void {
 	add_settings_field(
 		'reci_' . $key,
@@ -271,6 +272,7 @@ function reci_add_field(
 			'type'        => $type,
 			'description' => $description,
 			'choices'     => $choices,
+			'atts'        => $atts,
 			'label_for'   => 'reci_' . $key,
 		]
 	);
@@ -306,10 +308,12 @@ function reci_render_field( array $args ): void {
 
 		case 'number':
 			printf(
-				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="1" max="100" placeholder="%s" />',
+				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="%s" max="%s" placeholder="%s" />',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				esc_attr( $val ),
+				esc_attr( (string) ( $args['atts']['min'] ?? 1 ) ),
+				esc_attr( (string) ( $args['atts']['max'] ?? 100 ) ),
 				esc_attr( $desc )
 			);
 			if ( $desc ) {
