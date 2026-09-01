@@ -233,6 +233,14 @@ if ( ! function_exists( 'reci_collaborator_import_profile' ) ) {
 			update_post_meta( $profile_id, $key, $value );
 		}
 
+		// Track like every other demo-imported post: `_reci_demo` drives the count on
+		// the demo screen, the slug list drives removal.
+		update_post_meta( $profile_id, '_reci_demo', '1' );
+
+		$demo_slugs = get_option( 'reci_demo_slugs', [] );
+		$demo_slugs[] = get_post_field( 'post_name', $profile_id );
+		update_option( 'reci_demo_slugs', array_values( array_unique( array_filter( (array) $demo_slugs ) ) ) );
+
 		$affiliations = reci_assign_profile_terms( $profile_id, 'reci_affiliation', (array) ( $record['affiliation'] ?? [] ) );
 		$expertise    = reci_assign_profile_terms( $profile_id, 'reci_expertise', (array) ( $record['practice_focus'] ?? [] ) );
 
