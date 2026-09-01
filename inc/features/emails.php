@@ -94,46 +94,48 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 		$year    = esc_html( (string) gmdate( 'Y' ) );
 		$contact = function_exists( 'reci_setting' ) ? (string) reci_setting( 'footer_email', '' ) : '';
 
-		$logo_id  = function_exists( 'reci_setting' ) ? (int) reci_setting( 'branding_reci_logo', 0 ) : 0;
-		$logo_url = $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
-
-		$masthead = '' !== $logo_url
-			? '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;border:0;max-width:200px;height:auto;" />'
-			: '<span style="color:' . $c['navy'] . ';font-family:\'Arial Narrow\',Arial,sans-serif;font-size:22px;font-weight:bold;letter-spacing:.04em;text-transform:uppercase;">' . $site . '</span>';
+		// No image logo: it is blocked by default in many clients and cannot load
+		// at all from a local or firewalled host. A text wordmark always renders.
+		$wordmark = '<span class="reci-link" style="font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';">' . $site . '</span>';
 
 		return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<meta name="supported-color-schemes" content="light dark" />
 <title>' . esc_html( $heading ) . '</title>
+<style type="text/css">
+  @media (prefers-color-scheme: dark) {
+    .reci-ink   { color: #E9ECF2 !important; }
+    .reci-muted { color: #AAB4C4 !important; }
+    .reci-link  { color: #86ABF5 !important; }
+    .reci-rule  { border-color: #3A4250 !important; }
+  }
+</style>
 </head>
-<body style="margin:0;padding:0;background:' . $c['ground'] . ';">
-<div style="display:none;font-size:1px;color:' . $c['ground'] . ';max-height:0;overflow:hidden;">' . esc_html( $preheader ) . '</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' . $c['ground'] . ';padding:24px 12px;">
+<body style="margin:0;padding:0;">
+<div style="display:none;font-size:1px;max-height:0;overflow:hidden;">' . esc_html( $preheader ) . '</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:24px 12px;">
 <tr><td align="center">
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:' . $c['surface'] . ';">
-    <tr><td style="background:' . $c['navy'] . ';padding:10px 32px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#c9d4e8;">' . $site . '</td></tr>
-    <tr><td style="background:#ffffff;padding:22px 32px;">
-      <a href="' . $home . '" style="text-decoration:none;">' . $masthead . '</a>
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+
+    <tr><td style="padding:0 4px 14px;">
+      <a href="' . $home . '" style="text-decoration:none;">' . $wordmark . '</a>
     </td></tr>
-    <tr><td style="height:4px;background:' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</td></tr>
-    <tr><td style="padding:34px 32px 30px;font-family:Arial,Helvetica,sans-serif;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;"><tr>
-        <td width="12" style="width:12px;padding:0 12px 0 0;vertical-align:middle;">
-          <div style="width:12px;height:12px;background:' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</div>
-        </td>
-        <td style="vertical-align:middle;">
-          <h1 style="margin:0;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:30px;line-height:1.1;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
-        </td>
-      </tr></table>
+    <tr><td style="border-top:3px solid ' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</td></tr>
+
+    <tr><td style="padding:28px 4px 8px;font-family:Arial,Helvetica,sans-serif;">
+      <h1 class="reci-ink" style="margin:0 0 20px;padding:0 0 0 14px;border-left:4px solid ' . $c['yellow'] . ';font-family:\'Arial Narrow\',Arial,sans-serif;font-size:29px;line-height:1.15;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
       ' . $body . '
     </td></tr>
-    <tr><td style="background:' . $c['navy'] . ';padding:26px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#c9d4e8;">
-      <p style="margin:0 0 8px;color:#ffffff;font-weight:bold;font-size:13px;">' . $site . '</p>
-      <p style="margin:0 0 4px;"><a href="' . $home . '" style="color:' . $c['yellow'] . ';text-decoration:none;">' . esc_html( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) . '</a></p>
-      ' . ( '' !== $contact ? '<p style="margin:0 0 4px;">' . esc_html( $contact ) . '</p>' : '' ) . '
-      <p style="margin:10px 0 0;color:#8ea3c9;">&copy; ' . $year . ' ' . $site . '. Sent because of activity on your account.</p>
+
+    <tr><td class="reci-muted reci-rule" style="padding:22px 4px 0;border-top:1px solid ' . $c['line'] . ';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:' . $c['muted'] . ';">
+      <p style="margin:0 0 4px;"><a class="reci-link" href="' . $home . '" style="color:' . $c['navy'] . ';text-decoration:underline;font-weight:bold;">' . $site . '</a></p>
+      ' . ( '' !== $contact ? '<p class="reci-muted" style="margin:0 0 4px;color:' . $c['muted'] . ';">' . esc_html( $contact ) . '</p>' : '' ) . '
+      <p class="reci-muted" style="margin:8px 0 0;color:' . $c['muted'] . ';">&copy; ' . $year . ' ' . $site . '. Sent because of activity on your account.</p>
     </td></tr>
+
   </table>
 </td></tr>
 </table>
@@ -154,9 +156,10 @@ if ( ! function_exists( 'reci_email_render_block' ) ) {
 		$type = (string) ( $block['type'] ?? 'text' );
 
 		if ( 'button' === $type ) {
-			// Mirrors .btn-primary on the site: yellow ground, dark text.
-			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;"><tr><td style="background:' . $c['yellow'] . ';border-radius:6px;">
-				<a href="' . esc_url( (string) ( $block['url'] ?? '#' ) ) . '" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:' . $c['ink'] . ';text-decoration:none;">' . esc_html( (string) ( $block['label'] ?? 'Open' ) ) . '</a>
+			// Outlined rather than filled: a solid block is what dark-mode clients
+			// recolour, and an unreadable button is worse than a plain one.
+			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;"><tr><td style="border:2px solid ' . $c['navy'] . ';border-radius:4px;">
+				<a class="reci-link" href="' . esc_url( (string) ( $block['url'] ?? '#' ) ) . '" style="display:inline-block;padding:12px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:' . $c['navy'] . ';text-decoration:none;">' . esc_html( (string) ( $block['label'] ?? 'Open' ) ) . ' &rarr;</a>
 			</td></tr></table>';
 		}
 
@@ -165,27 +168,27 @@ if ( ! function_exists( 'reci_email_render_block' ) ) {
 			foreach ( (array) ( $block['items'] ?? [] ) as $item ) {
 				$items .= '<li style="margin:0 0 7px;">' . esc_html( (string) $item ) . '</li>';
 			}
-			return '<ul style="margin:0 0 18px;padding-left:20px;font-size:15px;line-height:1.65;color:' . $c['ink'] . ';">' . $items . '</ul>';
+			return '<ul class="reci-ink" style="margin:0 0 18px;padding-left:20px;font-size:15px;line-height:1.65;color:' . $c['ink'] . ';">' . $items . '</ul>';
 		}
 
 		if ( 'details' === $type ) {
 			$rows = '';
 			foreach ( (array) ( $block['rows'] ?? [] ) as $label => $value ) {
 				$rows .= '<tr>
-					<td style="padding:7px 14px 7px 0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:' . $c['muted'] . ';white-space:nowrap;vertical-align:top;">' . esc_html( (string) $label ) . '</td>
-					<td style="padding:7px 0;font-size:15px;color:' . $c['ink'] . ';">' . esc_html( (string) $value ) . '</td>
+					<td class="reci-muted" style="padding:7px 14px 7px 0;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:' . $c['muted'] . ';white-space:nowrap;vertical-align:top;">' . esc_html( (string) $label ) . '</td>
+					<td class="reci-ink" style="padding:7px 0;font-size:15px;color:' . $c['ink'] . ';">' . esc_html( (string) $value ) . '</td>
 				</tr>';
 			}
-			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;width:100%;font-family:Arial,Helvetica,sans-serif;border-top:1px solid ' . $c['line'] . ';border-bottom:1px solid ' . $c['line'] . ';">' . $rows . '</table>';
+			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="reci-rule" style="margin:0 0 20px;width:100%;font-family:Arial,Helvetica,sans-serif;border-top:1px solid ' . $c['line'] . ';border-bottom:1px solid ' . $c['line'] . ';">' . $rows . '</table>';
 		}
 
 		if ( 'note' === $type ) {
-			return '<p style="margin:0 0 18px;padding:13px 16px;background:' . $c['ground'] . ';border-left:3px solid ' . $c['yellow'] . ';font-size:14px;line-height:1.6;color:' . $c['ink'] . ';">' . esc_html( (string) ( $block['text'] ?? '' ) ) . '</p>';
+			return '<p class="reci-muted" style="margin:0 0 18px;padding:2px 0 2px 14px;border-left:3px solid ' . $c['yellow'] . ';font-size:14px;line-height:1.6;color:' . $c['muted'] . ';">' . esc_html( (string) ( $block['text'] ?? '' ) ) . '</p>';
 		}
 
 		// Plain paragraph. A raw URL is linked so the fallback stays clickable.
 		$text = (string) ( $block['text'] ?? '' );
-		return '<p style="margin:0 0 16px;font-size:15px;line-height:1.65;color:' . $c['ink'] . ';">' . esc_html( $text ) . '</p>';
+		return '<p class="reci-ink" style="margin:0 0 16px;font-size:15px;line-height:1.65;color:' . $c['ink'] . ';">' . esc_html( $text ) . '</p>';
 	}
 }
 
