@@ -199,6 +199,13 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_from_address', 'From Address', 'email', 'reci-settings-email', 'reci_email', 'Sender for all transactional email. Use an address on this site\'s domain so SPF and DKIM can pass.' );
 	reci_add_field( 'email_from_name',    'From Name',    'text',  'reci-settings-email', 'reci_email', 'Leave blank to use the site title.' );
 
+	reci_add_field( 'email_smtp_host',     'SMTP Host',     'text',   'reci-settings-email', 'reci_email', 'Leave blank to send with the server\'s own mail() — no SMTP.' );
+	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.' );
+	reci_add_field( 'email_smtp_encryption','Encryption',   'select', 'reci-settings-email', 'reci_email', '', [ 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ] );
+	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
+	reci_add_field( 'email_smtp_password_note', 'SMTP Password', 'password_note', 'reci-settings-email', 'reci_email' );
+	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
+
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
 
@@ -250,7 +257,8 @@ function reci_add_field(
 	string $type,
 	string $page,
 	string $section,
-	string $description = ''
+	string $description = '',
+	array $choices = []
 ): void {
 	add_settings_field(
 		'reci_' . $key,
@@ -262,6 +270,7 @@ function reci_add_field(
 			'key'         => $key,
 			'type'        => $type,
 			'description' => $description,
+			'choices'     => $choices,
 			'label_for'   => 'reci_' . $key,
 		]
 	);
@@ -337,8 +346,7 @@ function reci_render_field( array $args ): void {
 			break;
 
 		case 'select':
-			// Currently only used for featured article selection method.
-			$choices = [
+			$choices = ! empty( $args['choices'] ) ? (array) $args['choices'] : [
 				'latest'   => 'Latest post',
 				'sticky'   => 'Sticky post',
 				'manual'   => 'Manually selected post',
@@ -353,6 +361,29 @@ function reci_render_field( array $args ): void {
 				);
 			}
 			echo '</select>';
+			break;
+
+		case 'password_note':
+			// The secret is never stored in wp_options — options ride along in every
+			// database backup, migration and export. It lives in wp-config.php.
+			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
+				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php', 'reci-media-hub' ) . '</p>';
+			} else {
+				echo '<p style="margin:0;color:#9d2f45;font-weight:600;">' . esc_html__( 'Not set', 'reci-media-hub' ) . '</p>';
+			}
+			echo '<p class="description">' . wp_kses_post( __( 'Add <code>define( \'RECI_SMTP_PASSWORD\', \'…\' );</code> to wp-config.php. It is deliberately not stored in the database.', 'reci-media-hub' ) ) . '</p>';
+			break;
+
+		case 'button':
+			$url = wp_nonce_url(
+				add_query_arg( 'action', 'reci_send_test_email', admin_url( 'admin-post.php' ) ),
+				'reci_send_test_email'
+			);
+			printf(
+				'<a href="%s" class="button">%s</a>',
+				esc_url( $url ),
+				esc_html( $args['button_label'] ?? __( 'Send', 'reci-media-hub' ) )
+			);
 			break;
 
 		case 'page':
@@ -426,7 +457,7 @@ function reci_sanitize_settings( $input ): array {
 		'branding_hub_subtitle', 'branding_primary_color', 'branding_accent_color',
 		'analytics_ga4_id', 'analytics_gtm_id', 'analytics_pixel_id',
 		'footer_phone', 'footer_copyright',
-		'email_from_name',
+		'email_from_name', 'email_smtp_host', 'email_smtp_username', 'email_smtp_encryption',
 		'hp_featured_method',
 		'about_c1_title', 'about_c1_icon',
 		'about_c2_title', 'about_c2_icon',
@@ -441,6 +472,7 @@ function reci_sanitize_settings( $input ): array {
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
 		'content_articles_per_page', 'content_podcasts_per_page', 'content_videos_per_page',
+		'email_smtp_port',
 	];
 	$image_fields = [
 		'branding_reci_logo', 'branding_partner_logo', 'content_fallback_thumbnail',

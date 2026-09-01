@@ -286,3 +286,153 @@ if ( ! function_exists( 'reci_send_verification_email' ) ) {
 		);
 	}
 }
+
+if ( ! function_exists( 'reci_smtp_config' ) ) {
+	/**
+	 * SMTP transport settings.
+	 *
+	 * Everything but the password comes from Settings → Email. The password is
+	 * read from a wp-config.php constant so the secret never lands in
+	 * wp_options, which is carried by every database backup, export and
+	 * migration this project performs.
+	 *
+	 * @return array<string,mixed>
+	 */
+	function reci_smtp_config(): array {
+		return [
+			'host'       => function_exists( 'reci_setting' ) ? trim( (string) reci_setting( 'email_smtp_host', '' ) ) : '',
+			'port'       => function_exists( 'reci_setting' ) ? (int) reci_setting( 'email_smtp_port', 587 ) : 587,
+			'encryption' => function_exists( 'reci_setting' ) ? (string) reci_setting( 'email_smtp_encryption', 'tls' ) : 'tls',
+			'username'   => function_exists( 'reci_setting' ) ? trim( (string) reci_setting( 'email_smtp_username', '' ) ) : '',
+			'password'   => defined( 'RECI_SMTP_PASSWORD' ) ? (string) RECI_SMTP_PASSWORD : '',
+		];
+	}
+}
+
+if ( ! function_exists( 'reci_configure_smtp' ) ) {
+	/**
+	 * Route mail through SMTP when a host is configured.
+	 *
+	 * With no host set this does nothing, so the site keeps using the server's
+	 * own mail() exactly as before — configuring SMTP is opt-in.
+	 *
+	 * @param PHPMailer\PHPMailer\PHPMailer $phpmailer
+	 */
+	function reci_configure_smtp( $phpmailer ): void {
+		$c = reci_smtp_config();
+
+		if ( '' === $c['host'] ) {
+			return;
+		}
+
+		$phpmailer->isSMTP();
+		$phpmailer->Host = $c['host'];
+		$phpmailer->Port = $c['port'] > 0 ? $c['port'] : 587;
+
+		if ( in_array( $c['encryption'], [ 'tls', 'ssl' ], true ) ) {
+			$phpmailer->SMTPSecure = $c['encryption'];
+		} else {
+			$phpmailer->SMTPSecure  = '';
+			$phpmailer->SMTPAutoTLS = false;
+		}
+
+		// Only authenticate when a username exists; some relays accept the host
+		// unauthenticated and offering empty credentials makes them reject it.
+		if ( '' !== $c['username'] ) {
+			$phpmailer->SMTPAuth = true;
+			$phpmailer->Username = $c['username'];
+			$phpmailer->Password = $c['password'];
+		} else {
+			// WordPress reuses one PHPMailer instance per request, so credentials
+			// from an earlier send would otherwise linger on the object.
+			$phpmailer->SMTPAuth = false;
+			$phpmailer->Username = '';
+			$phpmailer->Password = '';
+		}
+	}
+}
+
+add_action( 'phpmailer_init', 'reci_configure_smtp' );
+
+if ( ! function_exists( 'reci_handle_test_email' ) ) {
+	/**
+	 * Send a real test message and report what actually happened.
+	 *
+	 * "It didn't work" is useless when diagnosing mail, so the transport's own
+	 * error is carried back to the settings screen.
+	 */
+	function reci_handle_test_email(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do that.', 'reci-media-hub' ), '', [ 'response' => 403 ] );
+		}
+
+		check_admin_referer( 'reci_send_test_email' );
+
+		$back = add_query_arg( [ 'page' => 'reci-settings', 'tab' => 'email' ], admin_url( 'admin.php' ) );
+		$user = wp_get_current_user();
+		$to   = (string) $user->user_email;
+
+		$error = '';
+		$capture = static function ( $wp_error ) use ( &$error ) {
+			$error = $wp_error instanceof WP_Error ? $wp_error->get_error_message() : '';
+		};
+		add_action( 'wp_mail_failed', $capture );
+
+		$sent = reci_send_email(
+			$to,
+			__( 'RECI test email', 'reci-media-hub' ),
+			__( 'Mail is working', 'reci-media-hub' ),
+			[
+				[ 'type' => 'text', 'text' => __( 'This is a test message from your RECI settings screen. If you are reading it, transactional email is reaching real inboxes.', 'reci-media-hub' ) ],
+				[
+					'type' => 'details',
+					'rows' => [
+						__( 'Sent to', 'reci-media-hub' )   => $to,
+						__( 'Transport', 'reci-media-hub' ) => '' !== reci_smtp_config()['host'] ? sprintf( 'SMTP (%s)', reci_smtp_config()['host'] ) : __( 'PHP mail()', 'reci-media-hub' ),
+						__( 'From', 'reci-media-hub' )      => reci_email_from_address(),
+					],
+				],
+			],
+			__( 'Test message from your RECI settings screen.', 'reci-media-hub' )
+		);
+
+		remove_action( 'wp_mail_failed', $capture );
+
+		$args = $sent
+			? [ 'reci_mail_test' => 'sent' ]
+			: [ 'reci_mail_test' => 'failed', 'reci_mail_error' => rawurlencode( $error ?: __( 'Unknown transport error.', 'reci-media-hub' ) ) ];
+
+		wp_safe_redirect( add_query_arg( $args, $back ) );
+		exit;
+	}
+}
+
+add_action( 'admin_post_reci_send_test_email', 'reci_handle_test_email' );
+
+if ( ! function_exists( 'reci_render_test_email_notice' ) ) {
+	/**
+	 * Report the result of a test send on the settings screen.
+	 */
+	function reci_render_test_email_notice(): void {
+		if ( ! isset( $_GET['reci_mail_test'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+
+		if ( 'sent' === $_GET['reci_mail_test'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html__( 'Test email sent. If it does not arrive, the transport accepted it and the problem is downstream — check SPF and DKIM for the sending domain.', 'reci-media-hub' )
+			);
+			return;
+		}
+
+		$error = isset( $_GET['reci_mail_error'] ) ? sanitize_text_field( rawurldecode( wp_unslash( $_GET['reci_mail_error'] ) ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		printf(
+			'<div class="notice notice-error"><p><strong>%s</strong> %s</p></div>',
+			esc_html__( 'Test email failed:', 'reci-media-hub' ),
+			esc_html( $error )
+		);
+	}
+}
+
+add_action( 'admin_notices', 'reci_render_test_email_notice' );
