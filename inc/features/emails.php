@@ -21,9 +21,14 @@ if ( ! function_exists( 'reci_email_palette' ) ) {
 	 * @return array<string,string>
 	 */
 	function reci_email_palette(): array {
+		// Primary and accent follow the Branding settings, so the email cannot
+		// drift from the site the way a second hardcoded palette would.
+		$primary = function_exists( 'reci_setting' ) ? (string) reci_setting( 'branding_primary_color', '#003594' ) : '#003594';
+		$accent  = function_exists( 'reci_setting' ) ? (string) reci_setting( 'branding_accent_color', '#FFB81C' ) : '#FFB81C';
+
 		return [
-			'navy'    => '#003594',
-			'yellow'  => '#FFB81C',
+			'navy'    => $primary,
+			'yellow'  => $accent,
 			'ink'     => '#2B2B2B',
 			'muted'   => '#6A6D70',
 			'line'    => '#BABBBD',
@@ -86,7 +91,15 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 			$body .= reci_email_render_block( (array) $block, $c );
 		}
 
-		$year = esc_html( (string) gmdate( 'Y' ) );
+		$year    = esc_html( (string) gmdate( 'Y' ) );
+		$contact = function_exists( 'reci_setting' ) ? (string) reci_setting( 'footer_email', '' ) : '';
+
+		$logo_id  = function_exists( 'reci_setting' ) ? (int) reci_setting( 'branding_reci_logo', 0 ) : 0;
+		$logo_url = $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
+
+		$masthead = '' !== $logo_url
+			? '<img src="' . esc_url( $logo_url ) . '" alt="' . $site . '" width="200" style="display:block;border:0;max-width:200px;height:auto;" />'
+			: '<span style="color:' . $c['navy'] . ';font-family:\'Arial Narrow\',Arial,sans-serif;font-size:22px;font-weight:bold;letter-spacing:.04em;text-transform:uppercase;">' . $site . '</span>';
 
 		return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
@@ -98,18 +111,28 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 <div style="display:none;font-size:1px;color:' . $c['ground'] . ';max-height:0;overflow:hidden;">' . esc_html( $preheader ) . '</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' . $c['ground'] . ';padding:24px 12px;">
 <tr><td align="center">
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:' . $c['surface'] . ';border-radius:6px;overflow:hidden;">
-    <tr><td style="background:' . $c['navy'] . ';padding:22px 32px;">
-      <a href="' . $home . '" style="color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:17px;font-weight:bold;letter-spacing:.02em;">' . $site . '</a>
-      <div style="height:3px;width:44px;background:' . $c['yellow'] . ';margin-top:12px;"></div>
+  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:' . $c['surface'] . ';">
+    <tr><td style="background:' . $c['navy'] . ';padding:10px 32px;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#c9d4e8;">' . $site . '</td></tr>
+    <tr><td style="background:#ffffff;padding:22px 32px;">
+      <a href="' . $home . '" style="text-decoration:none;">' . $masthead . '</a>
     </td></tr>
-    <tr><td style="padding:32px;font-family:Arial,Helvetica,sans-serif;">
-      <h1 style="margin:0 0 18px;font-size:23px;line-height:1.25;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
+    <tr><td style="height:4px;background:' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</td></tr>
+    <tr><td style="padding:34px 32px 30px;font-family:Arial,Helvetica,sans-serif;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;"><tr>
+        <td width="12" style="width:12px;padding:0 12px 0 0;vertical-align:middle;">
+          <div style="width:12px;height:12px;background:' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</div>
+        </td>
+        <td style="vertical-align:middle;">
+          <h1 style="margin:0;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:30px;line-height:1.1;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
+        </td>
+      </tr></table>
       ' . $body . '
     </td></tr>
-    <tr><td style="padding:20px 32px 26px;border-top:1px solid ' . $c['line'] . ';font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:' . $c['muted'] . ';">
-      <p style="margin:0 0 6px;">' . $site . ' &middot; <a href="' . $home . '" style="color:' . $c['navy'] . ';text-decoration:underline;">' . esc_html( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) . '</a></p>
-      <p style="margin:0;">&copy; ' . $year . ' ' . $site . '. You are receiving this because of activity on your account.</p>
+    <tr><td style="background:' . $c['navy'] . ';padding:26px 32px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#c9d4e8;">
+      <p style="margin:0 0 8px;color:#ffffff;font-weight:bold;font-size:13px;">' . $site . '</p>
+      <p style="margin:0 0 4px;"><a href="' . $home . '" style="color:' . $c['yellow'] . ';text-decoration:none;">' . esc_html( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) . '</a></p>
+      ' . ( '' !== $contact ? '<p style="margin:0 0 4px;">' . esc_html( $contact ) . '</p>' : '' ) . '
+      <p style="margin:10px 0 0;color:#8ea3c9;">&copy; ' . $year . ' ' . $site . '. Sent because of activity on your account.</p>
     </td></tr>
   </table>
 </td></tr>
@@ -131,8 +154,9 @@ if ( ! function_exists( 'reci_email_render_block' ) ) {
 		$type = (string) ( $block['type'] ?? 'text' );
 
 		if ( 'button' === $type ) {
-			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px;"><tr><td style="background:' . $c['navy'] . ';border-radius:4px;">
-				<a href="' . esc_url( (string) ( $block['url'] ?? '#' ) ) . '" style="display:inline-block;padding:13px 26px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">' . esc_html( (string) ( $block['label'] ?? 'Open' ) ) . '</a>
+			// Mirrors .btn-primary on the site: yellow ground, dark text.
+			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 24px;"><tr><td style="background:' . $c['yellow'] . ';border-radius:6px;">
+				<a href="' . esc_url( (string) ( $block['url'] ?? '#' ) ) . '" style="display:inline-block;padding:14px 28px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:' . $c['ink'] . ';text-decoration:none;">' . esc_html( (string) ( $block['label'] ?? 'Open' ) ) . '</a>
 			</td></tr></table>';
 		}
 
