@@ -63,6 +63,7 @@ function reci_theme_setting_defaults(): array {
 		'social_linkedin'            => '',
 		'email_from_address'         => '',
 		'email_from_name'            => '',
+		'email_log_retention'        => 30,
 		'footer_email'               => 'mediahub@reci.pitt.edu',
 		'footer_phone'               => '+14126480000',
 		'footer_address'             => "4200 Fifth Avenue\nPittsburgh, PA 15260",
@@ -205,6 +206,8 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
 	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
 	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
+	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything.', [], [ 'min' => 0, 'max' => 3650 ] );
+	reci_add_field( 'email_log',           'Recent Email',  'email_log', 'reci-settings-email', 'reci_email' );
 
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
@@ -393,6 +396,34 @@ function reci_render_field( array $args ): void {
 			echo '<p class="description">' . wp_kses_post( __( 'Add <code>define( \'RECI_SMTP_PASSWORD\', \'…\' );</code> to wp-config.php. It is deliberately not stored in the database.', 'reci-media-hub' ) ) . '</p>';
 			break;
 
+		case 'email_log':
+			$rows = function_exists( 'reci_get_email_log' ) ? reci_get_email_log( 50 ) : [];
+			if ( empty( $rows ) ) {
+				echo '<p class="description">' . esc_html__( 'Nothing sent yet.', 'reci-media-hub' ) . '</p>';
+				break;
+			}
+			echo '<table class="widefat striped" style="max-width:860px;"><thead><tr>';
+			foreach ( [ __( 'When', 'reci-media-hub' ), __( 'To', 'reci-media-hub' ), __( 'Subject', 'reci-media-hub' ), __( 'Via', 'reci-media-hub' ), __( 'Result', 'reci-media-hub' ) ] as $th ) {
+				echo '<th>' . esc_html( $th ) . '</th>';
+			}
+			echo '</tr></thead><tbody>';
+			foreach ( $rows as $row ) {
+				$ok = 'sent' === $row->status;
+				printf(
+					'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><span style="color:%s;font-weight:600;">%s</span>%s</td></tr>',
+					esc_html( mysql2date( 'j M Y, H:i', $row->created_at ) ),
+					esc_html( $row->recipient ),
+					esc_html( $row->subject ),
+					esc_html( $row->transport ),
+					$ok ? '#1f7a5a' : '#9d2f45',
+					esc_html( $ok ? __( 'Sent', 'reci-media-hub' ) : __( 'Failed', 'reci-media-hub' ) ),
+					'' !== $row->error ? '<br /><span style="color:#6A6D70;font-size:12px;">' . esc_html( $row->error ) . '</span>' : ''
+				);
+			}
+			echo '</tbody></table>';
+			echo '<p class="description">' . esc_html__( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' ) . '</p>';
+			break;
+
 		case 'button':
 			$url = wp_nonce_url(
 				add_query_arg( 'action', 'reci_send_test_email', admin_url( 'admin-post.php' ) ),
@@ -491,7 +522,7 @@ function reci_sanitize_settings( $input ): array {
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
 		'content_articles_per_page', 'content_podcasts_per_page', 'content_videos_per_page',
-		'email_smtp_port',
+		'email_smtp_port', 'email_log_retention',
 	];
 	$image_fields = [
 		'branding_reci_logo', 'branding_partner_logo', 'content_fallback_thumbnail',
@@ -529,7 +560,9 @@ function reci_sanitize_settings( $input ): array {
 	foreach ( $number_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$val = (int) $input[ $field ];
-			$clean[ $field ] = $val > 0 ? $val : '';
+			// Retention treats 0 as "keep everything", so it must survive as 0
+			// rather than being blanked and falling back to the default.
+			$clean[ $field ] = ( $val > 0 || 'email_log_retention' === $field ) ? $val : '';
 		}
 	}
 	foreach ( $image_fields as $field ) {

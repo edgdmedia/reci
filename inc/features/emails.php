@@ -230,9 +230,19 @@ if ( ! function_exists( 'reci_send_email' ) ) {
 		};
 		add_action( 'phpmailer_init', $attach_alt );
 
+		// Capture the transport's own error so the log says why, not just that.
+		$error   = '';
+		$capture = static function ( $wp_error ) use ( &$error ) {
+			$error = $wp_error instanceof WP_Error ? $wp_error->get_error_message() : '';
+		};
+		add_action( 'wp_mail_failed', $capture );
+
 		$sent = wp_mail( $to, $subject, $html, $headers );
 
+		remove_action( 'wp_mail_failed', $capture );
 		remove_action( 'phpmailer_init', $attach_alt );
+
+		reci_log_email( $to, $subject, $heading, (bool) $sent, $error );
 
 		return (bool) $sent;
 	}
@@ -439,3 +449,95 @@ if ( ! function_exists( 'reci_render_test_email_notice' ) ) {
 }
 
 add_action( 'admin_notices', 'reci_render_test_email_notice' );
+
+if ( ! function_exists( 'reci_email_log_table' ) ) {
+	function reci_email_log_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'reci_email_log';
+	}
+}
+
+if ( ! function_exists( 'reci_log_email' ) ) {
+	/**
+	 * Record one send attempt.
+	 *
+	 * The rendered body is deliberately not stored. It is bulky, and verification
+	 * messages contain a working sign-in link — a log holding those is a
+	 * credential store wearing a friendlier name.
+	 */
+	function reci_log_email( string $to, string $subject, string $heading, bool $sent, string $error = '' ): void {
+		global $wpdb;
+
+		$user = get_user_by( 'email', $to );
+		$host = reci_smtp_config()['host'];
+
+		$wpdb->insert(
+			reci_email_log_table(),
+			[
+				'user_id'    => $user instanceof WP_User ? (int) $user->ID : 0,
+				'recipient'  => $to,
+				'subject'    => $subject,
+				'heading'    => $heading,
+				'transport'  => '' !== $host ? 'smtp' : 'mail()',
+				'status'     => $sent ? 'sent' : 'failed',
+				'error'      => $error,
+				'created_at' => current_time( 'mysql' ),
+			],
+			[ '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+		);
+	}
+}
+
+if ( ! function_exists( 'reci_email_log_retention_days' ) ) {
+	/**
+	 * How long log rows are kept. Zero keeps them indefinitely.
+	 */
+	function reci_email_log_retention_days(): int {
+		$days = function_exists( 'reci_setting' ) ? (int) reci_setting( 'email_log_retention', 30 ) : 30;
+		return max( 0, $days );
+	}
+}
+
+if ( ! function_exists( 'reci_prune_email_log' ) ) {
+	/**
+	 * Delete log rows past the retention window.
+	 */
+	function reci_prune_email_log(): int {
+		$days = reci_email_log_retention_days();
+		if ( 0 === $days ) {
+			return 0;
+		}
+
+		global $wpdb;
+		$table  = reci_email_log_table();
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( sprintf( '-%d days', $days ), (int) current_time( 'timestamp' ) ) );
+
+		return (int) $wpdb->query( $wpdb->prepare( "DELETE FROM {$table} WHERE created_at < %s", $cutoff ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+}
+
+add_action( 'reci_prune_email_log', 'reci_prune_email_log' );
+
+if ( ! function_exists( 'reci_schedule_email_log_pruning' ) ) {
+	function reci_schedule_email_log_pruning(): void {
+		if ( ! wp_next_scheduled( 'reci_prune_email_log' ) ) {
+			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'reci_prune_email_log' );
+		}
+	}
+}
+
+add_action( 'init', 'reci_schedule_email_log_pruning' );
+
+if ( ! function_exists( 'reci_get_email_log' ) ) {
+	/**
+	 * Recent log rows, newest first.
+	 *
+	 * @return array<int,object>
+	 */
+	function reci_get_email_log( int $limit = 100 ): array {
+		global $wpdb;
+		$table = reci_email_log_table();
+
+		return (array) $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$table} ORDER BY created_at DESC, id DESC LIMIT %d", $limit ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+}
