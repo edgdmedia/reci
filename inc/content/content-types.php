@@ -34,6 +34,25 @@ if (! function_exists('reci_media_hub_cpt_labels')) {
 	}
 }
 
+/**
+ * Flush rewrite rules when a post type's public slug changes.
+ *
+ * Registering a new slug does nothing until the rules are rebuilt, and a theme
+ * update does not do that on its own — an install would keep serving the old
+ * URL and 404 the new one. Keyed to a constant so a deploy heals itself.
+ */
+const RECI_REWRITE_VERSION = '1.1.0-resources';
+
+add_action('init', 'reci_maybe_flush_content_rewrites', 99);
+function reci_maybe_flush_content_rewrites(): void {
+	if (get_option('reci_rewrite_version') === RECI_REWRITE_VERSION) {
+		return;
+	}
+
+	flush_rewrite_rules();
+	update_option('reci_rewrite_version', RECI_REWRITE_VERSION);
+}
+
 if (! function_exists('reci_media_hub_cpt_menu_parent')) {
 	/**
 	 * Which top-level menu a post type belongs under.
@@ -145,7 +164,11 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 			'reci_document'   => [
 				'singular'      => 'Resource',
 				'plural'        => 'Resources',
-				'slug'          => 'documents',
+				// The label has always said Resources; the URL said documents. Only
+				// the public slug changes — the post type key stays reci_document,
+				// since renaming that would mean rewriting the post_type column and
+				// every reference for no visible gain.
+				'slug'          => 'resources',
 				'menu_icon'     => 'dashicons-media-document',
 				'menu_position' => 30,
 			],

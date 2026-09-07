@@ -31,7 +31,7 @@ $content_type_links = [
     "Quizzes"   =>
         get_post_type_archive_link("reci_assessment") ?: home_url("/quizzes/"),
     "Resources" =>
-        get_post_type_archive_link("reci_document") ?: home_url("/documents/"),
+        get_post_type_archive_link("reci_document") ?: home_url("/resources/"),
 ];
 
 $authors = array_slice(reci_media_hub_get_author_profile_options(true), 0, 10);
