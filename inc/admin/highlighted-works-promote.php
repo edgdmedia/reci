@@ -17,6 +17,97 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+if ( ! function_exists( 'reci_promote_titled_works' ) ) {
+	/**
+	 * Publish every highlighted work that arrived with a real title.
+	 *
+	 * Only these. A link whose anchor text was its own URL has no title a reader
+	 * could use, and 81 resources called "contemporaneity.pitt.edu" would be
+	 * worse than none — those stay on their profiles until someone names them.
+	 *
+	 * Idempotent: an entry already carrying a resource_id is skipped.
+	 *
+	 * @param bool $dry_run Report what would happen without writing.
+	 * @return array<string,mixed>
+	 */
+	function reci_promote_titled_works( bool $dry_run = false ): array {
+		$result = [ 'created' => 0, 'skipped' => 0, 'titles' => [] ];
+
+		$profiles = get_posts(
+			[
+				'post_type'      => 'reci_author',
+				'post_status'    => 'any',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'meta_key'       => '_reci_author_highlighted_works',
+			]
+		);
+
+		foreach ( $profiles as $profile_id ) {
+			$entries = get_post_meta( $profile_id, '_reci_author_highlighted_works', true );
+
+			if ( ! is_array( $entries ) ) {
+				continue;
+			}
+
+			$changed = false;
+
+			foreach ( $entries as $index => $entry ) {
+				$url   = (string) ( $entry['url'] ?? '' );
+				$title = trim( (string) ( $entry['title'] ?? '' ) );
+
+				if ( '' === $url || '' === $title ) {
+					continue;
+				}
+
+				if ( ! empty( $entry['resource_id'] ) && get_post( (int) $entry['resource_id'] ) ) {
+					++$result['skipped'];
+					continue;
+				}
+
+				$result['titles'][] = $title;
+
+				if ( $dry_run ) {
+					++$result['created'];
+					continue;
+				}
+
+				$resource_id = wp_insert_post(
+					[
+						'post_type'    => 'reci_document',
+						// Draft, not published. These are curated candidates, and a
+						// human should see each one before it is public.
+						'post_status'  => 'draft',
+						'post_title'   => $title,
+						'post_excerpt' => sanitize_textarea_field( (string) ( $entry['note'] ?? '' ) ),
+					],
+					true
+				);
+
+				if ( is_wp_error( $resource_id ) || ! $resource_id ) {
+					continue;
+				}
+
+				update_post_meta( $resource_id, '_reci_submission_content_link', esc_url_raw( $url ) );
+				update_post_meta( $resource_id, '_reci_submission_content_type', 'document' );
+				update_post_meta( $resource_id, '_reci_submission_source_type', 'link' );
+				update_post_meta( $resource_id, '_reci_display_author_profile_id', (int) $profile_id );
+				update_post_meta( $resource_id, '_reci_resource_from_profile', (int) $profile_id );
+
+				$entries[ $index ]['resource_id'] = (int) $resource_id;
+				$changed = true;
+				++$result['created'];
+			}
+
+			if ( $changed ) {
+				update_post_meta( $profile_id, '_reci_author_highlighted_works', $entries );
+			}
+		}
+
+		return $result;
+	}
+}
+
 add_action( 'add_meta_boxes', 'reci_add_highlighted_works_metabox' );
 function reci_add_highlighted_works_metabox(): void {
 	add_meta_box(
@@ -31,53 +122,66 @@ function reci_add_highlighted_works_metabox(): void {
 
 function reci_render_highlighted_works_metabox( WP_Post $post ): void {
 	$entries = get_post_meta( $post->ID, '_reci_author_highlighted_works', true );
+	$entries = is_array( $entries ) ? array_values( $entries ) : [];
 
-	if ( ! is_array( $entries ) || empty( $entries ) ) {
-		echo '<p class="description">' . esc_html__( 'Nothing recorded for this collaborator.', 'reci-media-hub' ) . '</p>';
-		return;
-	}
+	wp_nonce_field( 'reci_save_highlighted_works', 'reci_highlighted_works_nonce' );
 
-	echo '<p class="description">' . esc_html__( 'Links can be published as Resources. Entries without a link are references, and stay on the profile.', 'reci-media-hub' ) . '</p>';
-	echo '<table class="widefat striped"><tbody>';
+	echo '<p class="description">' . esc_html__( 'An entry with a link can be published as a Resource. An entry without one is a reference and stays on the profile. Clear a row to delete it.', 'reci-media-hub' ) . '</p>';
 
-	foreach ( $entries as $index => $entry ) {
-		$url       = (string) ( $entry['url'] ?? '' );
-		$title     = (string) ( $entry['title'] ?? '' );
-		$note      = (string) ( $entry['note'] ?? '' );
-		$promoted  = (int) ( $entry['resource_id'] ?? 0 );
+	echo '<table class="widefat striped"><thead><tr>';
+	printf( '<th style="width:34%%;">%s</th>', esc_html__( 'Title', 'reci-media-hub' ) );
+	printf( '<th style="width:34%%;">%s</th>', esc_html__( 'Link', 'reci-media-hub' ) );
+	printf( '<th>%s</th>', esc_html__( 'Note or reference', 'reci-media-hub' ) );
+	printf( '<th style="width:150px;">%s</th>', esc_html__( 'Resource', 'reci-media-hub' ) );
+	echo '</tr></thead><tbody>';
+
+	// Existing rows, then three blank ones. Adding entries without JavaScript
+	// keeps this working in any admin, and three at a time is enough for the
+	// occasional edit this field gets.
+	$rows = array_merge( $entries, array_fill( 0, 3, [] ) );
+
+	foreach ( $rows as $index => $entry ) {
+		$url         = (string) ( $entry['url'] ?? '' );
+		$title       = (string) ( $entry['title'] ?? '' );
+		$note        = (string) ( $entry['note'] ?? '' );
+		$resource_id = (int) ( $entry['resource_id'] ?? 0 );
 
 		echo '<tr><td>';
-
-		if ( '' !== $url ) {
-			printf(
-				'<strong>%s</strong><br /><a href="%s" target="_blank" rel="noopener noreferrer" style="font-size:12px;">%s</a>',
-				esc_html( '' !== $title ? $title : __( '(no title in the source)', 'reci-media-hub' ) ),
-				esc_url( $url ),
-				esc_html( $url )
-			);
-		} else {
-			printf( '<em>%s</em>', esc_html__( 'Reference', 'reci-media-hub' ) );
-		}
-
-		if ( '' !== $note ) {
-			printf( '<br /><span class="description">%s</span>', esc_html( wp_trim_words( $note, 24 ) ) );
-		}
-
-		echo '</td><td style="width:190px;vertical-align:middle;text-align:right;">';
+		printf(
+			'<input type="text" name="reci_hw[%1$d][title]" value="%2$s" class="widefat" placeholder="%3$s" />',
+			(int) $index,
+			esc_attr( $title ),
+			esc_attr__( 'Optional', 'reci-media-hub' )
+		);
+		printf( '<input type="hidden" name="reci_hw[%1$d][resource_id]" value="%2$d" />', (int) $index, $resource_id );
+		echo '</td><td>';
+		printf(
+			'<input type="url" name="reci_hw[%1$d][url]" value="%2$s" class="widefat" placeholder="https://" />',
+			(int) $index,
+			esc_attr( $url )
+		);
+		echo '</td><td>';
+		printf(
+			'<textarea name="reci_hw[%1$d][note]" rows="2" class="widefat">%2$s</textarea>',
+			(int) $index,
+			esc_textarea( $note )
+		);
+		echo '</td><td style="vertical-align:middle;">';
 
 		if ( '' === $url ) {
 			echo '<span class="description">&mdash;</span>';
-		} elseif ( $promoted > 0 && get_post( $promoted ) ) {
+		} elseif ( $resource_id > 0 && get_post( $resource_id ) ) {
 			printf(
 				'<a href="%s" class="button button-small">%s</a>',
-				esc_url( (string) get_edit_post_link( $promoted ) ),
+				esc_url( (string) get_edit_post_link( $resource_id ) ),
 				esc_html__( 'Open Resource', 'reci-media-hub' )
 			);
 		} else {
 			printf(
-				'<a href="%s" class="button button-small button-primary">%s</a>',
+				'<a href="%s" class="button button-small button-primary">%s</a><br /><span class="description" style="font-size:11px;">%s</span>',
 				esc_url( reci_promote_work_url( (int) $post->ID, (int) $index ) ),
-				esc_html__( 'Publish as Resource', 'reci-media-hub' )
+				esc_html__( 'Publish as Resource', 'reci-media-hub' ),
+				esc_html__( 'Save changes first', 'reci-media-hub' )
 			);
 		}
 
@@ -85,6 +189,54 @@ function reci_render_highlighted_works_metabox( WP_Post $post ): void {
 	}
 
 	echo '</tbody></table>';
+}
+
+add_action( 'save_post_reci_author', 'reci_save_highlighted_works', 10, 2 );
+
+/**
+ * Persist edited highlighted works.
+ *
+ * Rows are rebuilt from the POST rather than merged, so clearing a row's fields
+ * deletes it — which is how the metabox says removal works.
+ */
+function reci_save_highlighted_works( int $post_id, WP_Post $post ): void {
+	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+		return;
+	}
+
+	$nonce = isset( $_POST['reci_highlighted_works_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['reci_highlighted_works_nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'reci_save_highlighted_works' ) ) {
+		return;
+	}
+
+	if ( ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+
+	$submitted = isset( $_POST['reci_hw'] ) && is_array( $_POST['reci_hw'] ) ? wp_unslash( $_POST['reci_hw'] ) : [];
+	$clean     = [];
+
+	foreach ( $submitted as $row ) {
+		$url   = esc_url_raw( (string) ( $row['url'] ?? '' ) );
+		$title = sanitize_text_field( (string) ( $row['title'] ?? '' ) );
+		$note  = sanitize_textarea_field( (string) ( $row['note'] ?? '' ) );
+
+		// A row with neither a link nor text is an empty slot, not an entry.
+		if ( '' === $url && '' === $note ) {
+			continue;
+		}
+
+		$entry = [ 'url' => $url, 'title' => $title, 'note' => $note ];
+
+		$resource_id = (int) ( $row['resource_id'] ?? 0 );
+		if ( $resource_id > 0 && get_post( $resource_id ) ) {
+			$entry['resource_id'] = $resource_id;
+		}
+
+		$clean[] = $entry;
+	}
+
+	update_post_meta( $post_id, '_reci_author_highlighted_works', $clean );
 }
 
 if ( ! function_exists( 'reci_promote_work_url' ) ) {

@@ -129,13 +129,18 @@ if (! function_exists('reci_media_hub_submission_type_map')) {
 	 * @return array<string,string>
 	 */
 	function reci_media_hub_submission_type_map(): array {
+		// What the front end can create, and nothing else. Courses and events are
+		// staff-built and were never here; assessments were removed from the form
+		// because a quiz submitted without its question set cannot be taken, and
+		// leaving the mapping behind would have let a crafted POST make one
+		// anyway. This also drives the Submissions queue and the notification
+		// allow-list, so a type absent here is absent from those too.
 		return [
 			'blog'       => 'post',
 			'article'    => 'post',
 			'podcast'    => 'reci_podcast',
 			'video'      => 'reci_video',
 			'document'   => 'reci_document',
-			'assessment' => 'reci_assessment',
 			'exhibit'    => 'post',
 			'other'      => 'post',
 		];
@@ -920,25 +925,10 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		// Read them from the user when they are needed, here and downstream.
 		$contributor_meta_values = reci_media_hub_contributor_values_for_user($current_user_id);
 
-		$author_opt_in_raw = $_POST['submission_author_opt_in'] ?? '';
-		$author_opt_in = is_string($author_opt_in_raw) ? rest_sanitize_boolean(wp_unslash($author_opt_in_raw)) : false;
-		if ($author_opt_in) {
-			update_post_meta($post_id, '_reci_submission_author_opt_in', true);
-
-			$author_name = trim(
-				($contributor_meta_values['_reci_submission_first_name'] ?? '') . ' ' .
-				($contributor_meta_values['_reci_submission_last_name'] ?? '')
-			);
-			$author_bio = $contributor_meta_values['_reci_submission_bio'] ?? '';
-
-			if ($author_name !== '' && function_exists('reci_media_hub_create_or_get_author_profile')) {
-				$title = $contributor_meta_values['_reci_submission_role'] ?? '';
-				$profile_id = reci_media_hub_create_or_get_author_profile($author_name, $title, $author_bio);
-				if ($profile_id > 0) {
-					update_post_meta($post_id, '_reci_display_author_profile_id', $profile_id);
-				}
-			}
-		}
+		// The author-profile opt-in branch was removed. It read
+		// $_POST['submission_author_opt_in'], a key the form has never sent, so it
+		// had never run. Approving a collaborator application is what creates a
+		// public profile.
 
 		$location_raw = $_POST['submission_location'] ?? '';
 		$location = is_string($location_raw) ? sanitize_text_field(wp_unslash($location_raw)) : '';

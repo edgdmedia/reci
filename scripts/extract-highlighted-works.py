@@ -38,6 +38,41 @@ def text_of(fragment: str) -> str:
     return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", fragment))).strip()
 
 
+# Navigational link text, not a name for the thing being linked to.
+GENERIC_LABELS = {
+    "here", "link", "links", "view", "watch", "listen", "read", "read more",
+    "click here", "watch interview", "listen here", "watch video", "view here",
+    "download", "more", "website", "site", "article",
+}
+
+
+def looks_like_url(value: str) -> bool:
+    """True for anchor text that is really an address.
+
+    The source is not consistent: some anchors carry a bare URL, and at least
+    one is a URL with its leading character lost ("ttps://..."). Matching only
+    on a clean "http" prefix let those through as if they were titles.
+    """
+    probe = value.strip().lower()
+
+    return bool(
+        re.match(r"^h?t{1,2}ps?://", probe)
+        or probe.startswith("www.")
+        or "://" in probe
+        or re.match(r"^[a-z0-9-]+(\.[a-z0-9-]+)+/", probe)
+    )
+
+
+def usable_title(value: str) -> str | None:
+    """Anchor text only counts as a title if a reader could use it."""
+    value = value.strip()
+
+    if not value or looks_like_url(value) or value.lower().strip(" .:") in GENERIC_LABELS:
+        return None
+
+    return value
+
+
 def clean_note(value: str) -> str | None:
     """Drop residue that is only punctuation once the anchors are removed."""
     value = value.strip(" -–—:;,.\u00a0")
@@ -64,8 +99,7 @@ def parse_entry(block: str) -> list[dict]:
 
     entries = []
     for index, (url, raw_label) in enumerate(anchors):
-        label = text_of(raw_label)
-        title = label if label and not label.startswith("http") else None
+        title = usable_title(text_of(raw_label))
 
         entries.append(
             {

@@ -988,7 +988,9 @@ if (! function_exists('reci_media_hub_render_author_profile_metabox')) {
 			<?php reci_media_hub_render_field('_reci_author_department', __('Department', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_department', true), 'text'); ?>
 			<?php reci_media_hub_render_field('_reci_author_pitt_affiliation', __('Pitt Affiliation', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_pitt_affiliation', true), 'text', 'reci-meta-row--full'); ?>
 			<?php reci_media_hub_render_field('_reci_author_social_links', __('Social Links (one per line)', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_social_links', true), 'textarea', 'reci-meta-row--full'); ?>
-			<?php reci_media_hub_render_field('_reci_author_highlighted_links', __('Highlighted Work (one per line)', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_highlighted_links', true), 'textarea', 'reci-meta-row--full'); ?>
+			<?php // Highlighted Work has its own metabox below, with a row per entry
+			// and a link to publish one as a Resource. Two editors for one field
+			// would let a save through this one flatten the structured version. ?>
 			<?php reci_media_hub_render_field('_reci_author_cv_id', __('CV Attachment ID', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_cv_id', true), 'number'); ?>
 			<?php reci_media_hub_render_field('_reci_author_source_url', __('Imported From', 'reci-media-hub'), (string) get_post_meta($post->ID, '_reci_author_source_url', true), 'text'); ?>
 		</div>
