@@ -686,6 +686,69 @@ add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_reflection_stage_styles
  * search.php renders.
  */
 add_action('pre_get_posts', 'reci_scope_search_to_content');
+
+/**
+ * Make term archives paginate over what they actually display.
+ *
+ * The templates list every post type the taxonomy is registered for, nine to a
+ * page. WordPress's own query for the same URL asked only for 'post' at the
+ * Reading setting's page size, so on /category/community-action/ the main query
+ * found 9 posts in 1 page while the template found 40 items across 5 — the page
+ * offered links 2 to 5 and WordPress answered 404, because as far as it was
+ * concerned those pages did not exist.
+ *
+ * Aligning the main query fixes the 404 and keeps the two counts honest.
+ */
+add_action('pre_get_posts', 'reci_align_taxonomy_archive_query');
+function reci_align_taxonomy_archive_query(WP_Query $query): void {
+	if (is_admin() || ! $query->is_main_query() || $query->is_feed()) {
+		return;
+	}
+
+	if (! $query->is_category() && ! $query->is_tag() && ! $query->is_tax()) {
+		return;
+	}
+
+	// The 'taxonomy' query var is empty here for a custom taxonomy: WordPress
+	// keeps the term under the taxonomy's own query var and only resolves the
+	// queried object later. The parsed tax_query is the reliable source at this
+	// point — reading get('taxonomy') meant this returned early every time.
+	$taxonomy = '';
+
+	if ($query->is_category()) {
+		$taxonomy = 'category';
+	} elseif ($query->is_tag()) {
+		$taxonomy = 'post_tag';
+	} elseif (isset($query->tax_query->queries[0]['taxonomy'])) {
+		$taxonomy = (string) $query->tax_query->queries[0]['taxonomy'];
+	}
+
+	$taxonomy_object = $taxonomy ? get_taxonomy($taxonomy) : null;
+
+	if (! $taxonomy_object || empty($taxonomy_object->object_type)) {
+		return;
+	}
+
+	$post_types = (array) $taxonomy_object->object_type;
+
+	// Honour the template's type filter here as well. Without it the main query
+	// still counts every type, so a filtered list would offer pages the filtered
+	// results do not fill — the same 404 in a different disguise.
+	$requested_type = isset($_GET['type']) ? sanitize_key((string) wp_unslash($_GET['type'])) : '';
+
+	if ('' !== $requested_type && in_array($requested_type, $post_types, true)) {
+		$post_types = [$requested_type];
+	}
+
+	$query->set('post_type', $post_types);
+
+	// Nine, matching the templates. Where a template shows more per page it will
+	// simply link to fewer pages than this allows, which is harmless; the reverse
+	// is what produced the 404.
+	$query->set('posts_per_page', 9);
+}
+
+
 function reci_scope_search_to_content(WP_Query $query): void {
 	if (is_admin() || ! $query->is_main_query() || ! $query->is_search()) {
 		return;

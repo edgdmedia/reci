@@ -40,13 +40,55 @@ if (is_wp_error($base_url)) {
 }
 
 $current_search = isset($_GET['search']) ? sanitize_text_field((string) wp_unslash($_GET['search'])) : '';
-$clear_url      = remove_query_arg(['search', 'paged'], $base_url);
+
+// Post type filter. Only types that actually have something under this term are
+// offered, so the dropdown never leads to an empty page.
+$type_options = [];
+
+if ($term) {
+	foreach ($post_types as $candidate) {
+		$object = get_post_type_object($candidate);
+
+		if (! $object) {
+			continue;
+		}
+
+		$probe = new WP_Query([
+			'post_type'              => $candidate,
+			'post_status'            => 'publish',
+			'posts_per_page'         => 1,
+			'fields'                 => 'ids',
+			'no_found_rows'          => false,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'tax_query'              => [[
+				'taxonomy' => $taxonomy,
+				'field'    => 'term_id',
+				'terms'    => [(int) $term->term_id],
+			]],
+		]);
+
+		if ($probe->found_posts > 0) {
+			$type_options[$candidate] = [
+				'label' => (string) ($object->labels->name ?? $candidate),
+				'count' => (int) $probe->found_posts,
+			];
+		}
+	}
+}
+
+$current_type = isset($_GET['type']) ? sanitize_key((string) wp_unslash($_GET['type'])) : '';
+if ('' !== $current_type && ! isset($type_options[$current_type])) {
+	$current_type = '';
+}
+
+$clear_url = remove_query_arg(['search', 'type', 'paged'], $base_url);
 $search_id      = 'taxonomy-search-' . sanitize_html_class($taxonomy ?: 'term');
 
 $singular = $taxonomy_object->labels->singular_name ?? __('term', 'reci-media-hub');
 
 $listing_config = [
-	'post_type'           => $post_types,
+	'post_type'           => '' !== $current_type ? [$current_type] : $post_types,
 	'posts_per_page'      => 9,
 	'orderby'             => 'date',
 	'order'               => 'DESC',
@@ -90,6 +132,19 @@ get_header();
 			<form method="get" action="<?php echo esc_url($base_url); ?>" class="self-stretch flex flex-col sm:flex-row justify-between items-center gap-5" data-archive-filter-form data-search-min="3" data-search-debounce="350">
 				<div class="flex justify-start items-center gap-5 flex-wrap">
 					<span class="text-neutral-800 text-base font-bold"><?php esc_html_e('Filter by:', 'reci-media-hub'); ?></span>
+
+					<?php if (count($type_options) > 1) : ?>
+						<?php // Only worth showing when the term spans more than one type. ?>
+						<label for="taxonomy-type" class="sr-only"><?php esc_html_e('Content type', 'reci-media-hub'); ?></label>
+						<select id="taxonomy-type" name="type" class="archive-filter-select">
+							<option value=""><?php esc_html_e('All types', 'reci-media-hub'); ?></option>
+							<?php foreach ($type_options as $type_slug => $type_data) : ?>
+								<option value="<?php echo esc_attr($type_slug); ?>" <?php selected($current_type, $type_slug); ?>>
+									<?php echo esc_html(sprintf('%s (%d)', $type_data['label'], $type_data['count'])); ?>
+								</option>
+							<?php endforeach; ?>
+						</select>
+					<?php endif; ?>
 				</div>
 				<div class="w-full sm:w-auto flex items-center gap-2.5">
 					<div class="archive-filter-search-wrap" role="search">
