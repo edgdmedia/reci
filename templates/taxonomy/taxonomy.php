@@ -135,15 +135,20 @@ get_header();
 
 					<?php if (count($type_options) > 1) : ?>
 						<?php // Only worth showing when the term spans more than one type. ?>
-						<label for="taxonomy-type" class="sr-only"><?php esc_html_e('Content type', 'reci-media-hub'); ?></label>
-						<select id="taxonomy-type" name="type" class="archive-filter-select">
-							<option value=""><?php esc_html_e('All types', 'reci-media-hub'); ?></option>
-							<?php foreach ($type_options as $type_slug => $type_data) : ?>
-								<option value="<?php echo esc_attr($type_slug); ?>" <?php selected($current_type, $type_slug); ?>>
-									<?php echo esc_html(sprintf('%s (%d)', $type_data['label'], $type_data['count'])); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
+						<?php // The border lives on the wrapper: .archive-filter-select is
+						// border-style:none by design, so the select needs the wrap the
+						// other archives use or it renders with no outline at all. ?>
+						<div class="archive-filter-select-wrap">
+							<label for="taxonomy-type" class="sr-only"><?php esc_html_e('Content type', 'reci-media-hub'); ?></label>
+							<select id="taxonomy-type" name="type" class="archive-filter-select" aria-label="<?php esc_attr_e('Filter by content type', 'reci-media-hub'); ?>">
+								<option value=""><?php esc_html_e('All types', 'reci-media-hub'); ?></option>
+								<?php foreach ($type_options as $type_slug => $type_data) : ?>
+									<option value="<?php echo esc_attr($type_slug); ?>" <?php selected($current_type, $type_slug); ?>>
+										<?php echo esc_html(sprintf('%s (%d)', $type_data['label'], $type_data['count'])); ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+						</div>
 					<?php endif; ?>
 				</div>
 				<div class="w-full sm:w-auto flex items-center gap-2.5">
