@@ -49,32 +49,32 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 				<?php echo $partner_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
 			</a>
 
-			<div class="w-auto flex justify-end items-center gap-6 lg:gap-14">
+			<div class="w-auto flex justify-end items-center gap-4 sm:gap-6 lg:gap-14">
 
-			<div class="flex items-center gap-5">
+			<div class="flex items-center gap-4 sm:gap-5">
 					<a href="<?php echo esc_url( home_url( '/submit/' ) ); ?>" class="py-2 relative group flex items-center gap-2">
 						<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-						<span class="text-white text-lg font-normal">Submit Content</span>
+						<span class="sr-only sm:not-sr-only text-white text-lg font-normal">Submit Content</span>
 						<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 					</a>
 
 				<?php if ($is_logged_in): ?>
 					<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" class="py-2 relative group flex items-center gap-2">
 						<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-						<span class="text-white text-lg font-normal">Dashboard</span>
+						<span class="sr-only sm:not-sr-only text-white text-lg font-normal">Dashboard</span>
 						<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 					</a>
 					<a href="<?php echo esc_url(
           wp_logout_url(home_url("/")),
       ); ?>" class="py-2 relative group flex items-center gap-2">
 							<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-							<span class="text-white text-lg font-normal hidden sm:inline-flex">Sign out</span>
+							<span class="sr-only sm:not-sr-only text-white text-lg font-normal">Sign out</span>
 							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 						</a>
 					<?php else: ?>
 						<a href="<?php echo esc_url( home_url( '/sign-in/' ) ); ?>" class="py-2 relative group flex items-center gap-2">
 							<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14M13 8V7a3 3 0 00-3-3H6a3 3 0 00-3 3v10a3 3 0 003 3h4a3 3 0 003-3v-1" /></svg>
-							<span class="text-white text-lg font-normal">Sign in/Join</span>
+							<span class="sr-only sm:not-sr-only text-white text-lg font-normal">Sign in/Join</span>
 							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
 						</a>
 					<?php endif; ?>
