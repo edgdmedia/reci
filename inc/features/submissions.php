@@ -1436,17 +1436,125 @@ if (! function_exists('reci_media_hub_send_submission_notifications')) {
 	}
 }
 
+add_action('admin_post_reci_publish_submission', 'reci_media_hub_handle_publish_submission');
+
+/**
+ * Publish one submission straight from the queue.
+ */
+function reci_media_hub_handle_publish_submission(): void {
+	$post_id = isset($_GET['post']) ? absint(wp_unslash($_GET['post'])) : 0;
+	$queue   = admin_url('admin.php?page=reci-submissions');
+
+	check_admin_referer('reci_publish_submission_' . $post_id);
+
+	$post = get_post($post_id);
+	if (! $post instanceof WP_Post || ! in_array($post->post_type, reci_media_hub_submission_supported_post_types(), true)) {
+		wp_safe_redirect(add_query_arg('reci_published', 'invalid', $queue));
+		exit;
+	}
+
+	if (! current_user_can('publish_post', $post_id)) {
+		wp_die(esc_html__('You are not allowed to publish that submission.', 'reci-media-hub'));
+	}
+
+	wp_update_post(['ID' => $post_id, 'post_status' => 'publish']);
+
+	wp_safe_redirect(add_query_arg('reci_published', '1', $queue));
+	exit;
+}
+
+add_action('admin_notices', 'reci_media_hub_publish_submission_notice');
+function reci_media_hub_publish_submission_notice(): void {
+	if (! isset($_GET['reci_published'])) {
+		return;
+	}
+
+	$ok = '1' === sanitize_key(wp_unslash($_GET['reci_published']));
+
+	printf(
+		'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+		$ok ? 'success' : 'error',
+		esc_html(
+			$ok
+				? __('Submission published. The contributor has been notified.', 'reci-media-hub')
+				: __('That submission could not be published.', 'reci-media-hub')
+		)
+	);
+}
+
+if (! function_exists('reci_media_hub_pending_submission_count')) {
+	/**
+	 * How many submissions are waiting for review, across every type.
+	 *
+	 * Cached for a minute: this runs on every admin page load to draw the menu
+	 * bubble, and an exact number is worth less than a fast admin.
+	 */
+	function reci_media_hub_pending_submission_count(): int {
+		$cached = get_transient('reci_pending_submission_count');
+		if (false !== $cached) {
+			return (int) $cached;
+		}
+
+		$query = new WP_Query(
+			[
+				'post_type'              => reci_media_hub_submission_supported_post_types(),
+				'post_status'            => 'pending',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			]
+		);
+
+		$count = (int) $query->found_posts;
+		set_transient('reci_pending_submission_count', $count, MINUTE_IN_SECONDS);
+
+		return $count;
+	}
+}
+
+// The bubble is wrong the moment anything is approved, so clear it on any
+// status change rather than waiting for the transient to lapse.
+add_action('transition_post_status', 'reci_media_hub_flush_pending_count', 10, 3);
+function reci_media_hub_flush_pending_count(string $new_status, string $old_status, WP_Post $post): void {
+	if ($new_status === $old_status) {
+		return;
+	}
+
+	if (in_array($post->post_type, reci_media_hub_submission_supported_post_types(), true)) {
+		delete_transient('reci_pending_submission_count');
+	}
+}
+
 if (! function_exists('reci_media_hub_register_submission_admin_page')) {
 	/**
 	 * Register a consolidated admin page for submissions.
 	 */
 	function reci_media_hub_register_submission_admin_page(): void {
-		add_management_page(
+		// Top level, not buried under Tools: this is the queue staff work from,
+		// and the count is the whole point — without it they had to open each
+		// post type in turn to find out whether anything was waiting.
+		$pending = reci_media_hub_pending_submission_count();
+
+		$title = __('Submissions', 'reci-media-hub');
+		if ($pending > 0) {
+			$title .= sprintf(
+				' <span class="awaiting-mod"><span class="pending-count">%d</span></span>',
+				$pending
+			);
+		}
+
+		add_menu_page(
 			__('Submissions', 'reci-media-hub'),
-			__('Submissions', 'reci-media-hub'),
-			'edit_posts',
+			$title,
+			// Reviewing other people's work is staff work. edit_posts would have
+			// admitted a Collaborator, who has no business in this queue.
+			'edit_others_posts',
 			'reci-submissions',
-			'reci_media_hub_render_submission_admin_page'
+			'reci_media_hub_render_submission_admin_page',
+			'dashicons-editor-ol',
+			29
 		);
 	}
 }
@@ -1456,7 +1564,7 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 	 * Render the consolidated submissions admin page.
 	 */
 	function reci_media_hub_render_submission_admin_page(): void {
-		if (! current_user_can('edit_posts')) {
+		if (! current_user_can('edit_others_posts')) {
 			wp_die(esc_html__('You are not allowed to view submissions.', 'reci-media-hub'));
 		}
 
@@ -1472,7 +1580,12 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 
 		$filters = [
 			'posts_per_page' => 100,
-			'post_status'    => $post_status !== '' ? $post_status : ['pending', 'draft', 'publish'],
+			// Default to pending: staff open this screen to find what is waiting,
+			// not to browse everything ever submitted. 'any' is the explicit
+			// opt-out, so the empty default and "show me everything" stay distinct.
+			'post_status'    => '' === $post_status
+				? 'pending'
+				: ( 'any' === $post_status ? [ 'pending', 'draft', 'publish' ] : $post_status ),
 			'post_type'      => $post_type,
 			'search'         => $search,
 		];
@@ -1492,7 +1605,8 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 		echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="' . esc_attr__('Search title', 'reci-media-hub') . '" style="min-width:220px;" /> ';
 		echo '<select name="post_status">';
 		$status_options = [
-			''        => __('All statuses', 'reci-media-hub'),
+			''        => __('Pending (default)', 'reci-media-hub'),
+			'any'     => __('All statuses', 'reci-media-hub'),
 			'pending' => __('Pending', 'reci-media-hub'),
 			'draft'   => __('Draft', 'reci-media-hub'),
 			'publish' => __('Published', 'reci-media-hub'),
@@ -1560,7 +1674,20 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 			echo '<td>' . esc_html($email !== '' ? $email : '-') . '</td>';
 			echo '<td>';
 			if (is_string($edit_url) && $edit_url !== '') {
-				echo '<a class="button button-small" href="' . esc_url($edit_url) . '">' . esc_html__('Open', 'reci-media-hub') . '</a>';
+				echo '<a class="button button-small" href="' . esc_url($edit_url) . '">' . esc_html__('Open', 'reci-media-hub') . '</a> ';
+			}
+
+			// Approve without opening the post: the point of a single queue is
+			// that routine approvals never leave it.
+			if ('pending' === $post->post_status && current_user_can('publish_post', $post->ID)) {
+				$publish_url = wp_nonce_url(
+					add_query_arg(
+						['action' => 'reci_publish_submission', 'post' => $post->ID],
+						admin_url('admin-post.php')
+					),
+					'reci_publish_submission_' . $post->ID
+				);
+				echo '<a class="button button-small button-primary" href="' . esc_url($publish_url) . '">' . esc_html__('Publish', 'reci-media-hub') . '</a>';
 			}
 			echo '</td>';
 			echo '</tr>';
