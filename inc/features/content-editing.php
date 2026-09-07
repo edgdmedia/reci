@@ -66,8 +66,18 @@ function reci_user_can_trash_submission( int $post_id, int $user_id = 0 ): bool 
 	}
 
 	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post ) {
+		return false;
+	}
 
-	return $post instanceof WP_Post && in_array( $post->post_status, [ 'pending', 'draft' ], true );
+	// Anything that has ever been published stays staff-only, even though editing
+	// it demoted it back to pending. Without this the status rule is trivially
+	// sidestepped: edit a live post to send it to pending, then trash it.
+	if ( '' !== (string) get_post_meta( $post_id, '_reci_submission_was_published', true ) ) {
+		return false;
+	}
+
+	return in_array( $post->post_status, [ 'pending', 'draft' ], true );
 }
 
 /**
