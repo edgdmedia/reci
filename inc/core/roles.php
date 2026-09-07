@@ -72,53 +72,9 @@ function reci_maybe_install_roles(): void {
 	}
 
 	reci_install_roles();
-	reci_migrate_collaborators_to_roles();
 	update_option( 'reci_roles_version', RECI_ROLES_VERSION );
 }
 
-/**
- * Promote accounts approved under the old meta flag.
- *
- * Before the ladder, an approved collaborator was a Subscriber carrying
- * _reci_collaborator_status=approved. Those accounts must become Collaborators
- * or they lose the ability to submit. Anyone already higher up keeps their
- * level, and the meta is left in place as a record of how they arrived.
- *
- * @return int Accounts promoted.
- */
-function reci_migrate_collaborators_to_roles(): int {
-	$users = get_users(
-		[
-			'meta_key'   => '_reci_collaborator_status',
-			'meta_value' => 'approved',
-			'fields'     => 'ID',
-		]
-	);
-
-	$promoted = 0;
-
-	foreach ( $users as $user_id ) {
-		// user_can() covers levels 2-6, so this only touches accounts that would
-		// otherwise be stranded.
-		if ( user_can( (int) $user_id, 'edit_posts' ) ) {
-			continue;
-		}
-
-		$user = get_user_by( 'id', (int) $user_id );
-		if ( ! $user instanceof WP_User ) {
-			continue;
-		}
-
-		$user->set_role( 'contributor' );
-		++$promoted;
-	}
-
-	if ( $promoted > 0 ) {
-		update_option( 'reci_roles_migrated_count', $promoted );
-	}
-
-	return $promoted;
-}
 
 /**
  * Write the ladder into the database.

@@ -43,7 +43,10 @@ if ( ! function_exists( 'reci_register_collaborator_application_post_type' ) ) {
 				'rewrite'            => false,
 				'menu_icon'          => 'dashicons-id-alt',
 				'menu_position'      => 34,
-				'supports'           => [ 'title', 'editor', 'revisions' ],
+				// No editor: an application is a set of submitted fields, not a
+				// document. The review metabox shows everything; a body field only
+				// invited staff to edit the applicant's own words.
+				'supports'           => [ 'title' ],
 				'capability_type'    => 'post',
 				'publicly_queryable' => false,
 			]
@@ -1032,8 +1035,123 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		submit_button( __( 'Reject Application', 'reci-media-hub' ), 'secondary', 'submit', false );
 		echo '</form>';
 		echo '</div></div>';
+		if ( 'publish' !== $post->post_status && current_user_can( 'reci_approve_collaborators' ) ) {
+			printf(
+				'<p style="margin:18px 0 0;"><a href="%s" class="button button-primary button-large">%s</a> <span class="description" style="margin-left:8px;">%s</span></p>',
+				esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+				esc_html__( 'Approve collaborator', 'reci-media-hub' ),
+				esc_html__( 'Publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
+			);
+		}
+
 		echo '</div>';
 	}
+}
+
+// ── One-click approve ────────────────────────────────────────────────────────
+
+if ( ! function_exists( 'reci_collaborator_approve_url' ) ) {
+	/**
+	 * Nonced URL that approves one application.
+	 */
+	function reci_collaborator_approve_url( int $post_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				[ 'action' => 'reci_approve_collaborator', 'post' => $post_id ],
+				admin_url( 'admin-post.php' )
+			),
+			'reci_approve_collaborator_' . $post_id
+		);
+	}
+}
+
+add_action( 'admin_post_reci_approve_collaborator', 'reci_handle_approve_collaborator' );
+
+/**
+ * Approve an application and publish the collaborator.
+ *
+ * Publishing the application is what approval means: transition_post_status
+ * promotes the account, syncs the profile and sends the notification. This just
+ * gives staff a single button for it instead of the generic Publish control.
+ */
+function reci_handle_approve_collaborator(): void {
+	$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+	$list    = admin_url( 'edit.php?post_type=' . reci_get_collaborator_application_post_type() );
+
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
+		wp_die( esc_html__( 'You do not have permission to approve collaborators.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_approve_collaborator_' . $post_id );
+
+	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'invalid', $list ) );
+		exit;
+	}
+
+	if ( 'publish' === $post->post_status ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'already', $list ) );
+		exit;
+	}
+
+	wp_update_post( [ 'ID' => $post_id, 'post_status' => 'publish' ] );
+
+	wp_safe_redirect( add_query_arg( 'reci_approved', '1', $list ) );
+	exit;
+}
+
+/**
+ * Approve link on each pending row.
+ */
+add_filter( 'post_row_actions', 'reci_collaborator_application_row_actions', 10, 2 );
+function reci_collaborator_application_row_actions( array $actions, WP_Post $post ): array {
+	if ( reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		return $actions;
+	}
+
+	if ( 'publish' === $post->post_status || ! current_user_can( 'reci_approve_collaborators' ) ) {
+		return $actions;
+	}
+
+	return array_merge(
+		[
+			'reci_approve' => sprintf(
+				'<a href="%s" style="color:#1f7a5a;font-weight:600;">%s</a>',
+				esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+				esc_html__( 'Approve', 'reci-media-hub' )
+			),
+		],
+		$actions
+	);
+}
+
+/**
+ * Result notice after approving.
+ */
+add_action( 'admin_notices', 'reci_collaborator_approval_notice' );
+function reci_collaborator_approval_notice(): void {
+	if ( ! isset( $_GET['reci_approved'] ) ) {
+		return;
+	}
+
+	$code = sanitize_key( wp_unslash( $_GET['reci_approved'] ) );
+
+	$messages = [
+		'1'       => [ 'success', __( 'Collaborator approved and published.', 'reci-media-hub' ) ],
+		'already' => [ 'info', __( 'That application was already approved.', 'reci-media-hub' ) ],
+		'invalid' => [ 'error', __( 'That application could not be found.', 'reci-media-hub' ) ],
+	];
+
+	if ( ! isset( $messages[ $code ] ) ) {
+		return;
+	}
+
+	printf(
+		'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+		esc_attr( $messages[ $code ][0] ),
+		esc_html( $messages[ $code ][1] )
+	);
 }
 
 if ( ! function_exists( 'reci_add_collaborator_application_metaboxes' ) ) {
