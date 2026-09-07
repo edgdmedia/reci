@@ -30,14 +30,19 @@ if ( ! function_exists( 'reci_register_collaborator_application_post_type' ) ) {
 					'search_items'       => __( 'Search Collaborator Applications', 'reci-media-hub' ),
 					'not_found'          => __( 'No collaborator applications found', 'reci-media-hub' ),
 					'not_found_in_trash' => __( 'No collaborator applications found in Trash', 'reci-media-hub' ),
-					'all_items'          => __( 'Collaborator Applications', 'reci-media-hub' ),
-					'menu_name'          => __( 'Collaborator Applications', 'reci-media-hub' ),
+					// Short labels: these read inside the Collaborators menu, where the
+					// surrounding context already says what they are applications for.
+					'all_items'          => __( 'Applications', 'reci-media-hub' ),
+					'menu_name'          => __( 'Applications', 'reci-media-hub' ),
 					'filter_items_list'  => __( 'Filter collaborator applications', 'reci-media-hub' ),
 					'items_list'         => __( 'Collaborator applications list', 'reci-media-hub' ),
 				],
 				'public'             => false,
 				'show_ui'            => true,
-				'show_in_menu'       => true,
+				// Nested under Collaborators: an application is how someone becomes
+				// one, so it belongs beside the directory rather than as a rival
+				// top-level menu.
+				'show_in_menu'       => 'edit.php?post_type=reci_author',
 				'show_in_rest'       => true,
 				'has_archive'        => false,
 				'rewrite'            => false,
@@ -782,6 +787,14 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 		if ( 'trash' !== $new_status ) {
 			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
 			update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
+
+			// Approval promotes, so rejection revokes. Only an account sitting at
+			// Collaborator is demoted: anyone deliberately raised above that was
+			// promoted by a human decision this one should not undo.
+			$rejected_user = get_user_by( 'id', $user_id );
+			if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
+				$rejected_user->set_role( 'subscriber' );
+			}
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
 			}
@@ -1035,13 +1048,33 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		submit_button( __( 'Reject Application', 'reci-media-hub' ), 'secondary', 'submit', false );
 		echo '</form>';
 		echo '</div></div>';
-		if ( 'publish' !== $post->post_status && current_user_can( 'reci_approve_collaborators' ) ) {
+		if ( current_user_can( 'reci_approve_collaborators' ) ) {
+			echo '<p style="margin:18px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+
+			if ( 'publish' !== $post->post_status ) {
+				printf(
+					'<a href="%s" class="button button-primary button-large">%s</a>',
+					esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+					esc_html__( 'Approve collaborator', 'reci-media-hub' )
+				);
+			}
+
+			if ( 'draft' !== $post->post_status ) {
+				printf(
+					'<a href="%s" class="button button-large" style="color:#9d2f45;border-color:#9d2f45;">%s</a>',
+					esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
+					esc_html__( 'Reject', 'reci-media-hub' )
+				);
+			}
+
 			printf(
-				'<p style="margin:18px 0 0;"><a href="%s" class="button button-primary button-large">%s</a> <span class="description" style="margin-left:8px;">%s</span></p>',
-				esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
-				esc_html__( 'Approve collaborator', 'reci-media-hub' ),
-				esc_html__( 'Publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
+				'<span class="description">%s</span>',
+				'publish' === $post->post_status
+					? esc_html__( 'Rejecting revokes access and emails the applicant.', 'reci-media-hub' )
+					: esc_html__( 'Approving publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
 			);
+
+			echo '</p>';
 		}
 
 		echo '</div>';
@@ -1063,6 +1096,58 @@ if ( ! function_exists( 'reci_collaborator_approve_url' ) ) {
 			'reci_approve_collaborator_' . $post_id
 		);
 	}
+}
+
+if ( ! function_exists( 'reci_collaborator_reject_url' ) ) {
+	/**
+	 * Nonced URL that rejects one application.
+	 */
+	function reci_collaborator_reject_url( int $post_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				[ 'action' => 'reci_reject_collaborator', 'post' => $post_id ],
+				admin_url( 'admin-post.php' )
+			),
+			'reci_reject_collaborator_' . $post_id
+		);
+	}
+}
+
+add_action( 'admin_post_reci_reject_collaborator', 'reci_handle_reject_collaborator' );
+
+/**
+ * Reject an application.
+ *
+ * Moving it out of 'publish' is what rejection means: the existing
+ * transition_post_status branch marks it rejected, records the status on the
+ * account and emails the applicant. Draft rather than trash, so the record of
+ * who applied survives.
+ */
+function reci_handle_reject_collaborator(): void {
+	$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+	$list    = admin_url( 'edit.php?post_type=' . reci_get_collaborator_application_post_type() );
+
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
+		wp_die( esc_html__( 'You do not have permission to review collaborators.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_reject_collaborator_' . $post_id );
+
+	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'invalid', $list ) );
+		exit;
+	}
+
+	if ( 'draft' === $post->post_status ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'already_rejected', $list ) );
+		exit;
+	}
+
+	wp_update_post( [ 'ID' => $post_id, 'post_status' => 'draft' ] );
+
+	wp_safe_redirect( add_query_arg( 'reci_approved', 'rejected', $list ) );
+	exit;
 }
 
 add_action( 'admin_post_reci_approve_collaborator', 'reci_handle_approve_collaborator' );
@@ -1110,20 +1195,29 @@ function reci_collaborator_application_row_actions( array $actions, WP_Post $pos
 		return $actions;
 	}
 
-	if ( 'publish' === $post->post_status || ! current_user_can( 'reci_approve_collaborators' ) ) {
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
 		return $actions;
 	}
 
-	return array_merge(
-		[
-			'reci_approve' => sprintf(
-				'<a href="%s" style="color:#1f7a5a;font-weight:600;">%s</a>',
-				esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
-				esc_html__( 'Approve', 'reci-media-hub' )
-			),
-		],
-		$actions
-	);
+	$review = [];
+
+	if ( 'publish' !== $post->post_status ) {
+		$review['reci_approve'] = sprintf(
+			'<a href="%s" style="color:#1f7a5a;font-weight:600;">%s</a>',
+			esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+			esc_html__( 'Approve', 'reci-media-hub' )
+		);
+	}
+
+	if ( 'draft' !== $post->post_status ) {
+		$review['reci_reject'] = sprintf(
+			'<a href="%s" style="color:#9d2f45;">%s</a>',
+			esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
+			esc_html__( 'Reject', 'reci-media-hub' )
+		);
+	}
+
+	return array_merge( $review, $actions );
 }
 
 /**
@@ -1138,7 +1232,9 @@ function reci_collaborator_approval_notice(): void {
 	$code = sanitize_key( wp_unslash( $_GET['reci_approved'] ) );
 
 	$messages = [
-		'1'       => [ 'success', __( 'Collaborator approved and published.', 'reci-media-hub' ) ],
+		'1'               => [ 'success', __( 'Collaborator approved and published.', 'reci-media-hub' ) ],
+		'rejected'        => [ 'warning', __( 'Application rejected. The applicant has been notified.', 'reci-media-hub' ) ],
+		'already_rejected' => [ 'info', __( 'That application was already rejected.', 'reci-media-hub' ) ],
 		'already' => [ 'info', __( 'That application was already approved.', 'reci-media-hub' ) ],
 		'invalid' => [ 'error', __( 'That application could not be found.', 'reci-media-hub' ) ],
 	];
