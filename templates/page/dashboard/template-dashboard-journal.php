@@ -24,11 +24,17 @@ $journals = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_name WHERE
 
 get_header('dashboard');
 ?>
-<main class="layout-page">
+<main class="layout-page bg-slate-50">
 	<div class="flex flex-col lg:flex-row min-h-screen">
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 		<div class="flex-1 p-6 lg:p-10">
-			<h1 class="text-2xl font-bold font-heading text-zinc-800 mb-8">Journal</h1>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[ 'title' => 'Journal', 'subtitle' => 'Your private reflections, written as you move through the spheres.' ]
+			);
+			?>
 
 			<?php if ( empty( $journals ) ) : ?>
 			<p class="text-zinc-500">No journal entries yet. Write a reflection in any reflection gallery to create one.</p>

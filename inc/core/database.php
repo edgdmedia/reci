@@ -13,7 +13,7 @@ function reci_media_hub_create_custom_tables() {
 	global $wpdb;
 	
 	$installed_ver = get_option( 'reci_db_version' );
-	$current_ver   = '1.3.0';
+	$current_ver   = '1.4.0';
 
 	if ( $installed_ver !== $current_ver ) {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -72,9 +72,28 @@ function reci_media_hub_create_custom_tables() {
 			KEY related_post_id (related_post_id)
 		) $charset_collate;";
 
+		// Email Log Table
+		$table_email_log = $wpdb->prefix . 'reci_email_log';
+		$sql_email_log = "CREATE TABLE $table_email_log (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			recipient varchar(191) NOT NULL DEFAULT '',
+			subject text NOT NULL,
+			heading varchar(255) NOT NULL DEFAULT '',
+			transport varchar(50) NOT NULL DEFAULT '',
+			status varchar(20) NOT NULL DEFAULT '',
+			error text NOT NULL,
+			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			KEY recipient (recipient),
+			KEY status (status),
+			KEY created_at (created_at)
+		) $charset_collate;";
+
 		dbDelta( $sql_journals );
 		dbDelta( $sql_assessments );
 		dbDelta( $sql_notifications );
+		dbDelta( $sql_email_log );
 
 		if ( version_compare( $installed_ver, '1.1.0', '<' ) ) {
 			// Migrate reci_article to standard post

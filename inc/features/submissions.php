@@ -1244,20 +1244,25 @@ if (! function_exists('reci_media_hub_send_submission_notifications')) {
 				__('[%s] Submission Received', 'reci-media-hub'),
 				$site_name
 			);
-			$submitter_message = implode("\n", [
-				sprintf(__('Hi %s,', 'reci-media-hub'), $display_name),
-				'',
-				__('Thank you for your submission. We have received it and queued it for editorial review.', 'reci-media-hub'),
-				'',
-				sprintf(__('Title: %s', 'reci-media-hub'), (string) $post->post_title),
-				sprintf(__('Content Type: %s', 'reci-media-hub'), $content_type !== '' ? $content_type : $post_type_label),
-				__('Status: Pending Review', 'reci-media-hub'),
-				'',
-				__('We will follow up after review.', 'reci-media-hub'),
-				'',
-				sprintf(__('Submission page: %s', 'reci-media-hub'), $submission_url),
-			]);
-			wp_mail($submitter_email, $submitter_subject, $submitter_message, $headers);
+			reci_send_email(
+				$submitter_email,
+				$submitter_subject,
+				__('We have your submission', 'reci-media-hub'),
+				[
+					['type' => 'text', 'text' => sprintf(__('Hi %s, thank you for contributing to RECI.', 'reci-media-hub'), $display_name)],
+					['type' => 'text', 'text' => __('Your submission is queued for editorial review. We will be in touch once it has been read.', 'reci-media-hub')],
+					[
+						'type' => 'details',
+						'rows' => [
+							__('Title', 'reci-media-hub')  => (string) $post->post_title,
+							__('Type', 'reci-media-hub')   => $content_type !== '' ? $content_type : $post_type_label,
+							__('Status', 'reci-media-hub') => __('Pending review', 'reci-media-hub'),
+						],
+					],
+					['type' => 'button', 'label' => __('View your submission', 'reci-media-hub'), 'url' => $submission_url],
+				],
+				(string) $post->post_title
+			);
 		}
 
 		if (is_email($admin_email)) {
@@ -1266,24 +1271,27 @@ if (! function_exists('reci_media_hub_send_submission_notifications')) {
 				__('[%s] New Content Submission', 'reci-media-hub'),
 				$site_name
 			);
-			$admin_message_lines = [
-				__('A new submission has been received.', 'reci-media-hub'),
-				'',
-				sprintf(__('Title: %s', 'reci-media-hub'), (string) $post->post_title),
-				sprintf(__('Post Type: %s', 'reci-media-hub'), $post_type_label),
-				sprintf(__('Submission Content Type: %s', 'reci-media-hub'), $content_type !== '' ? $content_type : '-'),
-				sprintf(__('Status: %s', 'reci-media-hub'), (string) $post->post_status),
-				sprintf(__('Contributor: %s', 'reci-media-hub'), $display_name),
-				sprintf(__('Contributor Email: %s', 'reci-media-hub'), $submitter_email !== '' ? $submitter_email : '-'),
+			$admin_rows = [
+				__('Title', 'reci-media-hub')        => (string) $post->post_title,
+				__('Post type', 'reci-media-hub')    => $post_type_label,
+				__('Content type', 'reci-media-hub') => $content_type !== '' ? $content_type : '-',
+				__('Status', 'reci-media-hub')       => (string) $post->post_status,
+				__('Contributor', 'reci-media-hub')  => $display_name,
+				__('Email', 'reci-media-hub')        => $submitter_email !== '' ? $submitter_email : '-',
 			];
 			if ($content_link !== '') {
-				$admin_message_lines[] = sprintf(__('Content Link: %s', 'reci-media-hub'), $content_link);
+				$admin_rows[__('Content link', 'reci-media-hub')] = $content_link;
 			}
+
+			$admin_blocks = [
+				['type' => 'text', 'text' => __('A new submission has been received.', 'reci-media-hub')],
+				['type' => 'details', 'rows' => $admin_rows],
+			];
 			if (is_string($edit_url) && $edit_url !== '') {
-				$admin_message_lines[] = '';
-				$admin_message_lines[] = sprintf(__('Edit Submission: %s', 'reci-media-hub'), $edit_url);
+				$admin_blocks[] = ['type' => 'button', 'label' => __('Open in the editor', 'reci-media-hub'), 'url' => $edit_url];
 			}
-			wp_mail($admin_email, $admin_subject, implode("\n", $admin_message_lines), $headers);
+
+			reci_send_email($admin_email, $admin_subject, __('New content submission', 'reci-media-hub'), $admin_blocks, (string) $post->post_title);
 		}
 	}
 }

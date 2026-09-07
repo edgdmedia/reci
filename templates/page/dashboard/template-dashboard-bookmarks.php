@@ -25,11 +25,17 @@ $bookmarked_posts = ! empty( $post_ids )
 
 get_header('dashboard');
 ?>
-<main class="layout-page">
+<main class="layout-page bg-slate-50">
 	<div class="flex flex-col lg:flex-row min-h-screen">
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 		<div class="flex-1 p-6 lg:p-10">
-			<h1 class="text-2xl font-bold font-heading text-zinc-800 mb-8">Bookmarks</h1>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[ 'title' => 'Bookmarks', 'subtitle' => 'Everything you have saved, in one place.' ]
+			);
+			?>
 
 			<?php if ( empty( $bookmarked_posts ) ) : ?>
 			<p class="text-zinc-500">You haven't bookmarked any content yet. Browse the site and click the bookmark icon to save posts.</p>

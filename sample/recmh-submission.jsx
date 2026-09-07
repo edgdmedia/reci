@@ -23,7 +23,7 @@ const RECMHSubmission = () => {
     role: bootUser.role || "",
     bio: bootUser.bio || "",
     website: bootUser.website || "",
-    agreeTerms: false, agreeReview: false, agreeAuthorProfile: false, location: "",
+    agreeTerms: false, agreeReview: false, location: "",
   });
   const [submitted, setSubmitted] = useState(false);
   const [showGuidelinesPanel, setShowGuidelinesPanel] = useState(false);
@@ -268,8 +268,7 @@ const RECMHSubmission = () => {
     { num: "01", label: "Content Type", short: "Type" },
     { num: "02", label: "RECI Sphere Alignment", short: "Spheres" },
     { num: "03", label: "Content Details", short: "Details" },
-    { num: "04", label: "Contributor Info", short: "About You" },
-    { num: "05", label: "Review & Submit", short: "Review" },
+    { num: "04", label: "Review & Submit", short: "Review" },
   ];
 
   const toggleSphere = (id) => {
@@ -296,7 +295,6 @@ const RECMHSubmission = () => {
       case 0: return contentType !== null;
       case 1: return selectedSpheres.length > 0;
       case 2: return formData.title.trim() && formData.abstract.trim() && formData.evidenceBasis.trim();
-      case 3: return formData.firstName.trim() && formData.lastName.trim() && formData.email.trim() && formData.agreeTerms && formData.agreeReview;
       default: return true;
     }
   };
@@ -327,7 +325,7 @@ const RECMHSubmission = () => {
       targetAudience: [], keywords: "", contentLink: "", fileDescription: "",
       practiceType: "", equityFocus: "",
       firstName: "", lastName: "", email: "", organization: "", role: "",
-      bio: "", website: "", agreeTerms: false, agreeReview: false, agreeAuthorProfile: false, location: "",
+      bio: "", website: "", agreeTerms: false, agreeReview: false, location: "",
     });
   };
 
@@ -1038,98 +1036,8 @@ const RECMHSubmission = () => {
               )}
 
               {/* ===== STEP 3: CONTRIBUTOR INFO ===== */}
+              {/* ===== STEP 4: REVIEW & CONFIRM ===== */}
               {currentStep === 3 && (
-                <div>
-                  <div style={{ marginBottom: 36 }}>
-                    <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>
-                      {isSignedIn ? "Confirm Your Details" : "About You"}
-                    </h2>
-                    <p style={{ fontSize: 16, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600 }}>
-                      {isSignedIn
-                        ? "These come from your collaborator profile. Adjust anything you want to appear on this submission — edits here apply to this contribution only."
-                        : "Help us know who you are so we can attribute your contribution properly as a Collaborator and reach out about the editorial process."}
-                    </p>
-                    {isSignedIn && (
-                      <p style={{ fontSize: 14, lineHeight: 1.7, color: "var(--muted)", maxWidth: 600, marginTop: 8 }}>
-                        To change them everywhere, update your{" "}
-                        <a href="/dashboard/profile/" style={{ textDecoration: "underline" }}>profile</a>.
-                      </p>
-                    )}
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                    <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                      <div>
-                        <label className="field-label">First Name *</label>
-                        <input className="field-input" placeholder="First name"
-                          value={formData.firstName} onChange={(e) => updateForm("firstName", e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="field-label">Last Name *</label>
-                        <input className="field-input" placeholder="Last name"
-                          value={formData.lastName} onChange={(e) => updateForm("lastName", e.target.value)} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="field-label">Email Address *</label>
-                      <input className="field-input" type="email" placeholder="your.email@example.com"
-                        value={formData.email} onChange={(e) => updateForm("email", e.target.value)} />
-                    </div>
-
-                    <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-                      <div>
-                        <label className="field-label">Organization / Institution</label>
-                        <input className="field-input" placeholder="e.g., University of Pittsburgh"
-                          value={formData.organization} onChange={(e) => updateForm("organization", e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="field-label">Role / Title</label>
-                        <input className="field-input" placeholder="e.g., Assistant Professor, Community Organizer"
-                          value={formData.role} onChange={(e) => updateForm("role", e.target.value)} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="field-label">Brief Bio</label>
-                      <textarea className="field-textarea" placeholder="Share a brief bio (2–4 sentences) that will accompany your published contribution."
-                        value={formData.bio} onChange={(e) => updateForm("bio", e.target.value)}
-                        style={{ minHeight: 100 }} />
-                    </div>
-
-                    <div>
-                      <label className="field-label">Website / Portfolio (optional)</label>
-                      <input className="field-input" placeholder="https://..."
-                        value={formData.website} onChange={(e) => updateForm("website", e.target.value)} />
-                    </div>
-
-                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-                      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}
-                        onClick={() => updateForm("agreeTerms", !formData.agreeTerms)}>
-                        <div className={`checkbox-custom ${formData.agreeTerms ? "checked" : ""}`}>
-                          {formData.agreeTerms && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
-                        </div>
-                        <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
-                          <strong>I confirm</strong> that this content is my original work (or I have permission to submit it), that it is evidence-based and/or process-oriented, and that it has not been previously published on the RECI platform. *
-                        </div>
-                      </div>
-
-                      <div style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}
-                        onClick={() => updateForm("agreeReview", !formData.agreeReview)}>
-                        <div className={`checkbox-custom ${formData.agreeReview ? "checked" : ""}`}>
-                          {formData.agreeReview && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
-                        </div>
-                        <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
-                          <strong>I understand</strong> that all submissions undergo editorial review for alignment with RECI's mission, evidence standards, and the RECI framework, and that the editorial team may suggest revisions. *
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ===== STEP 4: REVIEW ===== */}
-              {currentStep === 4 && (
                 <div>
                   <div style={{ marginBottom: 36 }}>
                     <h2 style={{ fontFamily: "var(--wp--preset--font-family--heading, 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif)", fontSize: 30, marginBottom: 8 }}>Review Your Submission</h2>
@@ -1197,6 +1105,29 @@ const RECMHSubmission = () => {
                       {formData.role && <div className="review-row"><div className="review-label">Role</div><div className="review-value">{formData.role}</div></div>}
                       {formData.bio && <div className="review-row" style={{ borderBottom: "none" }}><div className="review-label">Bio</div><div className="review-value">{formData.bio}</div></div>}
                     </div>
+
+                  {/* Per-submission consent: belongs with what is being consented to. */}
+                      <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}
+                          onClick={() => updateForm("agreeTerms", !formData.agreeTerms)}>
+                          <div className={`checkbox-custom ${formData.agreeTerms ? "checked" : ""}`}>
+                            {formData.agreeTerms && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
+                          </div>
+                          <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
+                            <strong>I confirm</strong> that this content is my original work (or I have permission to submit it), that it is evidence-based and/or process-oriented, and that it has not been previously published on the RECI platform. *
+                          </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer" }}
+                          onClick={() => updateForm("agreeReview", !formData.agreeReview)}>
+                          <div className={`checkbox-custom ${formData.agreeReview ? "checked" : ""}`}>
+                            {formData.agreeReview && <span style={{ color: "white", fontSize: 12, lineHeight: 1 }}>✓</span>}
+                          </div>
+                          <div style={{ fontSize: 14, lineHeight: 1.6, color: "var(--ink)" }}>
+                            <strong>I understand</strong> that all submissions undergo editorial review for alignment with RECI's mission, evidence standards, and the RECI framework, and that the editorial team may suggest revisions. *
+                          </div>
+                        </div>
+                      </div>
                   </div>
                 </div>
               )}
@@ -1232,7 +1163,7 @@ const RECMHSubmission = () => {
                     Continue to {steps[currentStep + 1].short} →
                   </button>
                 ) : (
-                  <button className="btn btn-md btn-primary" onClick={handleSubmit} disabled={isSubmitting}>
+                  <button className="btn btn-md btn-primary" onClick={handleSubmit} disabled={isSubmitting || !formData.agreeTerms || !formData.agreeReview}>
                     {isSubmitting ? "Submitting..." : "Submit for Review ✓"}
                   </button>
                 )}

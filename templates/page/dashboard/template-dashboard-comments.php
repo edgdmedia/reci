@@ -18,11 +18,17 @@ $user_comments = get_comments( [
 
 get_header('dashboard');
 ?>
-<main class="layout-page">
+<main class="layout-page bg-slate-50">
 	<div class="flex flex-col lg:flex-row min-h-screen">
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 		<div class="flex-1 p-6 lg:p-10">
-			<h1 class="text-2xl font-bold font-heading text-zinc-800 mb-8">Comments</h1>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[ 'title' => 'Comments', 'subtitle' => 'Your contributions to conversations across the hub.' ]
+			);
+			?>
 
 			<?php if ( empty( $user_comments ) ) : ?>
 			<p class="text-zinc-500">No comments yet. Start a conversation on any post or reflection.</p>

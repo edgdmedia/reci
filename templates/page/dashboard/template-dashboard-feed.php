@@ -46,14 +46,21 @@ get_header( 'dashboard' );
 
 		<div class="flex-1 p-6 lg:p-10">
 			<div class="max-w-6xl">
-				<div class="mb-8 flex flex-wrap items-end justify-between gap-4">
-					<div class="max-w-3xl">
-						<p class="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Your Feed</p>
-						<h1 class="mt-3 font-heading text-3xl font-bold text-zinc-900">Made for you</h1>
-						<p class="mt-3 text-base leading-7 text-zinc-600">Shaped by the collaborators and topics you follow. Adjust what shows up here any time in Settings.</p>
-					</div>
-					<a href="<?php echo esc_url( $settings_url ); ?>" class="btn btn-outline-primary btn-md">Manage interests</a>
-				</div>
+				<?php
+				get_template_part(
+					'template-parts/dashboard/page-header',
+					null,
+					[
+						'title'    => 'Made for you',
+						'subtitle' => 'Shaped by the collaborators and topics you follow. Adjust what shows up here any time in Settings.',
+						'action'   => sprintf(
+							'<a href="%s" class="btn btn-outline-primary btn-md">%s</a>',
+							esc_url( $settings_url ),
+							esc_html__( 'Manage interests', 'reci-media-hub' )
+						),
+					]
+				);
+				?>
 
 				<?php if ( $lead_post ) : ?>
 
@@ -65,10 +72,10 @@ get_header( 'dashboard' );
 						<?php endif; ?>
 						<div class="p-6 sm:p-8">
 							<p class="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700"><?php echo esc_html( $feed_type_label( $lead_post ) ); ?></p>
-							<h2 class="mt-3 font-heading text-2xl font-bold text-zinc-900">
+							<h2 class="mt-3 text-neutral-800 text-2xl font-bold font-serif leading-7">
 								<a href="<?php echo esc_url( get_permalink( $lead_post ) ); ?>" class="transition-colors hover:text-amber-700"><?php echo esc_html( get_the_title( $lead_post ) ); ?></a>
 							</h2>
-							<p class="mt-3 max-w-3xl text-base leading-7 text-zinc-600"><?php echo esc_html( $feed_excerpt( $lead_post, 45 ) ); ?></p>
+							<p class="mt-3 max-w-3xl text-neutral-700 text-base leading-7"><?php echo esc_html( $feed_excerpt( $lead_post, 45 ) ); ?></p>
 							<p class="mt-4 text-xs text-zinc-500"><?php echo esc_html( get_the_date( '', $lead_post ) ); ?></p>
 						</div>
 					</article>
@@ -78,10 +85,10 @@ get_header( 'dashboard' );
 							<?php foreach ( $personalized_posts as $feed_post ) : ?>
 								<article class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
 									<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php echo esc_html( $feed_type_label( $feed_post ) ); ?></p>
-									<h2 class="mt-3 text-lg font-semibold text-zinc-900">
+									<h2 class="mt-3 text-neutral-800 text-xl font-bold font-subhead leading-7">
 										<a href="<?php echo esc_url( get_permalink( $feed_post ) ); ?>" class="transition-colors hover:text-amber-700"><?php echo esc_html( get_the_title( $feed_post ) ); ?></a>
 									</h2>
-									<p class="mt-3 flex-1 text-sm leading-6 text-zinc-600"><?php echo esc_html( $feed_excerpt( $feed_post, 26 ) ); ?></p>
+									<p class="mt-3 flex-1 text-neutral-700 text-sm leading-6"><?php echo esc_html( $feed_excerpt( $feed_post, 26 ) ); ?></p>
 									<p class="mt-4 text-xs text-zinc-500"><?php echo esc_html( get_the_date( '', $feed_post ) ); ?></p>
 								</article>
 							<?php endforeach; ?>
@@ -91,8 +98,8 @@ get_header( 'dashboard' );
 				<?php else : ?>
 
 					<div class="max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
-						<h2 class="font-heading text-xl font-bold text-zinc-900">Your feed is empty</h2>
-						<p class="mt-3 text-base leading-7 text-zinc-600">Follow collaborators and pick the topics you care about, and new RECI content will collect here automatically.</p>
+						<h2 class="text-neutral-800 text-2xl font-bold font-serif leading-7">Your feed is empty</h2>
+						<p class="mt-3 text-neutral-700 text-base leading-7">Follow collaborators and pick the topics you care about, and new RECI content will collect here automatically.</p>
 						<div class="mt-6 flex flex-wrap gap-3">
 							<a href="<?php echo esc_url( $settings_url ); ?>" class="btn btn-primary btn-md">Choose your interests</a>
 							<a href="<?php echo esc_url( home_url( '/community/' ) ); ?>" class="btn btn-outline-primary btn-md">Browse collaborators</a>

@@ -61,6 +61,9 @@ function reci_theme_setting_defaults(): array {
 		'social_instagram'           => 'https://www.instagram.com/pittcrsp/',
 		'social_youtube'             => 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg',
 		'social_linkedin'            => '',
+		'email_from_address'         => '',
+		'email_from_name'            => '',
+		'email_log_retention'        => 30,
 		'footer_email'               => 'mediahub@reci.pitt.edu',
 		'footer_phone'               => '+14126480000',
 		'footer_address'             => "4200 Fifth Avenue\nPittsburgh, PA 15260",
@@ -191,6 +194,21 @@ function reci_register_settings(): void {
 	reci_add_field( 'branding_primary_color',   'Primary Colour',        'color',  'reci-settings-branding', 'reci_branding' );
 	reci_add_field( 'branding_accent_color',    'Accent Colour',         'color',  'reci-settings-branding', 'reci_branding' );
 
+	// ── 1b. Email ─────────────────────────────────────────────────────────
+	add_settings_section( 'reci_email', 'Email', '__return_false', 'reci-settings-email' );
+
+	reci_add_field( 'email_from_address', 'From Address', 'email', 'reci-settings-email', 'reci_email', 'Sender for all transactional email. Use an address on this site\'s domain so SPF and DKIM can pass.' );
+	reci_add_field( 'email_from_name',    'From Name',    'text',  'reci-settings-email', 'reci_email', 'Leave blank to use the site title.' );
+
+	reci_add_field( 'email_smtp_host',     'SMTP Host',     'text',   'reci-settings-email', 'reci_email', 'Leave blank to send with the server\'s own mail() — no SMTP.' );
+	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.', [], [ 'min' => 1, 'max' => 65535 ] );
+	reci_add_field( 'email_smtp_encryption','Encryption',   'select', 'reci-settings-email', 'reci_email', '', [ 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ] );
+	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
+	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
+	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
+	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything.', [], [ 'min' => 0, 'max' => 3650 ] );
+	reci_add_field( 'email_log',           'Recent Email',  'email_log', 'reci-settings-email', 'reci_email' );
+
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
 
@@ -242,7 +260,9 @@ function reci_add_field(
 	string $type,
 	string $page,
 	string $section,
-	string $description = ''
+	string $description = '',
+	array $choices = [],
+	array $atts = []
 ): void {
 	add_settings_field(
 		'reci_' . $key,
@@ -254,6 +274,8 @@ function reci_add_field(
 			'key'         => $key,
 			'type'        => $type,
 			'description' => $description,
+			'choices'     => $choices,
+			'atts'        => $atts,
 			'label_for'   => 'reci_' . $key,
 		]
 	);
@@ -289,10 +311,12 @@ function reci_render_field( array $args ): void {
 
 		case 'number':
 			printf(
-				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="1" max="100" placeholder="%s" />',
+				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="%s" max="%s" placeholder="%s" />',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				esc_attr( $val ),
+				esc_attr( (string) ( $args['atts']['min'] ?? 1 ) ),
+				esc_attr( (string) ( $args['atts']['max'] ?? 100 ) ),
 				esc_attr( $desc )
 			);
 			if ( $desc ) {
@@ -329,8 +353,7 @@ function reci_render_field( array $args ): void {
 			break;
 
 		case 'select':
-			// Currently only used for featured article selection method.
-			$choices = [
+			$choices = ! empty( $args['choices'] ) ? (array) $args['choices'] : [
 				'latest'   => 'Latest post',
 				'sticky'   => 'Sticky post',
 				'manual'   => 'Manually selected post',
@@ -345,6 +368,72 @@ function reci_render_field( array $args ): void {
 				);
 			}
 			echo '</select>';
+			break;
+
+		case 'password':
+			// A wp-config constant, if present, wins over whatever is stored here.
+			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
+				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php — this field is ignored.', 'reci-media-hub' ) . '</p>';
+				break;
+			}
+			printf(
+				'<input type="password" id="%s" name="%s" value="%s" class="regular-text" autocomplete="new-password" />',
+				esc_attr( $id ),
+				esc_attr( $name ),
+				esc_attr( $val )
+			);
+			echo '<p class="description">' . wp_kses_post( __( 'Stored in the database. To keep it out of the database instead, define <code>RECI_SMTP_PASSWORD</code> in wp-config.php and it will take precedence.', 'reci-media-hub' ) ) . '</p>';
+			break;
+
+		case 'password_note':
+			// The secret is never stored in wp_options — options ride along in every
+			// database backup, migration and export. It lives in wp-config.php.
+			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
+				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php', 'reci-media-hub' ) . '</p>';
+			} else {
+				echo '<p style="margin:0;color:#9d2f45;font-weight:600;">' . esc_html__( 'Not set', 'reci-media-hub' ) . '</p>';
+			}
+			echo '<p class="description">' . wp_kses_post( __( 'Add <code>define( \'RECI_SMTP_PASSWORD\', \'…\' );</code> to wp-config.php. It is deliberately not stored in the database.', 'reci-media-hub' ) ) . '</p>';
+			break;
+
+		case 'email_log':
+			$rows = function_exists( 'reci_get_email_log' ) ? reci_get_email_log( 50 ) : [];
+			if ( empty( $rows ) ) {
+				echo '<p class="description">' . esc_html__( 'Nothing sent yet.', 'reci-media-hub' ) . '</p>';
+				break;
+			}
+			echo '<table class="widefat striped" style="max-width:860px;"><thead><tr>';
+			foreach ( [ __( 'When', 'reci-media-hub' ), __( 'To', 'reci-media-hub' ), __( 'Subject', 'reci-media-hub' ), __( 'Via', 'reci-media-hub' ), __( 'Result', 'reci-media-hub' ) ] as $th ) {
+				echo '<th>' . esc_html( $th ) . '</th>';
+			}
+			echo '</tr></thead><tbody>';
+			foreach ( $rows as $row ) {
+				$ok = 'sent' === $row->status;
+				printf(
+					'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><span style="color:%s;font-weight:600;">%s</span>%s</td></tr>',
+					esc_html( mysql2date( 'j M Y, H:i', $row->created_at ) ),
+					esc_html( $row->recipient ),
+					esc_html( $row->subject ),
+					esc_html( $row->transport ),
+					$ok ? '#1f7a5a' : '#9d2f45',
+					esc_html( $ok ? __( 'Sent', 'reci-media-hub' ) : __( 'Failed', 'reci-media-hub' ) ),
+					'' !== $row->error ? '<br /><span style="color:#6A6D70;font-size:12px;">' . esc_html( $row->error ) . '</span>' : ''
+				);
+			}
+			echo '</tbody></table>';
+			echo '<p class="description">' . esc_html__( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' ) . '</p>';
+			break;
+
+		case 'button':
+			$url = wp_nonce_url(
+				add_query_arg( 'action', 'reci_send_test_email', admin_url( 'admin-post.php' ) ),
+				'reci_send_test_email'
+			);
+			printf(
+				'<a href="%s" class="button">%s</a>',
+				esc_url( $url ),
+				esc_html( $args['button_label'] ?? __( 'Send', 'reci-media-hub' ) )
+			);
 			break;
 
 		case 'page':
@@ -418,6 +507,7 @@ function reci_sanitize_settings( $input ): array {
 		'branding_hub_subtitle', 'branding_primary_color', 'branding_accent_color',
 		'analytics_ga4_id', 'analytics_gtm_id', 'analytics_pixel_id',
 		'footer_phone', 'footer_copyright',
+		'email_from_name', 'email_smtp_host', 'email_smtp_username', 'email_smtp_encryption',
 		'hp_featured_method',
 		'about_c1_title', 'about_c1_icon',
 		'about_c2_title', 'about_c2_icon',
@@ -427,17 +517,26 @@ function reci_sanitize_settings( $input ): array {
 		'social_facebook', 'social_twitter', 'social_instagram', 'social_youtube',
 		'social_linkedin',
 	];
-	$email_fields = [ 'footer_email' ];
+	$email_fields = [ 'footer_email', 'email_from_address' ];
 	$textarea_fields = [ 'footer_address' ];
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
 		'content_articles_per_page', 'content_podcasts_per_page', 'content_videos_per_page',
+		'email_smtp_port', 'email_log_retention',
 	];
 	$image_fields = [
 		'branding_reci_logo', 'branding_partner_logo', 'content_fallback_thumbnail',
 	];
 	$checkbox_fields = [ 'auth_enable_registration' ];
+	// Not sanitize_text_field: it strips tags and encodes entities, corrupting
+	// passwords that legitimately contain < & or quotes.
+	$password_fields = [ 'email_smtp_password' ];
 
+	foreach ( $password_fields as $field ) {
+		if ( isset( $input[ $field ] ) ) {
+			$clean[ $field ] = trim( (string) $input[ $field ] );
+		}
+	}
 	foreach ( $text_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$clean[ $field ] = sanitize_text_field( $input[ $field ] );
@@ -461,7 +560,9 @@ function reci_sanitize_settings( $input ): array {
 	foreach ( $number_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$val = (int) $input[ $field ];
-			$clean[ $field ] = $val > 0 ? $val : '';
+			// Retention treats 0 as "keep everything", so it must survive as 0
+			// rather than being blanked and falling back to the default.
+			$clean[ $field ] = ( $val > 0 || 'email_log_retention' === $field ) ? $val : '';
 		}
 	}
 	foreach ( $image_fields as $field ) {
@@ -551,6 +652,7 @@ function reci_settings_page_html(): void {
 
 	$tabs = [
 		'branding'  => 'Branding',
+		'email'     => 'Email',
 		'social'    => 'Social Links',
 		'homepage'  => 'Homepage Content',
 		'footer'    => 'Footer',

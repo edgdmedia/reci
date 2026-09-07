@@ -37,16 +37,26 @@ $content_query = new WP_Query( $args );
 
 get_header('dashboard');
 ?>
-<main class="layout-page">
+<main class="layout-page bg-slate-50">
 	<div class="flex flex-col lg:flex-row min-h-screen">
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 		<div class="flex-1 p-6 lg:p-10">
-			<div class="flex items-center justify-between mb-8">
-				<h1 class="text-2xl font-bold font-heading text-zinc-800">My Content</h1>
-				<a href="<?php echo esc_url( home_url( '/dashboard/submit/' ) ); ?>" class="btn btn-primary btn-md">
-					+ Submit New
-				</a>
-			</div>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[
+					'title'    => 'My Content',
+					'subtitle' => 'Everything you have submitted, and where each piece stands.',
+					// `/submit/` is the canonical route; /dashboard/submit/ only redirects there.
+					'action'   => sprintf(
+						'<a href="%s" class="btn btn-primary btn-md">%s</a>',
+						esc_url( home_url( '/submit/' ) ),
+						esc_html__( 'Submit new content', 'reci-media-hub' )
+					),
+				]
+			);
+			?>
 
 			<form method="get" class="flex flex-wrap gap-3 mb-6">
 				<select name="type" class="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">

@@ -1713,6 +1713,17 @@ function reci_reset_demo_content(): void {
 			}
 		}
 		if ( $post ) {
+			// A collaborator profile that a real member has claimed is no longer demo
+			// content, whatever brought it in. Removing it would delete a live
+			// account's public identity.
+			$linked_user = 'reci_author' === $post->post_type
+				? absint( get_post_meta( $post->ID, '_reci_author_profile_user_id', true ) )
+				: 0;
+
+			if ( $linked_user > 0 ) {
+				continue;
+			}
+
 			wp_delete_post( $post->ID, true );
 		}
 	}
