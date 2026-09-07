@@ -17,3 +17,16 @@ dist/
 
 .env
 .env.*
+
+# Playwright MCP scratch output
+.playwright-mcp/
+
+# macOS duplicate-copy artefacts ("... 2/")
+wordpress/assets/js 2/
+
+# Binary source material for the We Humans project (~69 MB of PDFs, JPGs,
+# docx and pptx). Lives in shared storage, not in git.
+docs/we-humans/
+
+# Session scratch notes
+docs/session-summary-*.md
