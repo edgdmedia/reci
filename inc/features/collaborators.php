@@ -733,6 +733,57 @@ add_action( 'admin_post_reci_collaborator_application', 'reci_handle_collaborato
 // this is the entry point for the whole /submit/ contribution flow.
 add_action( 'admin_post_nopriv_reci_collaborator_application', 'reci_handle_collaborator_application' );
 
+if ( ! function_exists( 'reci_get_collaborator_profile_ids_for_user' ) ) {
+	/**
+	 * Public profile posts belonging to one account.
+	 *
+	 * @return array<int,int>
+	 */
+	function reci_get_collaborator_profile_ids_for_user( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return [];
+		}
+
+		return array_map(
+			'absint',
+			get_posts(
+				[
+					'post_type'      => 'reci_author',
+					'post_status'    => [ 'publish', 'draft', 'pending', 'private' ],
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_key'       => '_reci_author_profile_user_id',
+					'meta_value'     => $user_id,
+				]
+			)
+		);
+	}
+}
+
+if ( ! function_exists( 'reci_set_collaborator_profile_status' ) ) {
+	/**
+	 * Publish or unpublish an account's public profile.
+	 *
+	 * Draft rather than trash or delete: rejection is reversible, and a profile
+	 * carries imported biography and taxonomy work that should survive being
+	 * taken off the site.
+	 */
+	function reci_set_collaborator_profile_status( int $user_id, string $status ): int {
+		$changed = 0;
+
+		foreach ( reci_get_collaborator_profile_ids_for_user( $user_id ) as $profile_id ) {
+			if ( get_post_status( $profile_id ) === $status ) {
+				continue;
+			}
+
+			wp_update_post( [ 'ID' => $profile_id, 'post_status' => $status ] );
+			++$changed;
+		}
+
+		return $changed;
+	}
+}
+
 if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 	function reci_sync_collaborator_application_status( string $new_status, string $old_status, WP_Post $post ): void {
 		if ( reci_get_collaborator_application_post_type() !== $post->post_type || $new_status === $old_status ) {
@@ -761,6 +812,10 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
 				reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
 			}
+
+			// Re-approving after a rejection has to put the profile back, or the
+			// account would be a collaborator with no public page.
+			reci_set_collaborator_profile_status( $user_id, 'publish' );
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
 			}
@@ -795,6 +850,10 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
 				$rejected_user->set_role( 'subscriber' );
 			}
+
+			// Take the public profile down with the access. Draft, not deleted, so
+			// re-approving restores it rather than rebuilding it.
+			reci_set_collaborator_profile_status( $user_id, 'draft' );
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
 			}
