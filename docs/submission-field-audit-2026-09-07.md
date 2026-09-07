@@ -1,262 +1,157 @@
-# Submission field audit — 2026-09-07
+# Submission fields × post types — 2026-09-07
 
-Why your `post_content` looks like that, what each submission field does with its
-value, and what every post type expects that the form never asks for.
+Read from source: `sample/recmh-submission.jsx` (the form),
+`reci_media_hub_handle_submission()` in `inc/features/submissions.php` (the
+handler), `inc/content/meta-fields.php` (post-type fields),
+`inc/content/taxonomies.php` (registration).
 
----
-
-## Table 1 — Where each submission field actually lands
-
-The form is `sample/recmh-submission.jsx`; the handler is
-`reci_media_hub_handle_submission()` in `inc/features/submissions.php`.
-
-| Form field | POST key | Real destination | Also written into `post_content`? | Verdict |
-|---|---|---|---|---|
-| `title` | `submission_title` | `post_title` | no | correct |
-| `abstract` | `submission_summary` | `post_excerpt` | no | correct |
-| `contentType` | `submission_content_type` | `post_type` + `_reci_submission_content_type` | no | correct |
-| `contentLink` | `submission_content_link` | `_reci_submission_content_link` | no | correct |
-| `selectedSpheres` | `reci_sphere_terms[]` | `reci_sphere` terms | no | correct |
-| `targetAudience` | `reci_target_audience_terms[]` | `reci_target_audience` terms | **yes** | duplicated |
-| `practiceType` | `reci_practice_focus_terms[]` | `reci_practice_focus` terms | **yes** | duplicated **and broken** — see Table 2 |
-| `fileDescription` | `submission_file_description` | `_reci_submission_file_description` | **yes** | duplicated |
-| `evidenceBasis` | — | **none** | yes | orphaned |
-| `processOrientation` | — | **none** | yes | orphaned |
-| `equityFocus` | — | **none** | yes | orphaned |
-| `keywords` | — | **none** | yes | orphaned — should be `post_tag` |
-| `location` | — | **never posted** | no | dead: `_reci_submission_location` exists and is always empty |
-| `firstName` … `website` | `submission_*` | `_reci_submission_*` meta | no | correct |
-
-**Reading your paste.** Seven labelled blocks are concatenated in the browser
-(`recmh-submission.jsx`, the `submission_details` append) and posted as one
-string. Three of those seven — Practice / Focus Area, Target Audience, File
-Upload Description — already have a proper home and are being written twice.
-Four have nowhere else to go. `File Upload Description:` is empty in your paste
-because you did not attach a file, but the label is emitted unconditionally.
+**Not verified at runtime.** Local's database has been down all session, so
+nothing below was observed in a browser or database — it is all read from code.
+The three "never posted" findings are the strongest, because they are absences
+in the form's `FormData` and need no runtime to confirm.
 
 ---
 
-## Table 2 — Taxonomy registration vs. what the form writes
+## The five submittable post types
 
-`inc/content/taxonomies.php`
+`reci_media_hub_submission_type_map()`:
 
-`$submission_post_types` resolves to:
-`post`, `reci_podcast`, `reci_video`, `reci_event`, `reci_reflection`,
-`reci_assessment`, `reci_course` — **note `reci_document` is absent.**
-
-| Taxonomy | Registered for | Form writes it to | Status |
-|---|---|---|---|
-| `reci_sphere` | `$submission_post_types` | all submissions | fine except `reci_document` |
-| `reci_target_audience` | `$submission_post_types` | all submissions | fine except `reci_document` |
-| `reci_practice_focus` | **`['reci_author']` only** | all submissions | **bug — every type** |
-| `reci_location` | `$post_types` | never | unused by the form |
-| `post_tag` | all content types | never | free slot for `keywords` |
-
-`document` is in the submission type map, so a document *can* be submitted — but
-`reci_document` is in neither `$submission_taxonomy_post_types` nor the
-`reci_practice_focus` list, so **none** of its three taxonomies are registered
-for it. Every sphere, audience and practice term on a submitted document is
-written and invisible.
-
-`reci_practice_focus` is registered only against `reci_author`. The form collects
-it and `wp_set_object_terms()` writes the row, so the relationship exists in the
-database — but the taxonomy is not registered for `post`, `reci_video`,
-`reci_podcast`, `reci_document` or `reci_assessment`. It therefore does not
-appear in `get_object_taxonomies()` for those types, gets no admin column or
-metabox, and term archives will not list these posts. The value is stored and
-invisible.
-
-That is the concrete version of the problem you described: the value went to a
-taxonomy that cannot show it, *and* to `post_content` where you can see it.
-
----
-
-## Table 3 — Every post type's fields vs. what the submission form collects
-
-Meta from `inc/content/meta-fields.php`. **Cat.** = catered for by the
-submission form.
-
-### Shared by every submitted type
-
-| Post-type field | Submission field that fills it | Cat. |
-|---|---|:--:|
-| `post_title` | `title` | yes |
-| `post_excerpt` | `abstract` | yes |
-| `post_content` | the 7 concatenated blocks | partly — see Table 1 |
-| `post_author` | logged-in user | yes |
-| featured image | — | **no** |
-| `reci_sphere` | `selectedSpheres` | yes |
-| `reci_target_audience` | `targetAudience` | yes |
-| `reci_practice_focus` | `practiceType` | written, but unregistered — Table 2 |
-| `post_tag` | `keywords` goes to `post_content` instead | **no** |
-| `reci_location` | `location` collected, never posted | **no** |
-| `_reci_submission_content_link` | `contentLink` | yes |
-| `_reci_submission_file_id` / `_url` | file upload | yes |
-| `_reci_submission_file_description` | `fileDescription` | yes |
-
-### `post` — blog, article, exhibit, other
-
-| Post-type field | Submission field | Cat. |
-|---|---|:--:|
-| `_post_read_time_label` | — | **no** |
-| `_post_featured_rank` | — | **no** |
-| `_post_source_name` | — | **no** |
-| `_post_source_url` | — | **no** |
-| `_post_canonical_url` | — | **no** (`contentLink` is close but stored elsewhere) |
-
-### `reci_podcast`
-
-| Post-type field | Submission field | Cat. |
-|---|---|:--:|
-| `_reci_podcast_audio_url` | — | **no** |
-| `_reci_podcast_video_url` | — | **no** |
-| `_reci_podcast_duration_label` | — | **no** |
-| `_reci_podcast_duration_secs` | — | **no** |
-| `_reci_podcast_episode_number` | — | **no** |
-| `_reci_podcast_season_number` | — | **no** |
-| `_reci_podcast_transcript_url` | — | **no** |
-| `_reci_podcast_spotify_url` | — | **no** |
-| `_reci_podcast_apple_url` | — | **no** |
-| `reci_show` taxonomy | — | **no** |
-
-**0 of 10.** A submitted podcast has no audio.
-
-### `reci_video`
-
-| Post-type field | Submission field | Cat. |
-|---|---|:--:|
-| `_reci_video_url` | — | **no** |
-| `_reci_video_platform` | — | **no** |
-| `_reci_video_external_id` | — | **no** |
-| `_reci_video_duration_label` | — | **no** |
-| `_reci_video_duration_secs` | — | **no** |
-
-**0 of 5.** A submitted video has no video.
-
-### `reci_assessment`
-
-*Correction to my earlier note: this type does have a full field set — I said it
-had none, and that was wrong.*
-
-| Post-type field | Submission field | Cat. |
-|---|---|:--:|
-| `_reci_assessment_type` | — | **no** |
-| `_reci_assessment_questions` | — | **no** |
-| `_reci_assessment_result_ranges` | — | **no** |
-| `_reci_assessment_intro` | — | **no** |
-| `_reci_assessment_instructions` | — | **no** |
-| `_reci_assessment_estimated_time` | — | **no** |
-| `_reci_assessment_completion_title` | — | **no** |
-| `_reci_assessment_completion_message` | — | **no** |
-
-**0 of 8.** A submitted assessment has no questions, so it cannot be taken.
-This is a repeating question-builder — realistically staff work, not something
-to put in the submission wizard.
-
-### `reci_document`
-
-| Post-type field | Submission field | Cat. |
-|---|---|:--:|
-| *no metabox and no `_reci_document_*` meta exists* | — | n/a |
-
-The type is submittable and the file upload is its real payload, so this is the
-one type the form already serves. But none of its three taxonomies are
-registered for it (Table 2).
-
-### `reci_course` and `reci_event` — not submittable
-
-Both have complete field sets and neither appears in
-`reci_media_hub_submission_type_map()`, so nothing can reach them through the
-form at all.
-
-| `reci_course` | `reci_event` |
+| Front-end choice | Post type |
 |---|---|
-| `_reci_course_start_date` | `_reci_event_start_date` / `_end_date` |
-| `_reci_course_duration_weeks` | `_reci_event_start_time` / `_end_time` |
-| `_reci_course_lessons` | `_reci_event_timezone` |
-| `_reci_course_level` | `_reci_event_is_virtual` |
-| `_reci_course_format` | `_reci_event_location_name` / `_location_address` |
-| `_reci_course_fee_label` | `_reci_event_registration_url` |
-| `_reci_course_enrollment_url` | `_reci_event_cta_label` |
+| blog, article, exhibit, other | `post` |
+| podcast | `reci_podcast` |
+| video | `reci_video` |
+| document | `reci_document` |
+| assessment | `reci_assessment` |
 
-### `reci_reflection` — not submittable
-
-`_reci_reflection_blueprint` and friends are built by the reflection builder, not
-by a form. Correctly excluded.
+`course`, `event` and `reflection` are **not** in the map — they cannot be
+submitted at all, though `course` and `event` have full field sets.
 
 ---
 
-## Table 4 — The other direction: submission fields with no post-type home
+## Legend
 
-| Submission field | Wants to be | Currently |
-|---|---|---|
-| `evidenceBasis` | new meta | `post_content` text only |
-| `processOrientation` | new meta | `post_content` text only |
-| `equityFocus` | new meta | `post_content` text only |
-| `keywords` | `post_tag` | `post_content` text only |
-| `location` | `reci_location` | collected, never posted |
-| `bio`, `role`, `organization`, `website` | the author's `reci_author` profile | `_reci_submission_*` meta on the post, duplicating the profile |
-
----
-
-## Scorecard
-
-| Type | Type-specific fields | Collected | Gap |
-|---|---:|---:|---|
-| `post` | 5 | 0 | all |
-| `reci_podcast` | 10 | 0 | all |
-| `reci_video` | 5 | 0 | all |
-| `reci_assessment` | 8 | 0 | all |
-| `reci_document` | 0 | n/a | none |
-| `reci_course` | 7 | — | not submittable |
-| `reci_event` | 10 | — | not submittable |
-
-Only `reci_document` is fully served, and only because it has no fields of its
-own. Every other submittable type arrives empty and is completed by hand in
-wp-admin.
-
----
-
-## Recommendation
-
-**1. Stop building `post_content` in the browser.** The four orphaned narrative
-fields are real content — post them as their own keys and let the server compose
-the body, so each value also survives as meta and can be edited individually
-later.
-
-| Field | Proposed home |
+| Mark | Meaning |
 |---|---|
-| `evidenceBasis` | `_reci_submission_evidence_basis` |
-| `processOrientation` | `_reci_submission_process_orientation` |
-| `equityFocus` | `_reci_submission_equity_focus` |
-| `keywords` | `post_tag` terms |
+| **OK** | Value reaches a real, queryable, displayable home |
+| **TEXT** | Lands only inside the `post_content` blob |
+| **HIDDEN** | Written to the database, but the taxonomy is not registered for that type, so nothing can display it |
+| **DEAD** | The form never sends it — the field exists but does nothing |
+| **DUP** | Has a proper home *and* is copied into the `post_content` blob |
+| **–** | Does not apply to that type |
 
-**2. Fix `reci_practice_focus` registration** — add the submission post types.
-One-line change, and it makes existing stored terms visible retroactively.
+---
 
-**3. Drop the three duplicated blocks** from the composed body. They have homes.
+## The table
 
-**4. Make the form's later steps depend on the chosen content type.** Step 1
-already picks the type; steps 2–3 should then ask for that type's own fields —
-audio URL and episode number for a podcast, video URL and platform for a video,
-dates and venue for an event. This is the "dynamic fields" you asked about, and
-it is what closes the wp-admin gap for staff.
+| # | Submission field | `post` | `reci_podcast` | `reci_video` | `reci_document` | `reci_assessment` | Where it lands today | Recommended |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `contentType` | OK | OK | OK | OK | OK | `post_type` + `_reci_submission_content_type` | Keep |
+| 2 | `title` | OK | OK | OK | OK | OK | `post_title` | Keep |
+| 3 | `abstract` | OK | OK | OK | OK | OK | `post_excerpt` | Keep |
+| 4 | `selectedSpheres` | OK | OK | OK | **HIDDEN** | OK | `reci_sphere` terms | Register `reci_sphere` for `reci_document` |
+| 5 | `targetAudience` | DUP | DUP | DUP | **HIDDEN** | DUP | `reci_target_audience` terms **+ blob** | Drop from blob; register for `reci_document` |
+| 6 | `practiceType` | **HIDDEN** | **HIDDEN** | **HIDDEN** | **HIDDEN** | **HIDDEN** | `reci_practice_focus` terms **+ blob** | Register the taxonomy for all five types; drop from blob |
+| 7 | `contentLink` | OK | OK | OK | OK | – | `_reci_submission_content_link` | Split per type — see below |
+| 8 | `submissionFile` | OK | OK | OK | OK | – | `_reci_submission_file_id` / `_url` | For `reci_document` this **is** the content; for podcast it should also fill `_reci_podcast_audio_url` |
+| 9 | `fileDescription` | DUP | DUP | DUP | DUP | – | `_reci_submission_file_description` **+ blob** | Drop from blob |
+| 10 | `evidenceBasis` | TEXT | TEXT | TEXT | TEXT | TEXT | blob only | Keep as prose in the body — but compose the body server-side |
+| 11 | `processOrientation` | TEXT | TEXT | TEXT | TEXT | TEXT | blob only | Same |
+| 12 | `equityFocus` | TEXT | TEXT | TEXT | TEXT | TEXT | blob only | Same |
+| 13 | `keywords` | TEXT | TEXT | TEXT | TEXT | TEXT | blob only | Route to `post_tag` — registered and sitting empty |
+| 14 | `location` | **DEAD** | **DEAD** | **DEAD** | **DEAD** | **DEAD** | nowhere | `reci_location` is registered and unused — wire it or delete the field |
+| 15 | `agreeTerms` | **DEAD** | **DEAD** | **DEAD** | **DEAD** | **DEAD** | nowhere | Gates the button, records nothing. Store the consent |
+| 16 | `agreeReview` | **DEAD** | **DEAD** | **DEAD** | **DEAD** | **DEAD** | nowhere | Same |
+| 17 | `firstName` | OK | OK | OK | OK | OK | `_reci_submission_first_name` | Keep — audit trail of who submitted |
+| 18 | `lastName` | OK | OK | OK | OK | OK | `_reci_submission_last_name` | Keep |
+| 19 | `email` | OK | OK | OK | OK | OK | `_reci_submission_email` | Keep |
+| 20 | `organization` | OK | OK | OK | OK | OK | `_reci_submission_organization` | Duplicates the `reci_author` profile — read from the profile instead |
+| 21 | `role` | OK | OK | OK | OK | OK | `_reci_submission_role` | Same |
+| 22 | `bio` | OK | OK | OK | OK | OK | `_reci_submission_bio` | Same |
+| 23 | `website` | OK | OK | OK | OK | OK | `_reci_submission_website` | Same |
 
-**5. Decide on `course` and `event`.** Both have full field definitions and
-neither can be submitted. Either add them to the type map or drop their entries
-from the front-end type list.
+### Count
 
-**6. `location` is dead** — the form holds it in state and never posts it.
-Either wire it to `reci_location` or remove it.
+| Status | Fields |
+|---|---:|
+| OK | 11 |
+| DUP — works, but also duplicated into the blob | 3 |
+| TEXT — blob only | 4 |
+| HIDDEN | 1 for every type, plus 2 more on `reci_document` |
+| DEAD | 3 |
 
-### Order I would do them in
+**Three fields do nothing at all**, and they are the surprise: `location`,
+`agreeTerms`, `agreeReview`. The two agreement checkboxes gate the submit button
+in the browser and are never sent, so there is no record anywhere that a
+contributor accepted the terms.
 
-1, 2 and 3 are small, self-contained, and fix data that is being lost or hidden
-right now. 4 is the large one: it needs a per-type field schema in PHP, that
-schema exposed to the React app, conditional rendering in steps 2–3, and a
-handler that writes each type's meta. 5 and 6 are decisions, not work.
+There is a fourth dead path, on the server side: the handler reads
+`$_POST['submission_author_opt_in']` and, if true, creates an author profile
+(`inc/features/submissions.php` ~line 784). The form never sends that key, so
+that whole branch has never run.
 
-**Caveat:** none of this is verified against a running site — Local's database
-has been down all session. Every claim above is read from the source, and the
-`reci_practice_focus` registration is the one I would most want to confirm
-against a real install before acting on it.
+---
+
+## The other direction — post-type fields with no submission field
+
+| Post type | Its own fields | Collected by the form |
+|---|---|---:|
+| `post` | `_post_canonical_url`, `_post_source_name`, `_post_source_url`, `_post_read_time_label`, `_post_featured_rank` | **0 of 5** |
+| `reci_podcast` | `_audio_url`, `_video_url`, `_duration_label`, `_duration_secs`, `_episode_number`, `_season_number`, `_transcript_url`, `_spotify_url`, `_apple_url`, `reci_show` | **0 of 10** |
+| `reci_video` | `_reci_video_url`, `_platform`, `_external_id`, `_duration_label`, `_duration_secs` | **0 of 5** |
+| `reci_document` | none | n/a — fully served |
+| `reci_assessment` | `_type`, `_questions`, `_result_ranges`, `_intro`, `_instructions`, `_estimated_time`, `_completion_title`, `_completion_message` | **0 of 8** |
+
+Missing for every type: **featured image**. The form never collects one.
+
+---
+
+## What each type actually needs
+
+**`reci_document` — works today.** No fields of its own; the upload is the
+content. The only fix it needs is taxonomy registration.
+
+**`post` — nearly works.** `contentLink` is the one real gap: for an article
+reposted from elsewhere it should fill `_post_canonical_url` and
+`_post_source_url`, not a generic submission meta key. `_post_read_time_label`
+and `_post_featured_rank` are editorial judgements — leave them to staff.
+
+**`reci_podcast` — does not work.** No audio, so a submitted podcast cannot
+play. Needs audio URL and duration at minimum; episode and season next.
+
+**`reci_video` — does not work.** No video URL, so nothing plays. Platform and
+external ID can be derived from the URL rather than asked for.
+
+**`reci_assessment` — should probably come out of the form.** Eight fields
+including a repeating question builder with types, scales, choices and result
+ranges. That is not a wizard step. Submitting an assessment today produces a
+quiz with no questions, which cannot be taken.
+
+---
+
+## Recommended, in three tiers
+
+**Tier 1 — fix what is silently broken.** Small, self-contained, no form redesign.
+- Register `reci_practice_focus` for the five submittable types
+- Register `reci_sphere` and `reci_target_audience` for `reci_document`
+- Route `keywords` to `post_tag`
+- Post and store the two agreement checkboxes
+- Compose `post_content` server-side instead of in the browser, and drop the
+  three duplicated blocks
+
+**Tier 2 — make the form type-aware.** The real work.
+- Podcast: audio URL, duration, episode, season, transcript
+- Video: video URL, duration
+- Post: source name, source URL, canonical URL
+- All types: featured image
+- Remove `assessment` from the front-end type list
+
+**Tier 3 — decisions, not code.**
+- `location`: wire to `reci_location`, or delete the field
+- `course` and `event` have complete field sets and cannot be submitted — add
+  them to the map, or accept that they are staff-only
+- Contributor fields duplicate the `reci_author` profile on every submission and
+  drift the moment the profile changes — read from the profile instead
+- The dead `submission_author_opt_in` branch: wire it or delete it
+
+Nothing here is applied. This is the map, not the fix.
