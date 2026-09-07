@@ -47,6 +47,36 @@ function reci_rename_content_menu(): void {
 }
 
 /**
+ * Drop "All" from menu labels WordPress owns.
+ *
+ * Our post types set all_items themselves, but Pages is core's and the
+ * Taxonomies parent needs the opposite treatment — there "All Taxonomies" is
+ * accurate, because that entry really does list every one of them.
+ */
+add_action( 'admin_menu', 'reci_simplify_submenu_labels', 998 );
+function reci_simplify_submenu_labels(): void {
+	global $submenu;
+
+	$rename = [
+		'edit.php?post_type=page' => [ 'edit.php?post_type=page' => __( 'Pages', 'reci-media-hub' ) ],
+		'users.php'               => [ 'users.php' => __( 'Users', 'reci-media-hub' ) ],
+		'reci-taxonomies'         => [ 'reci-taxonomies' => __( 'All Taxonomies', 'reci-media-hub' ) ],
+	];
+
+	foreach ( $rename as $parent => $slugs ) {
+		if ( empty( $submenu[ $parent ] ) ) {
+			continue;
+		}
+
+		foreach ( $submenu[ $parent ] as $key => $item ) {
+			if ( isset( $item[2], $slugs[ $item[2] ] ) ) {
+				$submenu[ $parent ][ $key ][0] = $slugs[ $item[2] ];
+			}
+		}
+	}
+}
+
+/**
  * Point taxonomy screens at the Taxonomies menu.
  *
  * WordPress works out the active menu from the post type a taxonomy is

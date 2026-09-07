@@ -24,7 +24,10 @@ if (! function_exists('reci_media_hub_cpt_labels')) {
 			'search_items'       => sprintf(__('Search %s', 'reci-media-hub'), __($plural, 'reci-media-hub')),
 			'not_found'          => sprintf(__('No %s found', 'reci-media-hub'), strtolower($plural)),
 			'not_found_in_trash' => sprintf(__('No %s found in Trash', 'reci-media-hub'), strtolower($plural)),
-			'all_items'          => sprintf(__('All %s', 'reci-media-hub'), __($plural, 'reci-media-hub')),
+			// Just the plural. all_items is what a nested post type is labelled
+			// with in the menu, and "All Podcasts" inside Content reads as a
+			// filtered view of something rather than the thing itself.
+			'all_items'          => __($plural, 'reci-media-hub'),
 			'archives'           => sprintf(__('%s Archives', 'reci-media-hub'), __($singular, 'reci-media-hub')),
 			'menu_name'          => __($plural, 'reci-media-hub'),
 		];
