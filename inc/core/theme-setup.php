@@ -8,6 +8,52 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+if (! function_exists('reci_logo_img')) {
+	/**
+	 * Render a branding logo at a sane weight.
+	 *
+	 * The header used to request the 'full' size, so a 1857px 360KB original was
+	 * downloaded on every page load to be drawn 48-80px tall. This asks for a
+	 * size that fits the slot and lets wp_get_attachment_image() emit a srcset so
+	 * the browser can pick something smaller still; `sizes` is set explicitly
+	 * because WordPress's default assumes a full-width image.
+	 *
+	 * @param int    $attachment_id Configured logo, 0 when unset.
+	 * @param string $fallback_url  Theme asset used when nothing is configured.
+	 * @param string $alt           Alt text.
+	 * @param string $class         CSS classes for the img.
+	 * @param string $sizes         CSS width of the largest rendering, e.g. '311px'.
+	 * @param string $loading       'eager', or 'lazy' for anything off-screen.
+	 */
+	function reci_logo_img(int $attachment_id, string $fallback_url, string $alt, string $class, string $sizes, string $loading = 'eager'): string {
+		if ($attachment_id > 0 && wp_attachment_is_image($attachment_id)) {
+			$html = wp_get_attachment_image(
+				$attachment_id,
+				'medium_large',
+				false,
+				[
+					'class'   => $class,
+					'alt'     => $alt,
+					'sizes'   => $sizes,
+					'loading' => $loading,
+				]
+			);
+
+			if ('' !== $html) {
+				return $html;
+			}
+		}
+
+		return sprintf(
+			'<img src="%s" alt="%s" class="%s" loading="%s" />',
+			esc_url($fallback_url),
+			esc_attr($alt),
+			esc_attr($class),
+			esc_attr($loading)
+		);
+	}
+}
+
 if (! function_exists('reci_media_hub_setup')) {
 	function reci_media_hub_setup(): void
 	{

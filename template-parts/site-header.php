@@ -19,14 +19,23 @@ $is_logged_in = is_user_logged_in();
 
 $partner_logo_id = (int) reci_setting("branding_partner_logo");
 $reci_logo_id = (int) reci_setting("branding_reci_logo");
-$partner_logo_url = $partner_logo_id ? wp_get_attachment_image_url($partner_logo_id, "full") : '';
-if (! $partner_logo_url) {
-    $partner_logo_url = $assets_url . "pitt-logo.png";
-}
-$reci_logo_url = $reci_logo_id ? wp_get_attachment_image_url($reci_logo_id, "full") : '';
-if (! $reci_logo_url) {
-    $reci_logo_url = $assets_url . "reci-collab.png";
-}
+// Logos render small — the Pitt mark at 40-48px tall, the RECI mark at 48-80px.
+// reci_logo_img() asks for a size that fits and emits a srcset; requesting
+// 'full' here meant every page load pulled the multi-hundred-KB original.
+$partner_logo_html = reci_logo_img(
+    $partner_logo_id,
+    $assets_url . "pitt-logo.png",
+    get_bloginfo("name"),
+    "h-10 md:h-12 w-auto",
+    "(min-width: 768px) 253px, 211px"
+);
+$reci_logo_html = reci_logo_img(
+    $reci_logo_id,
+    $assets_url . "reci-collab.png",
+    "RECI Collaboratory",
+    "h-12 md:h-20 w-auto object-contain",
+    "(min-width: 768px) 311px, 187px"
+);
 $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 ?>
 
@@ -37,10 +46,7 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 		<div class="reci-container py-4 flex flex-row justify-between items-start sm:items-center gap-4">
 
 			<a href="https://crsp.pitt.edu" class="flex items-center">
-				<img
-					src="<?php echo esc_url($partner_logo_url); ?>"
-					alt="<?php echo esc_attr(get_bloginfo("name")); ?>"
-					class="h-10 md:h-12 w-auto" />
+				<?php echo $partner_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
 			</a>
 
 			<div class="w-auto flex justify-end items-center gap-6 lg:gap-14">
@@ -128,10 +134,7 @@ $hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
 					<a href="<?php echo esc_url(
          home_url("/"),
      ); ?>" class="flex items-center gap-2 w-3/7 justify-center">
-						<img
-							src="<?php echo esc_url($reci_logo_url); ?>"
-							alt="RECI"
-							class="h-12 md:h-20 w-auto object-contain" />
+						<?php echo $reci_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
 					</a>
 
 					<!-- Right: Reflections + Hamburger -->

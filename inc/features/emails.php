@@ -98,12 +98,14 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 		// default and a local host cannot serve them at all, so the alt has to read
 		// as the masthead on its own — hence the styled alt rather than a bare name.
 		$logo_id  = function_exists( 'reci_setting' ) ? (int) reci_setting( 'branding_reci_logo' ) : 0;
+		// 'medium' is 300px wide and the logo renders at 150px, so it is an exact
+		// 2x for retina while staying small enough to send to every recipient.
 		$logo_url = $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
 		if ( '' === $logo_url ) {
 			$logo_url = get_template_directory_uri() . '/assets/images/reci-collab.png';
 		}
 
-		$wordmark = '<img class="reci-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="180" style="display:block;width:180px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';
+		$wordmark = '<img class="reci-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="150" style="display:block;width:150px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';
 
 		return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>

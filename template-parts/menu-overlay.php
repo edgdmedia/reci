@@ -54,12 +54,19 @@ $social_links = function_exists('reci_get_social_links') ? reci_get_social_links
 		<div class="px-4 sm:px-6 h-24 flex justify-between items-center">
 
 			<a href="<?php echo esc_url(home_url("/")); ?>" class="flex items-center gap-5">
-				<img
-					src="<?php echo esc_url(
-         $assets_url . "reci-collab.png",
-     ); ?>"
-					alt="<?php echo esc_attr(get_bloginfo("name")); ?>"
-					class="h-10 md:h-14 w-auto" />
+				<?php
+				// Was hardcoded to the theme asset, so it both ignored the configured
+				// logo and pulled the full-size original on every page load — the
+				// overlay markup ships with every page whether or not it is opened.
+				echo reci_logo_img(
+					(int) reci_setting( 'branding_reci_logo' ),
+					$assets_url . 'reci-collab.png',
+					get_bloginfo( 'name' ),
+					'h-10 md:h-14 w-auto',
+					'(min-width: 768px) 218px, 156px',
+					'lazy'
+				); // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped.
+				?>
 				
 			</a>
 
