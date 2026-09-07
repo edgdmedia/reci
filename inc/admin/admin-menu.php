@@ -43,9 +43,59 @@ function reci_rename_content_menu(): void {
 	if ( isset( $submenu['edit.php'][5][0] ) ) {
 		$submenu['edit.php'][5][0] = __( 'Articles', 'reci-media-hub' );
 	}
-	if ( isset( $submenu['edit.php'][10][0] ) ) {
-		$submenu['edit.php'][10][0] = __( 'Add New Article', 'reci-media-hub' );
+
+}
+
+/**
+ * Point taxonomy screens at the Taxonomies menu.
+ *
+ * WordPress works out the active menu from the post type a taxonomy is
+ * registered against, so opening Categories lit up Content and opening
+ * Affiliations lit up Collaborators — the menu the term actually lives in was
+ * never the one highlighted.
+ */
+add_filter( 'parent_file', 'reci_taxonomy_parent_file' );
+function reci_taxonomy_parent_file( string $parent_file ): string {
+	$screen = get_current_screen();
+
+	if ( $screen && in_array( $screen->base, [ 'edit-tags', 'term' ], true ) && ! empty( $screen->taxonomy ) ) {
+		$names = wp_list_pluck( reci_listable_taxonomies(), 'name' );
+
+		if ( in_array( $screen->taxonomy, $names, true ) ) {
+			return 'reci-taxonomies';
+		}
 	}
+
+	return $parent_file;
+}
+
+add_filter( 'submenu_file', 'reci_taxonomy_submenu_file' );
+function reci_taxonomy_submenu_file( $submenu_file ) {
+	$screen = get_current_screen();
+
+	if ( $screen && in_array( $screen->base, [ 'edit-tags', 'term' ], true ) && ! empty( $screen->taxonomy ) ) {
+		$names = wp_list_pluck( reci_listable_taxonomies(), 'name' );
+
+		if ( in_array( $screen->taxonomy, $names, true ) ) {
+			// Must match the slug the submenu was registered with, which carries
+			// no post_type argument — WordPress's default value does, so it never
+			// matched and no child was highlighted either.
+			return 'edit-tags.php?taxonomy=' . $screen->taxonomy;
+		}
+	}
+
+	return $submenu_file;
+}
+
+/**
+ * Drop "Add New Article" from the Content menu.
+ *
+ * Content is a library to browse; the admin bar's + New covers the occasional
+ * article written in wp-admin, and collaborators write through the dashboard.
+ */
+add_action( 'admin_menu', 'reci_trim_content_submenu', 12 );
+function reci_trim_content_submenu(): void {
+	remove_submenu_page( 'edit.php', 'post-new.php' );
 }
 
 /**
