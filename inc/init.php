@@ -28,6 +28,7 @@ $reci_media_hub_includes = [
 	'/inc/features/sphere-helpers.php',
 	'/inc/features/author-profiles.php',
 	'/inc/features/collaborators.php',
+	'/inc/features/content-editing.php',
 	'/inc/features/emails.php',
 	'/inc/features/auth.php',
 	'/inc/features/notifications.php',
