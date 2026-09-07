@@ -24,10 +24,74 @@ if (! function_exists('reci_media_hub_cpt_labels')) {
 			'search_items'       => sprintf(__('Search %s', 'reci-media-hub'), __($plural, 'reci-media-hub')),
 			'not_found'          => sprintf(__('No %s found', 'reci-media-hub'), strtolower($plural)),
 			'not_found_in_trash' => sprintf(__('No %s found in Trash', 'reci-media-hub'), strtolower($plural)),
-			'all_items'          => sprintf(__('All %s', 'reci-media-hub'), __($plural, 'reci-media-hub')),
+			// Just the plural. all_items is what a nested post type is labelled
+			// with in the menu, and "All Podcasts" inside Content reads as a
+			// filtered view of something rather than the thing itself.
+			'all_items'          => __($plural, 'reci-media-hub'),
 			'archives'           => sprintf(__('%s Archives', 'reci-media-hub'), __($singular, 'reci-media-hub')),
 			'menu_name'          => __($plural, 'reci-media-hub'),
 		];
+	}
+}
+
+/**
+ * Flush rewrite rules when a post type's public slug changes.
+ *
+ * Registering a new slug does nothing until the rules are rebuilt, and a theme
+ * update does not do that on its own — an install would keep serving the old
+ * URL and 404 the new one. Keyed to a constant so a deploy heals itself.
+ */
+const RECI_REWRITE_VERSION = '1.1.0-resources';
+
+add_action('init', 'reci_maybe_flush_content_rewrites', 99);
+function reci_maybe_flush_content_rewrites(): void {
+	if (get_option('reci_rewrite_version') === RECI_REWRITE_VERSION) {
+		return;
+	}
+
+	flush_rewrite_rules();
+	update_option('reci_rewrite_version', RECI_REWRITE_VERSION);
+}
+
+if (! function_exists('reci_media_hub_cpt_menu_parent')) {
+	/**
+	 * Which top-level menu a post type belongs under.
+	 *
+	 * Twenty-two top-level entries is a list of database tables, not a list of
+	 * jobs. Grouping by what someone is trying to do gets it to nine.
+	 *
+	 * Reader-facing material goes under Content. Team, Partners and Testimonials
+	 * are site furniture — the components an About page is built from — so they
+	 * sit with Pages rather than beside Articles, which would imply a symmetry
+	 * that is not there.
+	 *
+	 * @return string|bool Parent menu slug, or true for its own top-level entry.
+	 */
+	function reci_media_hub_cpt_menu_parent(string $post_type) {
+		// The built-in post type's menu slug is plain 'edit.php'; only the others
+		// carry a post_type query arg. Getting this wrong silently drops every
+		// child, since _add_post_type_submenus() attaches to a parent that is not
+		// there.
+		$content = 'edit.php';
+		$site    = 'edit.php?post_type=page';
+
+		$parents = [
+			'reci_podcast'       => $content,
+			'reci_video'         => $content,
+			'reci_document'      => $content,
+			'reci_reflection'    => $content,
+			'reci_assessment'    => $content,
+			'reci_course'        => $content,
+			'reci_event'         => $content,
+			'reci_quote'         => $content,
+			'reci_glossary_term' => $content,
+
+			'reci_team'          => $site,
+			'reci_partner'       => $site,
+			'reci_testimonial'   => $site,
+		];
+
+		return $parents[$post_type] ?? true;
 	}
 }
 
@@ -100,7 +164,11 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 			'reci_document'   => [
 				'singular'      => 'Resource',
 				'plural'        => 'Resources',
-				'slug'          => 'documents',
+				// The label has always said Resources; the URL said documents. Only
+				// the public slug changes — the post type key stays reci_document,
+				// since renaming that would mean rewriting the post_type column and
+				// every reference for no visible gain.
+				'slug'          => 'resources',
 				'menu_icon'     => 'dashicons-media-document',
 				'menu_position' => 30,
 			],
@@ -165,7 +233,7 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 					'labels' => reci_media_hub_cpt_labels($config['singular'], $config['plural']),
 					'public'             => true,
 					'show_ui'            => true,
-					'show_in_menu'       => true,
+					'show_in_menu'       => reci_media_hub_cpt_menu_parent($post_type),
 					'show_in_rest'       => true,
 					'has_archive'        => $has_archive,
 					'rewrite'            => $rewrite,

@@ -18,6 +18,7 @@ if (! function_exists('reci_media_hub_taxonomy_post_types')) {
 			'post',
 			'reci_podcast',
 			'reci_video',
+			'reci_document',
 			'reci_event',
 			'reci_reflection',
 			'reci_assessment',
@@ -37,6 +38,7 @@ if (! function_exists('reci_media_hub_submission_taxonomy_post_types')) {
 			'post',
 			'reci_podcast',
 			'reci_video',
+			'reci_document',
 			'reci_event',
 			'reci_reflection',
 			'reci_assessment',
@@ -428,9 +430,13 @@ if (! function_exists('reci_media_hub_register_taxonomies')) {
 			]
 		);
 
+		// Authors *and* submitted content: the submission form writes practice
+		// focus terms to every post type it creates, and a term written to a type
+		// the taxonomy is not registered for is stored but invisible — no admin
+		// column, no metabox, and absent from get_object_taxonomies().
 		register_taxonomy(
 			'reci_practice_focus',
-			['reci_author'],
+			array_merge($submission_post_types, ['reci_author']),
 			[
 				'labels'            => [
 					'name'          => __('Practice / Focus Areas', 'reci-media-hub'),
@@ -514,7 +520,10 @@ if (! function_exists('reci_media_hub_register_taxonomies')) {
 				'public'            => true,
 				'show_in_rest'      => true,
 				'hierarchical'      => false,
-				'show_ui'           => false,
+				// The submission form writes these terms, so staff need to be able to
+				// add, rename and merge them. With show_ui off they existed and
+				// could not be managed anywhere.
+				'show_ui'           => true,
 				'show_admin_column' => false,
 				'rewrite'           => ['slug' => 'target-audience'],
 			]

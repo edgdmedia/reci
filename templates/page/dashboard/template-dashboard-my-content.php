@@ -47,16 +47,42 @@ get_header('dashboard');
 				null,
 				[
 					'title'    => 'My Content',
-					'subtitle' => 'Everything you have submitted, and where each piece stands.',
-					// `/submit/` is the canonical route; /dashboard/submit/ only redirects there.
-					'action'   => sprintf(
-						'<a href="%s" class="btn btn-primary btn-md">%s</a>',
-						esc_url( home_url( '/submit/' ) ),
-						esc_html__( 'Submit new content', 'reci-media-hub' )
-					),
+					'subtitle' => 'Everything you have written, and where each piece stands.',
+					// Level 2 submits for review at the canonical /submit/ route;
+					// level 3 and above start a draft they can publish themselves.
+					'action'   => current_user_can( 'publish_posts' )
+						? sprintf(
+							'<a href="%s" class="btn btn-primary btn-md">%s</a>',
+							esc_url( home_url( '/dashboard/my-content/new/' ) ),
+							esc_html__( 'Add new content', 'reci-media-hub' )
+						)
+						: sprintf(
+							'<a href="%s" class="btn btn-primary btn-md">%s</a>',
+							esc_url( home_url( '/submit/' ) ),
+							esc_html__( 'Submit new content', 'reci-media-hub' )
+						),
 				]
 			);
 			?>
+			<?php
+			$edited_messages = [
+				'1'            => __( 'Your changes have been saved.', 'reci-media-hub' ),
+				'resubmitted'  => __( 'Your changes have been saved and sent for review. The piece will return to the site once staff approve it.', 'reci-media-hub' ),
+				'trashed'      => __( 'That submission has been moved to the trash.', 'reci-media-hub' ),
+			];
+			$edited_code = isset( $_GET['edited'] ) ? sanitize_key( wp_unslash( $_GET['edited'] ) ) : '';
+			$listing_error = isset( $_GET['edit_error'] ) ? sanitize_key( wp_unslash( $_GET['edit_error'] ) ) : '';
+			?>
+			<?php if ( isset( $edited_messages[ $edited_code ] ) ) : ?>
+				<div class="mb-6 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800" role="status">
+					<?php echo esc_html( $edited_messages[ $edited_code ] ); ?>
+				</div>
+			<?php elseif ( '' !== $listing_error ) : ?>
+				<div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800" role="alert">
+					<?php esc_html_e( 'That action could not be completed.', 'reci-media-hub' ); ?>
+				</div>
+			<?php endif; ?>
+
 
 			<form method="get" class="flex flex-wrap gap-3 mb-6">
 				<select name="type" class="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
@@ -92,8 +118,15 @@ get_header('dashboard');
 					<tbody>
 						<?php while ( $content_query->have_posts() ) : $content_query->the_post(); ?>
 						<tr class="border-b border-zinc-100 hover:bg-zinc-50">
+							<?php
+							// get_edit_post_link() is a wp-admin URL and returns nothing for a
+							// collaborator anyway — they are Subscribers. Point at the dashboard
+							// editor instead, which is the only surface they can reach.
+							$can_edit = reci_user_can_edit_submission( get_the_ID() );
+							$row_url  = $can_edit ? reci_submission_edit_url( get_the_ID() ) : get_permalink();
+							?>
 							<td class="py-3 pr-4">
-								<a href="<?php echo esc_url( get_edit_post_link() ?: get_permalink() ); ?>" class="font-medium text-zinc-800 hover:text-amber-700">
+								<a href="<?php echo esc_url( $row_url ); ?>" class="font-medium text-zinc-800 hover:text-amber-700">
 									<?php echo esc_html( get_the_title() ?: '(untitled)' ); ?>
 								</a>
 							</td>
@@ -106,7 +139,12 @@ get_header('dashboard');
 							</td>
 							<td class="py-3 pr-4 text-zinc-500"><?php echo esc_html( get_the_modified_date() ); ?></td>
 							<td class="py-3">
-								<a href="<?php echo esc_url( get_edit_post_link() ?: get_permalink() ); ?>" class="text-amber-600 hover:text-amber-700 text-xs font-medium"><?php echo get_edit_post_link() ? 'Edit' : 'View'; ?></a>
+								<div class="flex items-center gap-3">
+									<?php if ( $can_edit ) : ?>
+										<a href="<?php echo esc_url( reci_submission_edit_url( get_the_ID() ) ); ?>" class="text-amber-600 hover:text-amber-700 text-xs font-medium">Edit</a>
+									<?php endif; ?>
+									<a href="<?php echo esc_url( get_permalink() ); ?>" class="text-zinc-500 hover:text-zinc-700 text-xs font-medium">View</a>
+								</div>
 							</td>
 						</tr>
 						<?php endwhile; wp_reset_postdata(); ?>

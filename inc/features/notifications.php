@@ -87,11 +87,24 @@ function reci_send_staff_submission_notification( int $post_id ): void {
 
 	$edit_link = get_edit_post_link( $post_id ) ?: admin_url( 'post.php?post=' . $post_id . '&action=edit' );
 	$title     = get_the_title( $post ) ?: '(untitled)';
-	$subject   = sprintf( 'New content submission: %s', $title );
+
+	// A contributor editing published work sends it back to pending, which lands
+	// here too. Calling that a new submission sends staff hunting for something
+	// they have never seen, so name it for what it is.
+	$is_revision = '' !== (string) get_post_meta( $post_id, '_reci_submission_was_published', true );
+
+	$subject = $is_revision
+		? sprintf( 'Revised submission awaiting review: %s', $title )
+		: sprintf( 'New content submission: %s', $title );
 
 	$type_object = get_post_type_object( $post->post_type );
 	$blocks      = [
-		[ 'type' => 'text', 'text' => __( 'A new content submission is ready for editorial review.', 'reci-media-hub' ) ],
+		[
+			'type' => 'text',
+			'text' => $is_revision
+				? __( 'A contributor has revised work that was already published. It is off the public site until you approve the new version.', 'reci-media-hub' )
+				: __( 'A new content submission is ready for editorial review.', 'reci-media-hub' ),
+		],
 		[
 			'type' => 'details',
 			'rows' => [
@@ -105,7 +118,13 @@ function reci_send_staff_submission_notification( int $post_id ): void {
 
 	foreach ( reci_get_staff_notification_recipients() as $user ) {
 		if ( ! empty( $user->user_email ) ) {
-			reci_send_email( (string) $user->user_email, $subject, __( 'New submission for review', 'reci-media-hub' ), $blocks, $title );
+			reci_send_email(
+				(string) $user->user_email,
+				$subject,
+				$is_revision ? __( 'Revised submission for review', 'reci-media-hub' ) : __( 'New submission for review', 'reci-media-hub' ),
+				$blocks,
+				$title
+			);
 		}
 
 		if ( ! empty( $user->ID ) ) {
@@ -266,6 +285,14 @@ function reci_maybe_notify_users_about_published_content( string $new_status, st
 		return;
 	}
 
+	// Announce a piece once. A contributor edit sends it publish -> pending ->
+	// publish, and without this every revision would push it to followers again
+	// as though it were new.
+	if ( '' !== (string) get_post_meta( $post->ID, '_reci_announced_published', true ) ) {
+		return;
+	}
+	update_post_meta( $post->ID, '_reci_announced_published', current_time( 'mysql' ) );
+
 	$allowed_post_types = [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ];
 	if ( ! in_array( $post->post_type, $allowed_post_types, true ) ) {
 		return;
@@ -279,6 +306,13 @@ function reci_maybe_notify_submitter_about_approval( string $new_status, string 
 	if ( $new_status === $old_status || 'publish' !== $new_status ) {
 		return;
 	}
+
+	// Same reasoning: "your submission is live" is true once. Re-approving a
+	// revision should not read as a fresh acceptance.
+	if ( '' !== (string) get_post_meta( $post->ID, '_reci_notified_approved', true ) ) {
+		return;
+	}
+	update_post_meta( $post->ID, '_reci_notified_approved', current_time( 'mysql' ) );
 
 	if ( ! function_exists( 'reci_media_hub_submission_supported_post_types' ) ) {
 		return;

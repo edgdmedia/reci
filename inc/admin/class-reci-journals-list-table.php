@@ -126,14 +126,16 @@ function reci_media_hub_journals_admin_page() {
 	<?php
 }
 
+// Under Submissions: a journal entry is member-written material arriving for
+// staff to read, which is the same job as the rest of that menu. It ran late so
+// the Submissions parent exists by the time this attaches to it.
 add_action( 'admin_menu', function() {
-	add_menu_page(
+	add_submenu_page(
+		'reci-submissions',
 		__( 'Journals', 'reci-media-hub' ),
 		__( 'Journals', 'reci-media-hub' ),
-		'edit_posts',
+		'edit_others_posts',
 		'reci-journals',
-		'reci_media_hub_journals_admin_page',
-		'dashicons-feedback',
-		30
+		'reci_media_hub_journals_admin_page'
 	);
-} );
+}, 20 );

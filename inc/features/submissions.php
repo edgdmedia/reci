@@ -129,13 +129,18 @@ if (! function_exists('reci_media_hub_submission_type_map')) {
 	 * @return array<string,string>
 	 */
 	function reci_media_hub_submission_type_map(): array {
+		// What the front end can create, and nothing else. Courses and events are
+		// staff-built and were never here; assessments were removed from the form
+		// because a quiz submitted without its question set cannot be taken, and
+		// leaving the mapping behind would have let a crafted POST make one
+		// anyway. This also drives the Submissions queue and the notification
+		// allow-list, so a type absent here is absent from those too.
 		return [
 			'blog'       => 'post',
 			'article'    => 'post',
 			'podcast'    => 'reci_podcast',
 			'video'      => 'reci_video',
 			'document'   => 'reci_document',
-			'assessment' => 'reci_assessment',
 			'exhibit'    => 'post',
 			'other'      => 'post',
 		];
@@ -220,14 +225,12 @@ if (! function_exists('reci_media_hub_submission_type_definitions')) {
 				'examples'  => 'Research papers, reports, curricula, policy briefs, toolkits',
 				'wordRange' => 'Varies by format',
 			],
-			[
-				'id'        => 'assessment',
-				'label'     => $labels['assessment'] ?? __('Quiz / Tool', 'reci-media-hub'),
-				'icon'      => '⬡',
-				'desc'      => 'Self-assessments, surveys, diagnostic instruments, or interactive tools that help users evaluate their racial equity consciousness.',
-				'examples'  => 'Self-reflection instruments, organizational audits, learning diagnostics, checklists',
-				'wordRange' => 'Varies by format',
-			],
+			// 'assessment' is deliberately absent. A quiz needs a question set,
+			// scales, choices and result ranges — eight fields including a
+			// repeating builder — and a submission without them produces a quiz
+			// that cannot be taken. Staff build these in wp-admin. The type map
+			// still contains 'assessment', so restoring this entry is all it
+			// takes to put it back.
 			[
 				'id'        => 'other',
 				'label'     => $labels['other'] ?? __('Other Content', 'reci-media-hub'),
@@ -280,7 +283,85 @@ if (! function_exists('reci_media_hub_submission_taxonomies')) {
 			'reci_sphere',
 			'reci_practice_focus',
 			'reci_target_audience',
+			'reci_location',
 		];
+	}
+}
+
+if (! function_exists('reci_media_hub_contributor_values_for_user')) {
+	/**
+	 * Contributor identity, read from the collaborator profile.
+	 *
+	 * Keyed by the old _reci_submission_* meta names so notifications and the
+	 * payload snapshot keep working unchanged. Nothing here is written to the
+	 * post — the profile is the source of truth and the post links to it through
+	 * post_author.
+	 *
+	 * @return array<string,string>
+	 */
+	function reci_media_hub_contributor_values_for_user(int $user_id): array {
+		$user = $user_id > 0 ? get_user_by('id', $user_id) : null;
+		if (! $user instanceof WP_User) {
+			return [];
+		}
+
+		$values = [
+			'_reci_submission_first_name'   => (string) get_user_meta($user_id, 'first_name', true),
+			'_reci_submission_last_name'    => (string) get_user_meta($user_id, 'last_name', true),
+			'_reci_submission_email'        => (string) $user->user_email,
+			'_reci_submission_organization' => (string) get_user_meta($user_id, 'organization', true),
+			'_reci_submission_role'         => (string) get_user_meta($user_id, 'user_title', true),
+			'_reci_submission_bio'          => (string) get_user_meta($user_id, 'description', true),
+			'_reci_submission_website'      => (string) $user->user_url,
+		];
+
+		return array_filter($values, static fn(string $value): bool => '' !== $value);
+	}
+}
+
+if (! function_exists('reci_media_hub_submission_narrative_fields')) {
+	/**
+	 * The long-form questions, in the order they appear in the body.
+	 *
+	 * These used to be concatenated in the browser and posted as one string, so
+	 * the individual answers existed nowhere else. Each now has its own POST key
+	 * and its own meta key, and the body is composed here from the same list.
+	 *
+	 * @return array<string,array{post:string,label:string}>
+	 */
+	function reci_media_hub_submission_narrative_fields(): array {
+		return [
+			'_reci_submission_evidence_basis'      => ['post' => 'submission_evidence_basis',      'label' => 'Evidence Basis'],
+			'_reci_submission_process_orientation' => ['post' => 'submission_process_orientation', 'label' => 'Process Orientation'],
+			'_reci_submission_equity_focus'        => ['post' => 'submission_equity_focus',        'label' => 'Racial Equity Focus'],
+		];
+	}
+}
+
+if (! function_exists('reci_media_hub_compose_submission_body')) {
+	/**
+	 * Build post_content from the narrative answers.
+	 *
+	 * Composed here rather than in the browser, and only for answers that were
+	 * actually given — the old client-side version emitted every label whether
+	 * or not it had a value, which is why an empty upload still produced a
+	 * trailing "File Upload Description:".
+	 *
+	 * @param array<string,string> $answers Meta key => answer.
+	 */
+	function reci_media_hub_compose_submission_body(array $answers): string {
+		$blocks = [];
+
+		foreach (reci_media_hub_submission_narrative_fields() as $meta_key => $field) {
+			$value = trim((string) ($answers[$meta_key] ?? ''));
+			if ('' === $value) {
+				continue;
+			}
+
+			$blocks[] = '<h3>' . esc_html($field['label']) . '</h3>' . "\n" . wpautop($value);
+		}
+
+		return implode("\n\n", $blocks);
 	}
 }
 
@@ -297,6 +378,41 @@ if (! function_exists('reci_media_hub_submission_registered_meta_keys')) {
 				'default'  => '',
 				'sanitize' => static function ($value): string {
 					return esc_url_raw((string) $value);
+				},
+			],
+			'_reci_submission_evidence_basis' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_process_orientation' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_equity_focus' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_agreed_terms' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_text_field((string) $value);
+				},
+			],
+			'_reci_submission_agreed_review' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_text_field((string) $value);
 				},
 			],
 			'_reci_submission_file_id' => [
@@ -657,8 +773,21 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		$summary_raw = $_POST['submission_summary'] ?? '';
 		$summary = sanitize_textarea_field(is_string($summary_raw) ? wp_unslash($summary_raw) : '');
 
-		$details_raw = $_POST['submission_details'] ?? '';
-		$details = wp_kses_post(is_string($details_raw) ? wp_unslash($details_raw) : '');
+		// Narrative answers now arrive one key per question and the body is built
+		// here. submission_details is still accepted so an un-rebuilt front end
+		// keeps working rather than silently posting an empty body.
+		$narrative_answers = [];
+		foreach (reci_media_hub_submission_narrative_fields() as $meta_key => $field) {
+			$raw = $_POST[$field['post']] ?? '';
+			$narrative_answers[$meta_key] = sanitize_textarea_field(is_string($raw) ? wp_unslash($raw) : '');
+		}
+
+		$details = reci_media_hub_compose_submission_body($narrative_answers);
+
+		if ('' === $details) {
+			$details_raw = $_POST['submission_details'] ?? '';
+			$details = wp_kses_post(is_string($details_raw) ? wp_unslash($details_raw) : '');
+		}
 
 		$link_raw = $_POST['submission_content_link'] ?? '';
 		$content_link = esc_url_raw(is_string($link_raw) ? wp_unslash($link_raw) : '');
@@ -669,6 +798,10 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		}
 
 		$post_type = $type_map[$content_type];
+
+		// /submit/ is the Level 2 review flow, so everything it creates queues for
+		// review. Level 3 and above add content through the dashboard instead,
+		// where publishing is theirs to do.
 		$post_data = [
 			'post_type'    => $post_type,
 			'post_status'  => 'pending',
@@ -749,62 +882,82 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 
 		update_post_meta($post_id, '_reci_submission_content_type', $content_type);
 
-		$contributor_fields = [
-			'_reci_submission_first_name'   => 'submission_first_name',
-			'_reci_submission_last_name'    => 'submission_last_name',
-			'_reci_submission_email'        => 'submission_email',
-			'_reci_submission_organization' => 'submission_organization',
-			'_reci_submission_role'         => 'submission_role',
-			'_reci_submission_bio'          => 'submission_bio',
-			'_reci_submission_website'      => 'submission_website',
-			'_reci_submission_file_description' => 'submission_file_description',
-		];
-		$contributor_meta_values = [];
-
-		foreach ($contributor_fields as $meta_key => $field_name) {
-			$value_raw = $_POST[$field_name] ?? '';
-			$value = is_string($value_raw) ? wp_unslash($value_raw) : '';
-
-			if ($meta_key === '_reci_submission_email') {
-				$sanitized = sanitize_email($value);
-			} elseif ($meta_key === '_reci_submission_website') {
-				$sanitized = esc_url_raw($value);
-			} elseif ($meta_key === '_reci_submission_bio' || $meta_key === '_reci_submission_file_description') {
-				$sanitized = sanitize_textarea_field($value);
-			} else {
-				$sanitized = sanitize_text_field($value);
-			}
-
-			if ($sanitized !== '') {
-				update_post_meta($post_id, $meta_key, $sanitized);
-				$contributor_meta_values[$meta_key] = $sanitized;
+		// Each narrative answer also survives on its own, so the body is a
+		// rendering of the submission rather than its only copy.
+		foreach ($narrative_answers as $meta_key => $answer) {
+			if ('' !== $answer) {
+				update_post_meta($post_id, $meta_key, $answer);
 			}
 		}
 
-		$author_opt_in_raw = $_POST['submission_author_opt_in'] ?? '';
-		$author_opt_in = is_string($author_opt_in_raw) ? rest_sanitize_boolean(wp_unslash($author_opt_in_raw)) : false;
-		if ($author_opt_in) {
-			update_post_meta($post_id, '_reci_submission_author_opt_in', true);
-
-			$author_name = trim(
-				($contributor_meta_values['_reci_submission_first_name'] ?? '') . ' ' .
-				($contributor_meta_values['_reci_submission_last_name'] ?? '')
-			);
-			$author_bio = $contributor_meta_values['_reci_submission_bio'] ?? '';
-
-			if ($author_name !== '' && function_exists('reci_media_hub_create_or_get_author_profile')) {
-				$title = $contributor_meta_values['_reci_submission_role'] ?? '';
-				$profile_id = reci_media_hub_create_or_get_author_profile($author_name, $title, $author_bio);
-				if ($profile_id > 0) {
-					update_post_meta($post_id, '_reci_display_author_profile_id', $profile_id);
-				}
+		// Keywords are tags. post_tag is registered on every submittable type and
+		// was sitting empty while these went into the body as text.
+		$keywords_raw = $_POST['submission_keywords'] ?? '';
+		$keywords = sanitize_text_field(is_string($keywords_raw) ? wp_unslash($keywords_raw) : '');
+		if ('' !== $keywords) {
+			$keyword_list = array_values(array_filter(array_map('trim', explode(',', $keywords))));
+			if (! empty($keyword_list)) {
+				wp_set_post_terms($post_id, $keyword_list, 'post_tag', false);
 			}
 		}
+
+		// The two agreement checkboxes gated the submit button in the browser and
+		// were never posted, so nothing recorded that anyone accepted the terms.
+		foreach (['submission_agree_terms' => '_reci_submission_agreed_terms', 'submission_agree_review' => '_reci_submission_agreed_review'] as $post_key => $meta_key) {
+			$agreed_raw = $_POST[$post_key] ?? '';
+			if (rest_sanitize_boolean(is_string($agreed_raw) ? wp_unslash($agreed_raw) : false)) {
+				update_post_meta($post_id, $meta_key, current_time('mysql'));
+			}
+		}
+
+		$file_description_raw = $_POST['submission_file_description'] ?? '';
+		$file_description = sanitize_textarea_field(is_string($file_description_raw) ? wp_unslash($file_description_raw) : '');
+		if ($file_description !== '') {
+			update_post_meta($post_id, '_reci_submission_file_description', $file_description);
+		}
+
+		// Contributor identity is NOT copied onto the post. Only approved
+		// collaborators can submit (see the gate at the top of this handler), so
+		// post_author and _reci_submission_submitter_user_id already say who this
+		// is, and the collaborator profile is the single source of truth for their
+		// name, organisation, role, bio and website. Copying those onto every post
+		// produced a second copy that went stale the moment the profile changed.
+		// Read them from the user when they are needed, here and downstream.
+		$contributor_meta_values = reci_media_hub_contributor_values_for_user($current_user_id);
+
+		// The author-profile opt-in branch was removed. It read
+		// $_POST['submission_author_opt_in'], a key the form has never sent, so it
+		// had never run. Approving a collaborator application is what creates a
+		// public profile.
 
 		$location_raw = $_POST['submission_location'] ?? '';
 		$location = is_string($location_raw) ? sanitize_text_field(wp_unslash($location_raw)) : '';
 		if ($location !== '') {
 			update_post_meta($post_id, '_reci_submission_location', $location);
+		}
+
+		// Featured image. Separate from submission_file, which is the content
+		// payload for a resource — a document submission can have both.
+		if (
+			isset($_FILES['submission_featured_image']) &&
+			is_array($_FILES['submission_featured_image']) &&
+			! empty($_FILES['submission_featured_image']['name']) &&
+			((int) ($_FILES['submission_featured_image']['error'] ?? 0)) === UPLOAD_ERR_OK
+		) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+
+			$thumb_id = media_handle_upload('submission_featured_image', $post_id);
+			if (! is_wp_error($thumb_id) && $thumb_id > 0) {
+				set_post_thumbnail($post_id, (int) $thumb_id);
+			}
+		}
+
+		// Whatever the chosen type needs: audio URL for a podcast, video URL for
+		// a video, source and canonical URLs for written pieces.
+		if (function_exists('reci_save_submission_type_fields')) {
+			reci_save_submission_type_fields($post_id, $content_type);
 		}
 
 		$file_upload_failed = false;
@@ -1265,34 +1418,102 @@ if (! function_exists('reci_media_hub_send_submission_notifications')) {
 			);
 		}
 
-		if (is_email($admin_email)) {
-			$admin_subject = sprintf(
-				/* translators: %s site name */
-				__('[%s] New Content Submission', 'reci-media-hub'),
-				$site_name
-			);
-			$admin_rows = [
-				__('Title', 'reci-media-hub')        => (string) $post->post_title,
-				__('Post type', 'reci-media-hub')    => $post_type_label,
-				__('Content type', 'reci-media-hub') => $content_type !== '' ? $content_type : '-',
-				__('Status', 'reci-media-hub')       => (string) $post->post_status,
-				__('Contributor', 'reci-media-hub')  => $display_name,
-				__('Email', 'reci-media-hub')        => $submitter_email !== '' ? $submitter_email : '-',
-			];
-			if ($content_link !== '') {
-				$admin_rows[__('Content link', 'reci-media-hub')] = $content_link;
-			}
+		// No staff email here. reci_maybe_notify_staff_about_submission(), on
+		// transition_post_status, already notifies every staff reviewer
+		// individually with a link straight to the edit screen. This block mailed
+		// admin_email as well, so staff received two notifications for the same
+		// submission — and with N reviewers it was N+1.
+	}
+}
 
-			$admin_blocks = [
-				['type' => 'text', 'text' => __('A new submission has been received.', 'reci-media-hub')],
-				['type' => 'details', 'rows' => $admin_rows],
-			];
-			if (is_string($edit_url) && $edit_url !== '') {
-				$admin_blocks[] = ['type' => 'button', 'label' => __('Open in the editor', 'reci-media-hub'), 'url' => $edit_url];
-			}
+add_action('admin_post_reci_publish_submission', 'reci_media_hub_handle_publish_submission');
 
-			reci_send_email($admin_email, $admin_subject, __('New content submission', 'reci-media-hub'), $admin_blocks, (string) $post->post_title);
+/**
+ * Publish one submission straight from the queue.
+ */
+function reci_media_hub_handle_publish_submission(): void {
+	$post_id = isset($_GET['post']) ? absint(wp_unslash($_GET['post'])) : 0;
+	$queue   = admin_url('admin.php?page=reci-submissions');
+
+	check_admin_referer('reci_publish_submission_' . $post_id);
+
+	$post = get_post($post_id);
+	if (! $post instanceof WP_Post || ! in_array($post->post_type, reci_media_hub_submission_supported_post_types(), true)) {
+		wp_safe_redirect(add_query_arg('reci_published', 'invalid', $queue));
+		exit;
+	}
+
+	if (! current_user_can('publish_post', $post_id)) {
+		wp_die(esc_html__('You are not allowed to publish that submission.', 'reci-media-hub'));
+	}
+
+	wp_update_post(['ID' => $post_id, 'post_status' => 'publish']);
+
+	wp_safe_redirect(add_query_arg('reci_published', '1', $queue));
+	exit;
+}
+
+add_action('admin_notices', 'reci_media_hub_publish_submission_notice');
+function reci_media_hub_publish_submission_notice(): void {
+	if (! isset($_GET['reci_published'])) {
+		return;
+	}
+
+	$ok = '1' === sanitize_key(wp_unslash($_GET['reci_published']));
+
+	printf(
+		'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+		$ok ? 'success' : 'error',
+		esc_html(
+			$ok
+				? __('Submission published. The contributor has been notified.', 'reci-media-hub')
+				: __('That submission could not be published.', 'reci-media-hub')
+		)
+	);
+}
+
+if (! function_exists('reci_media_hub_pending_submission_count')) {
+	/**
+	 * How many submissions are waiting for review, across every type.
+	 *
+	 * Cached for a minute: this runs on every admin page load to draw the menu
+	 * bubble, and an exact number is worth less than a fast admin.
+	 */
+	function reci_media_hub_pending_submission_count(): int {
+		$cached = get_transient('reci_pending_submission_count');
+		if (false !== $cached) {
+			return (int) $cached;
 		}
+
+		$query = new WP_Query(
+			[
+				'post_type'              => reci_media_hub_submission_supported_post_types(),
+				'post_status'            => 'pending',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'no_found_rows'          => false,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+			]
+		);
+
+		$count = (int) $query->found_posts;
+		set_transient('reci_pending_submission_count', $count, MINUTE_IN_SECONDS);
+
+		return $count;
+	}
+}
+
+// The bubble is wrong the moment anything is approved, so clear it on any
+// status change rather than waiting for the transient to lapse.
+add_action('transition_post_status', 'reci_media_hub_flush_pending_count', 10, 3);
+function reci_media_hub_flush_pending_count(string $new_status, string $old_status, WP_Post $post): void {
+	if ($new_status === $old_status) {
+		return;
+	}
+
+	if (in_array($post->post_type, reci_media_hub_submission_supported_post_types(), true)) {
+		delete_transient('reci_pending_submission_count');
 	}
 }
 
@@ -1301,10 +1522,41 @@ if (! function_exists('reci_media_hub_register_submission_admin_page')) {
 	 * Register a consolidated admin page for submissions.
 	 */
 	function reci_media_hub_register_submission_admin_page(): void {
-		add_management_page(
+		// Top level, not buried under Tools: this is the queue staff work from,
+		// and the count is the whole point — without it they had to open each
+		// post type in turn to find out whether anything was waiting.
+		$pending = reci_media_hub_pending_submission_count();
+
+		$title = __('Submissions', 'reci-media-hub');
+		if ($pending > 0) {
+			$title .= sprintf(
+				' <span class="awaiting-mod"><span class="pending-count">%d</span></span>',
+				$pending
+			);
+		}
+
+		add_menu_page(
 			__('Submissions', 'reci-media-hub'),
-			__('Submissions', 'reci-media-hub'),
-			'edit_posts',
+			$title,
+			// Reviewing other people's work is staff work. edit_posts would have
+			// admitted a Collaborator, who has no business in this queue.
+			'edit_others_posts',
+			'reci-submissions',
+			'reci_media_hub_render_submission_admin_page',
+			'dashicons-editor-ol',
+			29
+		);
+
+		// add_menu_page() does not list the parent in its own submenu, so without
+		// this the queue itself is unreachable from the expanded menu — only
+		// Applications and Journals would show.
+		add_submenu_page(
+			'reci-submissions',
+			__('Submitted Content', 'reci-media-hub'),
+			// Not just "Content": that word is the top-level menu for the library,
+			// and the same label in two places reads as the same destination.
+			__('Submitted Content', 'reci-media-hub'),
+			'edit_others_posts',
 			'reci-submissions',
 			'reci_media_hub_render_submission_admin_page'
 		);
@@ -1316,7 +1568,7 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 	 * Render the consolidated submissions admin page.
 	 */
 	function reci_media_hub_render_submission_admin_page(): void {
-		if (! current_user_can('edit_posts')) {
+		if (! current_user_can('edit_others_posts')) {
 			wp_die(esc_html__('You are not allowed to view submissions.', 'reci-media-hub'));
 		}
 
@@ -1332,7 +1584,12 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 
 		$filters = [
 			'posts_per_page' => 100,
-			'post_status'    => $post_status !== '' ? $post_status : ['pending', 'draft', 'publish'],
+			// Default to pending: staff open this screen to find what is waiting,
+			// not to browse everything ever submitted. 'any' is the explicit
+			// opt-out, so the empty default and "show me everything" stay distinct.
+			'post_status'    => '' === $post_status
+				? 'pending'
+				: ( 'any' === $post_status ? [ 'pending', 'draft', 'publish' ] : $post_status ),
 			'post_type'      => $post_type,
 			'search'         => $search,
 		];
@@ -1352,7 +1609,8 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 		echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="' . esc_attr__('Search title', 'reci-media-hub') . '" style="min-width:220px;" /> ';
 		echo '<select name="post_status">';
 		$status_options = [
-			''        => __('All statuses', 'reci-media-hub'),
+			''        => __('Pending (default)', 'reci-media-hub'),
+			'any'     => __('All statuses', 'reci-media-hub'),
 			'pending' => __('Pending', 'reci-media-hub'),
 			'draft'   => __('Draft', 'reci-media-hub'),
 			'publish' => __('Published', 'reci-media-hub'),
@@ -1420,7 +1678,20 @@ if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 			echo '<td>' . esc_html($email !== '' ? $email : '-') . '</td>';
 			echo '<td>';
 			if (is_string($edit_url) && $edit_url !== '') {
-				echo '<a class="button button-small" href="' . esc_url($edit_url) . '">' . esc_html__('Open', 'reci-media-hub') . '</a>';
+				echo '<a class="button button-small" href="' . esc_url($edit_url) . '">' . esc_html__('Open', 'reci-media-hub') . '</a> ';
+			}
+
+			// Approve without opening the post: the point of a single queue is
+			// that routine approvals never leave it.
+			if ('pending' === $post->post_status && current_user_can('publish_post', $post->ID)) {
+				$publish_url = wp_nonce_url(
+					add_query_arg(
+						['action' => 'reci_publish_submission', 'post' => $post->ID],
+						admin_url('admin-post.php')
+					),
+					'reci_publish_submission_' . $post->ID
+				);
+				echo '<a class="button button-small button-primary" href="' . esc_url($publish_url) . '">' . esc_html__('Publish', 'reci-media-hub') . '</a>';
 			}
 			echo '</td>';
 			echo '</tr>';

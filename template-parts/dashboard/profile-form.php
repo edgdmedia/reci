@@ -17,7 +17,11 @@ $current_user_id = get_current_user_id();
 $user            = wp_get_current_user();
 $message         = '';
 
-$fields = reci_collaborator_profile_field_definitions();
+// A subscriber has no professional identity to record, so they never see the
+// collaborator half of the form — and, because $fields drives the save loop as
+// well as the markup, they cannot post into it either.
+$is_collaborator = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator( $current_user_id );
+$fields          = reci_profile_fields_for_audience( $is_collaborator ? 'collaborator' : 'all' );
 
 // Email is managed by the account, not this form.
 unset( $fields['user_email'] );
@@ -44,12 +48,12 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && isset( $_POST['reci_profile_nonce'
 
 		// Multi-value fields post an array, plus an optional free-text companion.
 		if ( 'taxonomy_checkboxes' === $type ) {
-			$values = array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ $key ] ?? [] ) );
-			$other  = sanitize_text_field( wp_unslash( $_POST[ $key . '_other' ] ?? '' ) );
+			$checked = array_map( 'sanitize_text_field', (array) wp_unslash( $_POST[ $key ] ?? [] ) );
+			$other   = sanitize_text_field( wp_unslash( $_POST[ $key . '_other' ] ?? '' ) );
 			if ( '' !== $other ) {
-				$values = array_merge( $values, array_map( 'trim', explode( ',', $other ) ) );
+				$checked = array_merge( $checked, array_map( 'trim', explode( ',', $other ) ) );
 			}
-			$submitted[ $key ] = array_values( array_unique( array_filter( $values ) ) );
+			$submitted[ $key ] = array_values( array_unique( array_filter( $checked ) ) );
 			continue;
 		}
 
@@ -110,10 +114,23 @@ $email = (string) $user->user_email;
 		</div>
 	</fieldset>
 
+	<?php
+	$shared_fields       = array_intersect_key( $fields, reci_profile_fields_for_audience( 'all' ) );
+	$collaborator_fields = array_diff_key( $fields, $shared_fields );
+	?>
+
 	<fieldset class="space-y-5">
-		<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'Contributor profile', 'reci-media-hub' ); ?></legend>
-		<?php reci_render_collaborator_fields( $fields, $values ); ?>
+		<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'About you', 'reci-media-hub' ); ?></legend>
+		<?php reci_render_collaborator_fields( $shared_fields, $values ); ?>
 	</fieldset>
+
+	<?php if ( ! empty( $collaborator_fields ) ) : ?>
+	<fieldset class="space-y-5 border-t border-zinc-200 pt-8">
+		<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'Collaborator profile', 'reci-media-hub' ); ?></legend>
+		<p class="text-sm leading-6 text-zinc-500"><?php esc_html_e( 'These appear on your public collaborator page and are carried into the submit flow.', 'reci-media-hub' ); ?></p>
+		<?php reci_render_collaborator_fields( $collaborator_fields, $values ); ?>
+	</fieldset>
+	<?php endif; ?>
 
 	<div>
 		<button type="submit" class="btn btn-primary btn-md"><?php esc_html_e( 'Save Profile', 'reci-media-hub' ); ?></button>

@@ -157,6 +157,26 @@ add_action( 'admin_init', 'reci_seed_theme_setting_defaults', 5 );
 // Admin menu
 // ---------------------------------------------------------------------------
 
+add_action( 'admin_post_reci_regenerate_logos', 'reci_handle_regenerate_logos' );
+
+/**
+ * Rebuild the intermediate sizes for the configured logos.
+ */
+function reci_handle_regenerate_logos(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to do that.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_regenerate_logos' );
+
+	$results = function_exists( 'reci_regenerate_logo_sizes' ) ? reci_regenerate_logo_sizes() : [];
+
+	set_transient( 'reci_logo_regen_notice', $results, 60 );
+
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-settings&tab=branding&logos=regenerated' ) );
+	exit;
+}
+
 add_action( 'admin_menu', 'reci_register_settings_menu' );
 
 function reci_register_settings_menu(): void {
@@ -169,6 +189,84 @@ function reci_register_settings_menu(): void {
 		'dashicons-admin-generic',
 		58
 	);
+
+	// The log is a record, not a setting — it does not belong on a tab whose
+	// only other job is saving a form.
+	add_submenu_page(
+		'reci-settings',
+		'Email Log',
+		'Email Log',
+		'manage_options',
+		'reci-email-log',
+		'reci_email_log_page_html'
+	);
+}
+
+/**
+ * Email log screen.
+ *
+ * Read-only. Retention is configured on RECI Settings -> Email.
+ */
+function reci_email_log_page_html(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	$rows      = function_exists( 'reci_get_email_log' ) ? reci_get_email_log( 200 ) : [];
+	$retention = (int) reci_setting( 'email_log_retention', 30 );
+
+	echo '<div class="wrap"><h1>' . esc_html__( 'Email Log', 'reci-media-hub' ) . '</h1>';
+
+	echo '<p class="description">';
+	if ( $retention > 0 ) {
+		printf(
+			/* translators: %d: number of days. */
+			esc_html__( 'Entries older than %d days are deleted automatically.', 'reci-media-hub' ),
+			$retention
+		);
+	} else {
+		esc_html_e( 'Retention is set to keep everything — no entry is deleted automatically.', 'reci-media-hub' );
+	}
+	echo ' <a href="' . esc_url( admin_url( 'admin.php?page=reci-settings&tab=email' ) ) . '">' . esc_html__( 'Change this', 'reci-media-hub' ) . '</a>.</p>';
+
+	if ( empty( $rows ) ) {
+		echo '<p>' . esc_html__( 'Nothing sent yet.', 'reci-media-hub' ) . '</p></div>';
+		return;
+	}
+
+	reci_render_email_log_table( $rows );
+
+	echo '<p class="description">' . esc_html__( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' ) . '</p>';
+	echo '</div>';
+}
+
+/**
+ * Shared renderer for the email log table.
+ *
+ * @param array<int,object> $rows
+ */
+function reci_render_email_log_table( array $rows ): void {
+	echo '<table class="widefat striped" style="max-width:1000px;"><thead><tr>';
+	foreach ( [ __( 'When', 'reci-media-hub' ), __( 'To', 'reci-media-hub' ), __( 'Subject', 'reci-media-hub' ), __( 'Via', 'reci-media-hub' ), __( 'Result', 'reci-media-hub' ) ] as $th ) {
+		echo '<th>' . esc_html( $th ) . '</th>';
+	}
+	echo '</tr></thead><tbody>';
+
+	foreach ( $rows as $row ) {
+		$ok = 'sent' === $row->status;
+		printf(
+			'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><span style="color:%s;font-weight:600;">%s</span>%s</td></tr>',
+			esc_html( mysql2date( 'j M Y, H:i', $row->created_at ) ),
+			esc_html( $row->recipient ),
+			esc_html( $row->subject ),
+			esc_html( $row->transport ),
+			$ok ? '#1f7a5a' : '#9d2f45',
+			esc_html( $ok ? __( 'Sent', 'reci-media-hub' ) : __( 'Failed', 'reci-media-hub' ) ),
+			'' !== $row->error ? '<br /><span style="color:#6A6D70;font-size:12px;">' . esc_html( $row->error ) . '</span>' : ''
+		);
+	}
+
+	echo '</tbody></table>';
 }
 
 // ---------------------------------------------------------------------------
@@ -193,6 +291,7 @@ function reci_register_settings(): void {
 	reci_add_field( 'branding_hub_subtitle',    'Site Subtitle',         'text',   'reci-settings-branding', 'reci_branding', 'e.g. Media Hub' );
 	reci_add_field( 'branding_primary_color',   'Primary Colour',        'color',  'reci-settings-branding', 'reci_branding' );
 	reci_add_field( 'branding_accent_color',    'Accent Colour',         'color',  'reci-settings-branding', 'reci_branding' );
+	reci_add_field( 'branding_regenerate',      'Logo Sizes',            'button', 'reci-settings-branding', 'reci_branding', 'Rebuilds the resized copies of the two logos above. Run this after changing a logo, or once after a theme update that adds a new size.', [], [ 'button_label' => 'Regenerate logo sizes', 'button_action' => 'reci_regenerate_logos' ] );
 
 	// ── 1b. Email ─────────────────────────────────────────────────────────
 	add_settings_section( 'reci_email', 'Email', '__return_false', 'reci-settings-email' );
@@ -206,8 +305,7 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
 	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
 	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
-	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything.', [], [ 'min' => 0, 'max' => 3650 ] );
-	reci_add_field( 'email_log',           'Recent Email',  'email_log', 'reci-settings-email', 'reci_email' );
+	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything. The log itself lives under RECI Settings &rarr; Email Log.', [], [ 'min' => 0, 'max' => 3650 ] );
 
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
@@ -396,38 +494,11 @@ function reci_render_field( array $args ): void {
 			echo '<p class="description">' . wp_kses_post( __( 'Add <code>define( \'RECI_SMTP_PASSWORD\', \'…\' );</code> to wp-config.php. It is deliberately not stored in the database.', 'reci-media-hub' ) ) . '</p>';
 			break;
 
-		case 'email_log':
-			$rows = function_exists( 'reci_get_email_log' ) ? reci_get_email_log( 50 ) : [];
-			if ( empty( $rows ) ) {
-				echo '<p class="description">' . esc_html__( 'Nothing sent yet.', 'reci-media-hub' ) . '</p>';
-				break;
-			}
-			echo '<table class="widefat striped" style="max-width:860px;"><thead><tr>';
-			foreach ( [ __( 'When', 'reci-media-hub' ), __( 'To', 'reci-media-hub' ), __( 'Subject', 'reci-media-hub' ), __( 'Via', 'reci-media-hub' ), __( 'Result', 'reci-media-hub' ) ] as $th ) {
-				echo '<th>' . esc_html( $th ) . '</th>';
-			}
-			echo '</tr></thead><tbody>';
-			foreach ( $rows as $row ) {
-				$ok = 'sent' === $row->status;
-				printf(
-					'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><span style="color:%s;font-weight:600;">%s</span>%s</td></tr>',
-					esc_html( mysql2date( 'j M Y, H:i', $row->created_at ) ),
-					esc_html( $row->recipient ),
-					esc_html( $row->subject ),
-					esc_html( $row->transport ),
-					$ok ? '#1f7a5a' : '#9d2f45',
-					esc_html( $ok ? __( 'Sent', 'reci-media-hub' ) : __( 'Failed', 'reci-media-hub' ) ),
-					'' !== $row->error ? '<br /><span style="color:#6A6D70;font-size:12px;">' . esc_html( $row->error ) . '</span>' : ''
-				);
-			}
-			echo '</tbody></table>';
-			echo '<p class="description">' . esc_html__( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' ) . '</p>';
-			break;
-
 		case 'button':
+			$action = (string) ( $args['button_action'] ?? 'reci_send_test_email' );
 			$url = wp_nonce_url(
-				add_query_arg( 'action', 'reci_send_test_email', admin_url( 'admin-post.php' ) ),
-				'reci_send_test_email'
+				add_query_arg( 'action', $action, admin_url( 'admin-post.php' ) ),
+				$action
 			);
 			printf(
 				'<a href="%s" class="button">%s</a>',

@@ -69,6 +69,32 @@ $sign_in_url = function_exists( 'reci_get_auth_page_url' )
 		</p>
 	<?php endif; ?>
 
+	<?php
+	// The handler redirects back here with ?application_error=<code> on every
+	// rejection. Nothing rendered it before, so a failed submission looked like
+	// a form that simply cleared itself.
+	$application_errors = [
+		'invalid_nonce'          => __( 'Security check failed. Please try again.', 'reci-media-hub' ),
+		'missing_fields'         => __( 'Please complete every required field.', 'reci-media-hub' ),
+		'missing_account_fields' => __( 'Please fill in your name, email, and password.', 'reci-media-hub' ),
+		'password_mismatch'      => __( 'Passwords do not match.', 'reci-media-hub' ),
+		'registration_disabled'  => __( 'Registration is currently disabled.', 'reci-media-hub' ),
+		'save_failed'            => __( 'We could not save your application. Please try again.', 'reci-media-hub' ),
+	];
+
+	if ( function_exists( 'reci_password_error_messages' ) ) {
+		$application_errors += reci_password_error_messages();
+	}
+
+	$application_error_code = isset( $_GET['application_error'] ) ? sanitize_key( wp_unslash( $_GET['application_error'] ) ) : '';
+	if ( '' !== $application_error_code ) :
+		$application_error_msg = $application_errors[ $application_error_code ] ?? __( 'Something went wrong. Please try again.', 'reci-media-hub' );
+	?>
+		<div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+			<?php echo esc_html( $application_error_msg ); ?>
+		</div>
+	<?php endif; ?>
+
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="mt-8 space-y-8" enctype="multipart/form-data">
 		<input type="hidden" name="action" value="reci_collaborator_application" />
 		<input type="hidden" name="reci_application_context" value="<?php echo esc_attr( $args['context'] ); ?>" />
@@ -82,6 +108,9 @@ $sign_in_url = function_exists( 'reci_get_auth_page_url' )
 		<?php if ( $is_guest ) : ?>
 			<fieldset class="space-y-5">
 				<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'Create your password', 'reci-media-hub' ); ?></legend>
+				<?php if ( function_exists( 'reci_password_rules_text' ) ) : ?>
+					<p class="text-sm leading-6 text-zinc-500"><?php echo esc_html( reci_password_rules_text() ); ?></p>
+				<?php endif; ?>
 				<?php reci_render_collaborator_fields( reci_collaborator_account_field_definitions() ); ?>
 			</fieldset>
 		<?php endif; ?>

@@ -30,20 +30,28 @@ if ( ! function_exists( 'reci_register_collaborator_application_post_type' ) ) {
 					'search_items'       => __( 'Search Collaborator Applications', 'reci-media-hub' ),
 					'not_found'          => __( 'No collaborator applications found', 'reci-media-hub' ),
 					'not_found_in_trash' => __( 'No collaborator applications found in Trash', 'reci-media-hub' ),
-					'all_items'          => __( 'Collaborator Applications', 'reci-media-hub' ),
-					'menu_name'          => __( 'Collaborator Applications', 'reci-media-hub' ),
+					// Short labels: these read inside the Collaborators menu, where the
+					// surrounding context already says what they are applications for.
+					'all_items'          => __( 'Applications', 'reci-media-hub' ),
+					'menu_name'          => __( 'Applications', 'reci-media-hub' ),
 					'filter_items_list'  => __( 'Filter collaborator applications', 'reci-media-hub' ),
 					'items_list'         => __( 'Collaborator applications list', 'reci-media-hub' ),
 				],
 				'public'             => false,
 				'show_ui'            => true,
-				'show_in_menu'       => true,
+				// Under Submissions, not Collaborators: an application is a thing
+				// waiting to be reviewed, which is what that menu is for. The
+				// Collaborators menu is the directory of people already approved.
+				'show_in_menu'       => 'reci-submissions',
 				'show_in_rest'       => true,
 				'has_archive'        => false,
 				'rewrite'            => false,
 				'menu_icon'          => 'dashicons-id-alt',
 				'menu_position'      => 34,
-				'supports'           => [ 'title', 'editor', 'revisions' ],
+				// No editor: an application is a set of submitted fields, not a
+				// document. The review metabox shows everything; a body field only
+				// invited staff to edit the applicant's own words.
+				'supports'           => [ 'title' ],
 				'capability_type'    => 'post',
 				'publicly_queryable' => false,
 			]
@@ -67,7 +75,11 @@ if ( ! function_exists( 'reci_user_is_collaborator' ) ) {
 			return false;
 		}
 
-		if ( user_can( $user_id, 'edit_others_posts' ) ) {
+		// The role is the answer now. A collaborator is a Contributor (level 2)
+		// or anything above it, all of which hold edit_posts; a Member does not.
+		// The old _reci_collaborator_status meta stays readable so an account
+		// that predates the migration is not locked out, but nothing writes it.
+		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return true;
 		}
 
@@ -82,7 +94,11 @@ if ( ! function_exists( 'reci_get_collaborator_status' ) ) {
 			return 'guest';
 		}
 
-		if ( user_can( $user_id, 'edit_others_posts' ) ) {
+		// Level 2 and above are collaborators by role. This has to agree with
+		// reci_user_is_collaborator(); when it read edit_others_posts while that
+		// read edit_posts, a Contributor was a collaborator everywhere except the
+		// one gate that decides whether the submit form renders at all.
+		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return 'approved';
 		}
 
@@ -133,21 +149,47 @@ if ( ! function_exists( 'reci_collaborator_profile_field_definitions' ) ) {
 	 */
 	function reci_collaborator_profile_field_definitions(): array {
 		return [
-			'reci_firstname'            => [ 'label' => __( 'First Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'reci_lastname'             => [ 'label' => __( 'Last Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'user_email'                => [ 'label' => __( 'Email', 'reci-media-hub' ), 'type' => 'email', 'required' => true, 'width' => 'half' ],
-			'reci_affiliated_with_pitt' => [ 'label' => __( 'Affiliated with Pitt', 'reci-media-hub' ), 'type' => 'select', 'required' => true, 'width' => 'half', 'options' => [ 'Yes', 'No' ] ],
-			'reci_pitt_affiliation'     => [ 'label' => __( 'Pitt Affiliation', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half' ],
-			'submission_organization'   => [ 'label' => __( 'Affiliation / Organization', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'reci_department'           => [ 'label' => __( 'Department (School / Organization)', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'submission_role'           => [ 'label' => __( 'Role / Title', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6 ],
-			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half' ],
-			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.' ],
+			'reci_firstname'            => [ 'label' => __( 'First Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'reci_lastname'             => [ 'label' => __( 'Last Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'user_email'                => [ 'label' => __( 'Email', 'reci-media-hub' ), 'type' => 'email', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6, 'audience' => 'all' ],
+			'reci_affiliated_with_pitt' => [ 'label' => __( 'Affiliated with Pitt', 'reci-media-hub' ), 'type' => 'select', 'required' => true, 'width' => 'half', 'options' => [ 'Yes', 'No' ], 'audience' => 'collaborator' ],
+			'reci_pitt_affiliation'     => [ 'label' => __( 'Pitt Affiliation', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_organization'   => [ 'label' => __( 'Affiliation / Organization', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_department'           => [ 'label' => __( 'Department (School / Organization)', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_role'           => [ 'label' => __( 'Role / Title', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.', 'audience' => 'collaborator' ],
 			// Multi-value fields; these become taxonomy terms on the public profile.
-			'reci_affiliation_term'     => [ 'label' => __( 'Your Affiliation', 'reci-media-hub' ), 'type' => 'taxonomy_select', 'taxonomy' => 'reci_affiliation', 'required' => true, 'width' => 'half' ],
-			'reci_expertise_terms'      => [ 'label' => __( 'Subject Areas You Work In', 'reci-media-hub' ), 'type' => 'taxonomy_checkboxes', 'taxonomy' => 'reci_expertise', 'required' => false, 'width' => 'full', 'allow_other' => true, 'optional_hint' => false, 'choices' => function_exists( 'reci_media_hub_default_expertise_terms' ) ? reci_media_hub_default_expertise_terms() : [] ],
+			'reci_affiliation_term'     => [ 'label' => __( 'Your Affiliation', 'reci-media-hub' ), 'type' => 'taxonomy_select', 'taxonomy' => 'reci_affiliation', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_expertise_terms'      => [ 'label' => __( 'Subject Areas You Work In', 'reci-media-hub' ), 'type' => 'taxonomy_checkboxes', 'taxonomy' => 'reci_expertise', 'required' => false, 'width' => 'full', 'allow_other' => true, 'optional_hint' => false, 'choices' => function_exists( 'reci_media_hub_default_expertise_terms' ) ? reci_media_hub_default_expertise_terms() : [], 'audience' => 'collaborator' ],
 		];
+	}
+}
+
+if ( ! function_exists( 'reci_profile_fields_for_audience' ) ) {
+	/**
+	 * Filter the canonical fields down to one audience.
+	 *
+	 * Every account holds the 'all' fields. The 'collaborator' fields describe a
+	 * professional identity a subscriber has no use for, so the dashboard profile
+	 * only shows them to collaborators. The application form and the submit flow
+	 * still ask for everything — that is where the full set is collected.
+	 *
+	 * @param string $audience 'all' for the shared subset, 'collaborator' for the full set.
+	 * @return array<string,array<string,mixed>>
+	 */
+	function reci_profile_fields_for_audience( string $audience = 'all' ): array {
+		$fields = reci_collaborator_profile_field_definitions();
+
+		if ( 'collaborator' === $audience ) {
+			return $fields;
+		}
+
+		return array_filter(
+			$fields,
+			static fn( array $field ): bool => 'all' === ( $field['audience'] ?? 'all' )
+		);
 	}
 }
 
@@ -521,8 +563,11 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 				exit;
 			}
 
-			if ( strlen( $password ) < 8 ) {
-				wp_safe_redirect( add_query_arg( 'application_error', 'password_too_short', $target_url ) );
+			$password_error = function_exists( 'reci_password_error_code' )
+				? reci_password_error_code( $password )
+				: ( mb_strlen( $password ) < 8 ? 'password_too_short' : '' );
+			if ( '' !== $password_error ) {
+				wp_safe_redirect( add_query_arg( 'application_error', $password_error, $target_url ) );
 				exit;
 			}
 
@@ -688,6 +733,57 @@ add_action( 'admin_post_reci_collaborator_application', 'reci_handle_collaborato
 // this is the entry point for the whole /submit/ contribution flow.
 add_action( 'admin_post_nopriv_reci_collaborator_application', 'reci_handle_collaborator_application' );
 
+if ( ! function_exists( 'reci_get_collaborator_profile_ids_for_user' ) ) {
+	/**
+	 * Public profile posts belonging to one account.
+	 *
+	 * @return array<int,int>
+	 */
+	function reci_get_collaborator_profile_ids_for_user( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return [];
+		}
+
+		return array_map(
+			'absint',
+			get_posts(
+				[
+					'post_type'      => 'reci_author',
+					'post_status'    => [ 'publish', 'draft', 'pending', 'private' ],
+					'posts_per_page' => -1,
+					'fields'         => 'ids',
+					'meta_key'       => '_reci_author_profile_user_id',
+					'meta_value'     => $user_id,
+				]
+			)
+		);
+	}
+}
+
+if ( ! function_exists( 'reci_set_collaborator_profile_status' ) ) {
+	/**
+	 * Publish or unpublish an account's public profile.
+	 *
+	 * Draft rather than trash or delete: rejection is reversible, and a profile
+	 * carries imported biography and taxonomy work that should survive being
+	 * taken off the site.
+	 */
+	function reci_set_collaborator_profile_status( int $user_id, string $status ): int {
+		$changed = 0;
+
+		foreach ( reci_get_collaborator_profile_ids_for_user( $user_id ) as $profile_id ) {
+			if ( get_post_status( $profile_id ) === $status ) {
+				continue;
+			}
+
+			wp_update_post( [ 'ID' => $profile_id, 'post_status' => $status ] );
+			++$changed;
+		}
+
+		return $changed;
+	}
+}
+
 if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 	function reci_sync_collaborator_application_status( string $new_status, string $old_status, WP_Post $post ): void {
 		if ( reci_get_collaborator_application_post_type() !== $post->post_type || $new_status === $old_status ) {
@@ -702,12 +798,24 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 		if ( 'publish' === $new_status ) {
 			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
 			update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
+
+			// Approval is a promotion: Member -> Collaborator. Anyone already
+			// higher up the ladder keeps their level, so approving an Editor's
+			// application never demotes them.
+			$approved_user = get_user_by( 'id', $user_id );
+			if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
+				$approved_user->set_role( 'contributor' );
+			}
 			if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 				reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
 			}
 			if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
 				reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
 			}
+
+			// Re-approving after a rejection has to put the profile back, or the
+			// account would be a collaborator with no public page.
+			reci_set_collaborator_profile_status( $user_id, 'publish' );
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
 			}
@@ -734,6 +842,18 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 		if ( 'trash' !== $new_status ) {
 			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
 			update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
+
+			// Approval promotes, so rejection revokes. Only an account sitting at
+			// Collaborator is demoted: anyone deliberately raised above that was
+			// promoted by a human decision this one should not undo.
+			$rejected_user = get_user_by( 'id', $user_id );
+			if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
+				$rejected_user->set_role( 'subscriber' );
+			}
+
+			// Take the public profile down with the access. Draft, not deleted, so
+			// re-approving restores it rather than rebuilding it.
+			reci_set_collaborator_profile_status( $user_id, 'draft' );
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
 			}
@@ -987,8 +1107,206 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		submit_button( __( 'Reject Application', 'reci-media-hub' ), 'secondary', 'submit', false );
 		echo '</form>';
 		echo '</div></div>';
+		if ( current_user_can( 'reci_approve_collaborators' ) ) {
+			echo '<p style="margin:18px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+
+			if ( 'publish' !== $post->post_status ) {
+				printf(
+					'<a href="%s" class="button button-primary button-large">%s</a>',
+					esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+					esc_html__( 'Approve collaborator', 'reci-media-hub' )
+				);
+			}
+
+			if ( 'draft' !== $post->post_status ) {
+				printf(
+					'<a href="%s" class="button button-large" style="color:#9d2f45;border-color:#9d2f45;">%s</a>',
+					esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
+					esc_html__( 'Reject', 'reci-media-hub' )
+				);
+			}
+
+			printf(
+				'<span class="description">%s</span>',
+				'publish' === $post->post_status
+					? esc_html__( 'Rejecting revokes access and emails the applicant.', 'reci-media-hub' )
+					: esc_html__( 'Approving publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
+			);
+
+			echo '</p>';
+		}
+
 		echo '</div>';
 	}
+}
+
+// ── One-click approve ────────────────────────────────────────────────────────
+
+if ( ! function_exists( 'reci_collaborator_approve_url' ) ) {
+	/**
+	 * Nonced URL that approves one application.
+	 */
+	function reci_collaborator_approve_url( int $post_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				[ 'action' => 'reci_approve_collaborator', 'post' => $post_id ],
+				admin_url( 'admin-post.php' )
+			),
+			'reci_approve_collaborator_' . $post_id
+		);
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_reject_url' ) ) {
+	/**
+	 * Nonced URL that rejects one application.
+	 */
+	function reci_collaborator_reject_url( int $post_id ): string {
+		return wp_nonce_url(
+			add_query_arg(
+				[ 'action' => 'reci_reject_collaborator', 'post' => $post_id ],
+				admin_url( 'admin-post.php' )
+			),
+			'reci_reject_collaborator_' . $post_id
+		);
+	}
+}
+
+add_action( 'admin_post_reci_reject_collaborator', 'reci_handle_reject_collaborator' );
+
+/**
+ * Reject an application.
+ *
+ * Moving it out of 'publish' is what rejection means: the existing
+ * transition_post_status branch marks it rejected, records the status on the
+ * account and emails the applicant. Draft rather than trash, so the record of
+ * who applied survives.
+ */
+function reci_handle_reject_collaborator(): void {
+	$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+	$list    = admin_url( 'edit.php?post_type=' . reci_get_collaborator_application_post_type() );
+
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
+		wp_die( esc_html__( 'You do not have permission to review collaborators.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_reject_collaborator_' . $post_id );
+
+	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'invalid', $list ) );
+		exit;
+	}
+
+	if ( 'draft' === $post->post_status ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'already_rejected', $list ) );
+		exit;
+	}
+
+	wp_update_post( [ 'ID' => $post_id, 'post_status' => 'draft' ] );
+
+	wp_safe_redirect( add_query_arg( 'reci_approved', 'rejected', $list ) );
+	exit;
+}
+
+add_action( 'admin_post_reci_approve_collaborator', 'reci_handle_approve_collaborator' );
+
+/**
+ * Approve an application and publish the collaborator.
+ *
+ * Publishing the application is what approval means: transition_post_status
+ * promotes the account, syncs the profile and sends the notification. This just
+ * gives staff a single button for it instead of the generic Publish control.
+ */
+function reci_handle_approve_collaborator(): void {
+	$post_id = isset( $_GET['post'] ) ? absint( wp_unslash( $_GET['post'] ) ) : 0;
+	$list    = admin_url( 'edit.php?post_type=' . reci_get_collaborator_application_post_type() );
+
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
+		wp_die( esc_html__( 'You do not have permission to approve collaborators.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_approve_collaborator_' . $post_id );
+
+	$post = get_post( $post_id );
+	if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'invalid', $list ) );
+		exit;
+	}
+
+	if ( 'publish' === $post->post_status ) {
+		wp_safe_redirect( add_query_arg( 'reci_approved', 'already', $list ) );
+		exit;
+	}
+
+	wp_update_post( [ 'ID' => $post_id, 'post_status' => 'publish' ] );
+
+	wp_safe_redirect( add_query_arg( 'reci_approved', '1', $list ) );
+	exit;
+}
+
+/**
+ * Approve link on each pending row.
+ */
+add_filter( 'post_row_actions', 'reci_collaborator_application_row_actions', 10, 2 );
+function reci_collaborator_application_row_actions( array $actions, WP_Post $post ): array {
+	if ( reci_get_collaborator_application_post_type() !== $post->post_type ) {
+		return $actions;
+	}
+
+	if ( ! current_user_can( 'reci_approve_collaborators' ) ) {
+		return $actions;
+	}
+
+	$review = [];
+
+	if ( 'publish' !== $post->post_status ) {
+		$review['reci_approve'] = sprintf(
+			'<a href="%s" style="color:#1f7a5a;font-weight:600;">%s</a>',
+			esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
+			esc_html__( 'Approve', 'reci-media-hub' )
+		);
+	}
+
+	if ( 'draft' !== $post->post_status ) {
+		$review['reci_reject'] = sprintf(
+			'<a href="%s" style="color:#9d2f45;">%s</a>',
+			esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
+			esc_html__( 'Reject', 'reci-media-hub' )
+		);
+	}
+
+	return array_merge( $review, $actions );
+}
+
+/**
+ * Result notice after approving.
+ */
+add_action( 'admin_notices', 'reci_collaborator_approval_notice' );
+function reci_collaborator_approval_notice(): void {
+	if ( ! isset( $_GET['reci_approved'] ) ) {
+		return;
+	}
+
+	$code = sanitize_key( wp_unslash( $_GET['reci_approved'] ) );
+
+	$messages = [
+		'1'               => [ 'success', __( 'Collaborator approved and published.', 'reci-media-hub' ) ],
+		'rejected'        => [ 'warning', __( 'Application rejected. The applicant has been notified.', 'reci-media-hub' ) ],
+		'already_rejected' => [ 'info', __( 'That application was already rejected.', 'reci-media-hub' ) ],
+		'already' => [ 'info', __( 'That application was already approved.', 'reci-media-hub' ) ],
+		'invalid' => [ 'error', __( 'That application could not be found.', 'reci-media-hub' ) ],
+	];
+
+	if ( ! isset( $messages[ $code ] ) ) {
+		return;
+	}
+
+	printf(
+		'<div class="notice notice-%s is-dismissible"><p>%s</p></div>',
+		esc_attr( $messages[ $code ][0] ),
+		esc_html( $messages[ $code ][1] )
+	);
 }
 
 if ( ! function_exists( 'reci_add_collaborator_application_metaboxes' ) ) {

@@ -44,6 +44,21 @@ function reci_dashboard_rewrite_rules(): void {
 			'top'
 		);
 	}
+	// Creating one: /dashboard/my-content/new/.
+	add_rewrite_rule(
+		'^dashboard/my-content/new/?$',
+		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-new-content.php',
+		'top'
+	);
+
+	// Editing one item: /dashboard/my-content/edit/<id>/. Registered after the
+	// plain routes so the longer pattern is matched first by the '/?$' anchors.
+	add_rewrite_rule(
+		'^dashboard/my-content/edit/([0-9]+)/?$',
+		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-edit-content.php&dashboard_post=$matches[1]',
+		'top'
+	);
+
 	add_rewrite_rule( '^dashboard/?$', 'index.php?pagename=dashboard', 'top' );
 }
 
@@ -51,6 +66,7 @@ add_filter( 'query_vars', 'reci_dashboard_query_vars' );
 function reci_dashboard_query_vars( array $vars ): array {
 	$vars[] = 'dashboard_page';
 	$vars[] = 'dashboard_template';
+	$vars[] = 'dashboard_post';
 	return $vars;
 }
 
@@ -64,7 +80,9 @@ function reci_dashboard_query_vars( array $vars ): array {
  */
 add_action( 'init', 'reci_dashboard_maybe_flush_rewrite_rules', 99 );
 function reci_dashboard_maybe_flush_rewrite_rules(): void {
-	$signature = md5( (string) wp_json_encode( array_keys( reci_dashboard_route_map() ) ) );
+	// Version the signature as well as the route list: the edit route is not in
+	// the map, so without this a new rule outside the map would never flush.
+	$signature = md5( (string) wp_json_encode( [ 'routes' => array_keys( reci_dashboard_route_map() ), 'rules' => 3 ] ) );
 
 	if ( get_option( 'reci_dashboard_routes_version' ) === $signature ) {
 		return;
@@ -449,7 +467,15 @@ function reci_ajax_modal_signup(): void {
 	if ( email_exists( $email ) ) {
 		wp_send_json_error( [ 'message' => 'An account with this email already exists.' ] );
 	}
-	if ( strlen( $password ) < 8 ) {
+	// Use the same rule as sign-up and the collaborator application; this check
+	// was a bare length test, so the modal was a way around the password policy.
+	if ( function_exists( 'reci_password_error_code' ) ) {
+		$password_error = reci_password_error_code( (string) $password );
+		if ( '' !== $password_error ) {
+			$messages = function_exists( 'reci_password_error_messages' ) ? reci_password_error_messages() : [];
+			wp_send_json_error( [ 'message' => $messages[ $password_error ] ?? 'Please choose a stronger password.' ] );
+		}
+	} elseif ( strlen( $password ) < 8 ) {
 		wp_send_json_error( [ 'message' => 'Password must be at least 8 characters.' ] );
 	}
 
