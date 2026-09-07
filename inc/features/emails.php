@@ -103,7 +103,7 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 			$logo_url = get_template_directory_uri() . '/assets/images/reci-collab.png';
 		}
 
-		$wordmark = '<img src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="180" style="display:block;width:180px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';
+		$wordmark = '<img class="reci-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="180" style="display:block;width:180px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';
 
 		return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
@@ -118,6 +118,12 @@ if ( ! function_exists( 'reci_email_render' ) ) {
     .reci-muted { color: #AAB4C4 !important; }
     .reci-link  { color: #86ABF5 !important; }
     .reci-rule  { border-color: #3A4250 !important; }
+    /* The logo is navy on transparent, so it all but disappears on a dark
+       ground. Lifting it to white keeps the masthead readable. Clients that
+       strip filters (Gmail) simply show the untouched navy logo, which is the
+       behaviour we already had — so this can only improve things, never break
+       them. The robust fix is a light logo variant swapped in here. */
+    .reci-logo  { filter: brightness(0) invert(1) !important; }
   }
 </style>
 </head>
