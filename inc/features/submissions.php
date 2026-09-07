@@ -280,7 +280,85 @@ if (! function_exists('reci_media_hub_submission_taxonomies')) {
 			'reci_sphere',
 			'reci_practice_focus',
 			'reci_target_audience',
+			'reci_location',
 		];
+	}
+}
+
+if (! function_exists('reci_media_hub_contributor_values_for_user')) {
+	/**
+	 * Contributor identity, read from the collaborator profile.
+	 *
+	 * Keyed by the old _reci_submission_* meta names so notifications and the
+	 * payload snapshot keep working unchanged. Nothing here is written to the
+	 * post — the profile is the source of truth and the post links to it through
+	 * post_author.
+	 *
+	 * @return array<string,string>
+	 */
+	function reci_media_hub_contributor_values_for_user(int $user_id): array {
+		$user = $user_id > 0 ? get_user_by('id', $user_id) : null;
+		if (! $user instanceof WP_User) {
+			return [];
+		}
+
+		$values = [
+			'_reci_submission_first_name'   => (string) get_user_meta($user_id, 'first_name', true),
+			'_reci_submission_last_name'    => (string) get_user_meta($user_id, 'last_name', true),
+			'_reci_submission_email'        => (string) $user->user_email,
+			'_reci_submission_organization' => (string) get_user_meta($user_id, 'organization', true),
+			'_reci_submission_role'         => (string) get_user_meta($user_id, 'user_title', true),
+			'_reci_submission_bio'          => (string) get_user_meta($user_id, 'description', true),
+			'_reci_submission_website'      => (string) $user->user_url,
+		];
+
+		return array_filter($values, static fn(string $value): bool => '' !== $value);
+	}
+}
+
+if (! function_exists('reci_media_hub_submission_narrative_fields')) {
+	/**
+	 * The long-form questions, in the order they appear in the body.
+	 *
+	 * These used to be concatenated in the browser and posted as one string, so
+	 * the individual answers existed nowhere else. Each now has its own POST key
+	 * and its own meta key, and the body is composed here from the same list.
+	 *
+	 * @return array<string,array{post:string,label:string}>
+	 */
+	function reci_media_hub_submission_narrative_fields(): array {
+		return [
+			'_reci_submission_evidence_basis'      => ['post' => 'submission_evidence_basis',      'label' => 'Evidence Basis'],
+			'_reci_submission_process_orientation' => ['post' => 'submission_process_orientation', 'label' => 'Process Orientation'],
+			'_reci_submission_equity_focus'        => ['post' => 'submission_equity_focus',        'label' => 'Racial Equity Focus'],
+		];
+	}
+}
+
+if (! function_exists('reci_media_hub_compose_submission_body')) {
+	/**
+	 * Build post_content from the narrative answers.
+	 *
+	 * Composed here rather than in the browser, and only for answers that were
+	 * actually given — the old client-side version emitted every label whether
+	 * or not it had a value, which is why an empty upload still produced a
+	 * trailing "File Upload Description:".
+	 *
+	 * @param array<string,string> $answers Meta key => answer.
+	 */
+	function reci_media_hub_compose_submission_body(array $answers): string {
+		$blocks = [];
+
+		foreach (reci_media_hub_submission_narrative_fields() as $meta_key => $field) {
+			$value = trim((string) ($answers[$meta_key] ?? ''));
+			if ('' === $value) {
+				continue;
+			}
+
+			$blocks[] = '<h3>' . esc_html($field['label']) . '</h3>' . "\n" . wpautop($value);
+		}
+
+		return implode("\n\n", $blocks);
 	}
 }
 
@@ -297,6 +375,41 @@ if (! function_exists('reci_media_hub_submission_registered_meta_keys')) {
 				'default'  => '',
 				'sanitize' => static function ($value): string {
 					return esc_url_raw((string) $value);
+				},
+			],
+			'_reci_submission_evidence_basis' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_process_orientation' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_equity_focus' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_textarea_field((string) $value);
+				},
+			],
+			'_reci_submission_agreed_terms' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_text_field((string) $value);
+				},
+			],
+			'_reci_submission_agreed_review' => [
+				'type'     => 'string',
+				'default'  => '',
+				'sanitize' => static function ($value): string {
+					return sanitize_text_field((string) $value);
 				},
 			],
 			'_reci_submission_file_id' => [
@@ -657,8 +770,21 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		$summary_raw = $_POST['submission_summary'] ?? '';
 		$summary = sanitize_textarea_field(is_string($summary_raw) ? wp_unslash($summary_raw) : '');
 
-		$details_raw = $_POST['submission_details'] ?? '';
-		$details = wp_kses_post(is_string($details_raw) ? wp_unslash($details_raw) : '');
+		// Narrative answers now arrive one key per question and the body is built
+		// here. submission_details is still accepted so an un-rebuilt front end
+		// keeps working rather than silently posting an empty body.
+		$narrative_answers = [];
+		foreach (reci_media_hub_submission_narrative_fields() as $meta_key => $field) {
+			$raw = $_POST[$field['post']] ?? '';
+			$narrative_answers[$meta_key] = sanitize_textarea_field(is_string($raw) ? wp_unslash($raw) : '');
+		}
+
+		$details = reci_media_hub_compose_submission_body($narrative_answers);
+
+		if ('' === $details) {
+			$details_raw = $_POST['submission_details'] ?? '';
+			$details = wp_kses_post(is_string($details_raw) ? wp_unslash($details_raw) : '');
+		}
 
 		$link_raw = $_POST['submission_content_link'] ?? '';
 		$content_link = esc_url_raw(is_string($link_raw) ? wp_unslash($link_raw) : '');
@@ -749,37 +875,48 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 
 		update_post_meta($post_id, '_reci_submission_content_type', $content_type);
 
-		$contributor_fields = [
-			'_reci_submission_first_name'   => 'submission_first_name',
-			'_reci_submission_last_name'    => 'submission_last_name',
-			'_reci_submission_email'        => 'submission_email',
-			'_reci_submission_organization' => 'submission_organization',
-			'_reci_submission_role'         => 'submission_role',
-			'_reci_submission_bio'          => 'submission_bio',
-			'_reci_submission_website'      => 'submission_website',
-			'_reci_submission_file_description' => 'submission_file_description',
-		];
-		$contributor_meta_values = [];
-
-		foreach ($contributor_fields as $meta_key => $field_name) {
-			$value_raw = $_POST[$field_name] ?? '';
-			$value = is_string($value_raw) ? wp_unslash($value_raw) : '';
-
-			if ($meta_key === '_reci_submission_email') {
-				$sanitized = sanitize_email($value);
-			} elseif ($meta_key === '_reci_submission_website') {
-				$sanitized = esc_url_raw($value);
-			} elseif ($meta_key === '_reci_submission_bio' || $meta_key === '_reci_submission_file_description') {
-				$sanitized = sanitize_textarea_field($value);
-			} else {
-				$sanitized = sanitize_text_field($value);
-			}
-
-			if ($sanitized !== '') {
-				update_post_meta($post_id, $meta_key, $sanitized);
-				$contributor_meta_values[$meta_key] = $sanitized;
+		// Each narrative answer also survives on its own, so the body is a
+		// rendering of the submission rather than its only copy.
+		foreach ($narrative_answers as $meta_key => $answer) {
+			if ('' !== $answer) {
+				update_post_meta($post_id, $meta_key, $answer);
 			}
 		}
+
+		// Keywords are tags. post_tag is registered on every submittable type and
+		// was sitting empty while these went into the body as text.
+		$keywords_raw = $_POST['submission_keywords'] ?? '';
+		$keywords = sanitize_text_field(is_string($keywords_raw) ? wp_unslash($keywords_raw) : '');
+		if ('' !== $keywords) {
+			$keyword_list = array_values(array_filter(array_map('trim', explode(',', $keywords))));
+			if (! empty($keyword_list)) {
+				wp_set_post_terms($post_id, $keyword_list, 'post_tag', false);
+			}
+		}
+
+		// The two agreement checkboxes gated the submit button in the browser and
+		// were never posted, so nothing recorded that anyone accepted the terms.
+		foreach (['submission_agree_terms' => '_reci_submission_agreed_terms', 'submission_agree_review' => '_reci_submission_agreed_review'] as $post_key => $meta_key) {
+			$agreed_raw = $_POST[$post_key] ?? '';
+			if (rest_sanitize_boolean(is_string($agreed_raw) ? wp_unslash($agreed_raw) : false)) {
+				update_post_meta($post_id, $meta_key, current_time('mysql'));
+			}
+		}
+
+		$file_description_raw = $_POST['submission_file_description'] ?? '';
+		$file_description = sanitize_textarea_field(is_string($file_description_raw) ? wp_unslash($file_description_raw) : '');
+		if ($file_description !== '') {
+			update_post_meta($post_id, '_reci_submission_file_description', $file_description);
+		}
+
+		// Contributor identity is NOT copied onto the post. Only approved
+		// collaborators can submit (see the gate at the top of this handler), so
+		// post_author and _reci_submission_submitter_user_id already say who this
+		// is, and the collaborator profile is the single source of truth for their
+		// name, organisation, role, bio and website. Copying those onto every post
+		// produced a second copy that went stale the moment the profile changed.
+		// Read them from the user when they are needed, here and downstream.
+		$contributor_meta_values = reci_media_hub_contributor_values_for_user($current_user_id);
 
 		$author_opt_in_raw = $_POST['submission_author_opt_in'] ?? '';
 		$author_opt_in = is_string($author_opt_in_raw) ? rest_sanitize_boolean(wp_unslash($author_opt_in_raw)) : false;

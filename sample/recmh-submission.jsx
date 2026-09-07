@@ -23,7 +23,7 @@ const RECMHSubmission = () => {
     role: bootUser.role || "",
     bio: bootUser.bio || "",
     website: bootUser.website || "",
-    agreeTerms: false, agreeReview: false, location: "",
+    agreeTerms: false, agreeReview: false, locations: [],
   });
   const [submitted, setSubmitted] = useState(false);
   const [showGuidelinesPanel, setShowGuidelinesPanel] = useState(false);
@@ -261,6 +261,21 @@ const RECMHSubmission = () => {
     .map((item, index) => mapOption(item, index, "audience"))
     .filter(Boolean);
 
+  // reci_location is a curated hierarchical taxonomy, so this is a picker of
+  // existing terms rather than free text — no term is created from the form.
+  const locationOptions = (Array.isArray(submissionConfig.locationOptions) ? submissionConfig.locationOptions : [])
+    .map((item, index) => mapOption(item, index, "location"))
+    .filter(Boolean)
+    .filter((option) => option.termId);
+
+  const toggleLocation = (termId) =>
+    setFormData((prev) => ({
+      ...prev,
+      locations: prev.locations.includes(termId)
+        ? prev.locations.filter((id) => id !== termId)
+        : [...prev.locations, termId],
+    }));
+
   const findPracticeOption = (name) => practiceTypeOptions.find((option) => option.name === name) || null;
   const findAudienceOption = (name) => audienceOptions.find((option) => option.name === name) || null;
 
@@ -325,7 +340,7 @@ const RECMHSubmission = () => {
       targetAudience: [], keywords: "", contentLink: "", fileDescription: "",
       practiceType: "", equityFocus: "",
       firstName: "", lastName: "", email: "", organization: "", role: "",
-      bio: "", website: "", agreeTerms: false, agreeReview: false, location: "",
+      bio: "", website: "", agreeTerms: false, agreeReview: false, locations: [],
     });
   };
 
@@ -351,27 +366,25 @@ const RECMHSubmission = () => {
       payload.append("submission_content_type", contentType || "other");
       payload.append("submission_title", formData.title || "");
       payload.append("submission_summary", formData.abstract || "");
-      payload.append(
-        "submission_details",
-        [
-          `Evidence Basis:\n${formData.evidenceBasis || ""}`,
-          `Process Orientation:\n${formData.processOrientation || ""}`,
-          `Racial Equity Focus:\n${formData.equityFocus || ""}`,
-          `Practice / Focus Area:\n${formData.practiceType || ""}`,
-          `Target Audience:\n${(formData.targetAudience || []).join(", ")}`,
-          `Keywords:\n${formData.keywords || ""}`,
-          `File Upload Description:\n${formData.fileDescription || ""}`,
-        ].join("\n\n")
-      );
+      // One key per answer. The body used to be concatenated here, which left
+      // each answer with no home but the blob, and emitted every label whether
+      // or not it had a value. The server composes the body now.
+      payload.append("submission_evidence_basis", formData.evidenceBasis || "");
+      payload.append("submission_process_orientation", formData.processOrientation || "");
+      payload.append("submission_equity_focus", formData.equityFocus || "");
+      payload.append("submission_keywords", formData.keywords || "");
       payload.append("submission_content_link", formData.contentLink || "");
-      payload.append("submission_first_name", formData.firstName || "");
-      payload.append("submission_last_name", formData.lastName || "");
-      payload.append("submission_email", formData.email || "");
-      payload.append("submission_organization", formData.organization || "");
-      payload.append("submission_role", formData.role || "");
-      payload.append("submission_bio", formData.bio || "");
-      payload.append("submission_website", formData.website || "");
       payload.append("submission_file_description", formData.fileDescription || "");
+
+      // Consent was gating this button and going nowhere.
+      payload.append("submission_agree_terms", formData.agreeTerms ? "1" : "0");
+      payload.append("submission_agree_review", formData.agreeReview ? "1" : "0");
+
+      // Contributor identity is deliberately not sent: only approved
+      // collaborators reach this form, so the server reads their name,
+      // organisation, role, bio and website from their profile. Posting them
+      // here produced a second copy on every post that went stale on the first
+      // profile edit.
 
       if (formData.practiceType) {
         const practiceOption = findPracticeOption(formData.practiceType);
@@ -388,6 +401,9 @@ const RECMHSubmission = () => {
         } else {
           payload.append("reci_target_audience_term_names[]", aud);
         }
+      });
+      (formData.locations || []).forEach((termId) => {
+        payload.append("reci_location_terms[]", String(termId));
       });
       selectedSpheres.forEach((sphereId) => {
         const sphere = spheres.find((entry) => entry.id === sphereId);
@@ -1003,6 +1019,20 @@ const RECMHSubmission = () => {
                       </div>
                     </div>
 
+                    {locationOptions.length > 0 && (
+                      <div>
+                        <label className="field-label">Location <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {locationOptions.map((loc) => (
+                            <button key={loc.id} type="button" className={`tag-select ${formData.locations.includes(loc.termId) ? "active" : ""}`}
+                              onClick={() => toggleLocation(loc.termId)}>
+                              {loc.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                       <div>
                         <label className="field-label">Keywords / Tags</label>
@@ -1092,6 +1122,7 @@ const RECMHSubmission = () => {
                       {formData.processOrientation && <div className="review-row"><div className="review-label">Process Focus</div><div className="review-value">{formData.processOrientation}</div></div>}
                       {formData.equityFocus && <div className="review-row"><div className="review-label">Equity Focus</div><div className="review-value">{formData.equityFocus}</div></div>}
                       {formData.targetAudience.length > 0 && <div className="review-row"><div className="review-label">Audience</div><div className="review-value">{formData.targetAudience.join(", ")}</div></div>}
+                      {formData.locations.length > 0 && <div className="review-row"><div className="review-label">Location</div><div className="review-value">{locationOptions.filter((l) => formData.locations.includes(l.termId)).map((l) => l.name).join(", ")}</div></div>}
                       {formData.keywords && <div className="review-row"><div className="review-label">Keywords</div><div className="review-value">{formData.keywords}</div></div>}
                       {formData.contentLink && <div className="review-row"><div className="review-label">Content Link</div><div className="review-value" style={{ color: "var(--terracotta)" }}>{formData.contentLink}</div></div>}
                     </div>
