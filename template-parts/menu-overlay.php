@@ -28,8 +28,10 @@ $content_type_links = [
         get_post_type_archive_link("reci_podcast") ?: home_url("/podcasts/"),
     "Events"   =>
         get_post_type_archive_link("reci_event") ?: home_url("/events/"),
-		    "Quizzes"   =>
+    "Quizzes"   =>
         get_post_type_archive_link("reci_assessment") ?: home_url("/quizzes/"),
+    "Resources" =>
+        get_post_type_archive_link("reci_document") ?: home_url("/documents/"),
 ];
 
 $authors = array_slice(reci_media_hub_get_author_profile_options(true), 0, 10);
@@ -157,7 +159,10 @@ $social_links = function_exists('reci_get_social_links') ? reci_get_social_links
 
 			<nav aria-label="Resources" class="pb-5 pt-3">
 				<?php foreach ($content_type_links as $label => $url): ?>
-					<?php if (in_array($label, ['Articles', 'Videos', 'Podcasts', 'Events', 'Quizzes'], true)): ?>
+					<?php // Allow-listed rather than rendering the whole array, because the
+					// rest of this nav is hand-written below. Adding a content type
+					// means naming it here too. ?>
+					<?php if (in_array($label, ['Articles', 'Videos', 'Podcasts', 'Events', 'Quizzes', 'Resources'], true)): ?>
 						<a href="<?php echo esc_url($url); ?>" class="block pr-5 py-1 rounded-xl group">
 							<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors"><?php echo esc_html($label); ?></span>
 						</a>
