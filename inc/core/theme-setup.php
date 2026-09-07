@@ -29,7 +29,7 @@ if (! function_exists('reci_logo_img')) {
 		if ($attachment_id > 0 && wp_attachment_is_image($attachment_id)) {
 			$html = wp_get_attachment_image(
 				$attachment_id,
-				'medium_large',
+				reci_logo_size($attachment_id, 'medium_large'),
 				false,
 				[
 					'class'   => $class,
@@ -83,6 +83,80 @@ if (! function_exists('reci_media_hub_setup')) {
 }
 
 add_action('after_setup_theme', 'reci_media_hub_setup');
+
+/**
+ * Logo size for email and the header.
+ *
+ * WordPress generates 300px then jumps to 768px. Both the email masthead and
+ * the site header sit in that gap, so each was pulling a 768px file to draw
+ * something half its width. 400px covers the email at 2x and the header's
+ * widest slot with room to spare.
+ *
+ * Registering a size only affects uploads made afterwards, so existing logos
+ * need regenerating — Appearance -> RECI Settings -> Branding has a button.
+ */
+add_action('after_setup_theme', static function (): void {
+	add_image_size('reci-logo', 400, 0, false);
+}, 20);
+
+if (! function_exists('reci_logo_size')) {
+	/**
+	 * Best available logo size, falling back when the file has not been regenerated.
+	 */
+	function reci_logo_size(int $attachment_id, string $fallback = 'medium'): string {
+		$meta = wp_get_attachment_metadata($attachment_id);
+
+		return isset($meta['sizes']['reci-logo']) ? 'reci-logo' : $fallback;
+	}
+}
+
+if (! function_exists('reci_regenerate_logo_sizes')) {
+	/**
+	 * Regenerate the intermediate sizes for the two configured logos.
+	 *
+	 * Only these two attachments — this is not a media-library-wide rebuild.
+	 *
+	 * @return array<int,string> One line per logo describing what happened.
+	 */
+	function reci_regenerate_logo_sizes(): array {
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$results = [];
+
+		foreach (['branding_reci_logo' => 'RECI logo', 'branding_partner_logo' => 'Partner logo'] as $setting => $label) {
+			$id = (int) reci_setting($setting);
+
+			if ($id <= 0 || ! wp_attachment_is_image($id)) {
+				$results[] = sprintf('%s: not set', $label);
+				continue;
+			}
+
+			$file = get_attached_file($id);
+			if (! $file || ! file_exists($file)) {
+				$results[] = sprintf('%s: file missing', $label);
+				continue;
+			}
+
+			$meta = wp_generate_attachment_metadata($id, $file);
+			if (is_wp_error($meta) || empty($meta)) {
+				$results[] = sprintf('%s: regeneration failed', $label);
+				continue;
+			}
+
+			wp_update_attachment_metadata($id, $meta);
+			$results[] = sprintf(
+				'%s: %s',
+				$label,
+				isset($meta['sizes']['reci-logo'])
+					? sprintf('reci-logo %dx%d created', $meta['sizes']['reci-logo']['width'], $meta['sizes']['reci-logo']['height'])
+					: 'regenerated, but no reci-logo size (original may be under 400px wide)'
+			);
+		}
+
+		return $results;
+	}
+}
+
 
 /**
  * Output favicon link tag.

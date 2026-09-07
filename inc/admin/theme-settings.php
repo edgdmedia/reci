@@ -157,6 +157,26 @@ add_action( 'admin_init', 'reci_seed_theme_setting_defaults', 5 );
 // Admin menu
 // ---------------------------------------------------------------------------
 
+add_action( 'admin_post_reci_regenerate_logos', 'reci_handle_regenerate_logos' );
+
+/**
+ * Rebuild the intermediate sizes for the configured logos.
+ */
+function reci_handle_regenerate_logos(): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( esc_html__( 'You do not have permission to do that.', 'reci-media-hub' ) );
+	}
+
+	check_admin_referer( 'reci_regenerate_logos' );
+
+	$results = function_exists( 'reci_regenerate_logo_sizes' ) ? reci_regenerate_logo_sizes() : [];
+
+	set_transient( 'reci_logo_regen_notice', $results, 60 );
+
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-settings&tab=branding&logos=regenerated' ) );
+	exit;
+}
+
 add_action( 'admin_menu', 'reci_register_settings_menu' );
 
 function reci_register_settings_menu(): void {
@@ -271,6 +291,7 @@ function reci_register_settings(): void {
 	reci_add_field( 'branding_hub_subtitle',    'Site Subtitle',         'text',   'reci-settings-branding', 'reci_branding', 'e.g. Media Hub' );
 	reci_add_field( 'branding_primary_color',   'Primary Colour',        'color',  'reci-settings-branding', 'reci_branding' );
 	reci_add_field( 'branding_accent_color',    'Accent Colour',         'color',  'reci-settings-branding', 'reci_branding' );
+	reci_add_field( 'branding_regenerate',      'Logo Sizes',            'button', 'reci-settings-branding', 'reci_branding', 'Rebuilds the resized copies of the two logos above. Run this after changing a logo, or once after a theme update that adds a new size.', [], [ 'button_label' => 'Regenerate logo sizes', 'button_action' => 'reci_regenerate_logos' ] );
 
 	// ── 1b. Email ─────────────────────────────────────────────────────────
 	add_settings_section( 'reci_email', 'Email', '__return_false', 'reci-settings-email' );
@@ -474,9 +495,10 @@ function reci_render_field( array $args ): void {
 			break;
 
 		case 'button':
+			$action = (string) ( $args['button_action'] ?? 'reci_send_test_email' );
 			$url = wp_nonce_url(
-				add_query_arg( 'action', 'reci_send_test_email', admin_url( 'admin-post.php' ) ),
-				'reci_send_test_email'
+				add_query_arg( 'action', $action, admin_url( 'admin-post.php' ) ),
+				$action
 			);
 			printf(
 				'<a href="%s" class="button">%s</a>',
