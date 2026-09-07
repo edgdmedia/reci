@@ -520,7 +520,10 @@ if (! function_exists('reci_media_hub_register_taxonomies')) {
 				'public'            => true,
 				'show_in_rest'      => true,
 				'hierarchical'      => false,
-				'show_ui'           => false,
+				// The submission form writes these terms, so staff need to be able to
+				// add, rename and merge them. With show_ui off they existed and
+				// could not be managed anywhere.
+				'show_ui'           => true,
 				'show_admin_column' => false,
 				'rewrite'           => ['slug' => 'target-audience'],
 			]

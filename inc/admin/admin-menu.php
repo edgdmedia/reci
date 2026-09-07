@@ -49,6 +49,132 @@ function reci_rename_content_menu(): void {
 }
 
 /**
+ * Collect every taxonomy into one menu.
+ *
+ * WordPress files a taxonomy under whichever post type owns it, so Categories
+ * and Tags sat inside Content while Affiliations and Subject Areas sat inside
+ * Collaborators, and Spheres appeared in both. Mixing ten post types with six
+ * taxonomies in one list makes both harder to scan, and a taxonomy that applies
+ * to several post types has no natural home among them.
+ *
+ * Runs before the reorder so the new parent is in place when the order is built.
+ */
+add_action( 'admin_menu', 'reci_group_taxonomy_menus', 997 );
+function reci_group_taxonomy_menus(): void {
+	global $submenu;
+
+	add_menu_page(
+		__( 'Taxonomies', 'reci-media-hub' ),
+		__( 'Taxonomies', 'reci-media-hub' ),
+		'manage_categories',
+		'reci-taxonomies',
+		'reci_render_taxonomies_index',
+		'dashicons-tag',
+		31
+	);
+
+	// Strip taxonomy entries from wherever WordPress filed them. The same
+	// taxonomy appears under every post type that uses it, each with a different
+	// post_type query arg, so this cannot dedupe by slug.
+	foreach ( $submenu as $parent => $items ) {
+		if ( 'reci-taxonomies' === $parent ) {
+			continue;
+		}
+
+		foreach ( $items as $key => $item ) {
+			if ( isset( $item[2] ) && str_starts_with( (string) $item[2], 'edit-tags.php?taxonomy=' ) ) {
+				unset( $submenu[ $parent ][ $key ] );
+			}
+		}
+
+		if ( isset( $submenu[ $parent ] ) ) {
+			$submenu[ $parent ] = array_values( $submenu[ $parent ] );
+		}
+	}
+
+	// Build from the registry rather than from what was in the menu. Scavenging
+	// missed any taxonomy whose post type is itself a submenu now — Shows and
+	// Target Audiences had no top-level parent left to be filed under.
+	foreach ( reci_listable_taxonomies() as $taxonomy ) {
+		add_submenu_page(
+			'reci-taxonomies',
+			$taxonomy->labels->name,
+			$taxonomy->labels->menu_name ?? $taxonomy->labels->name,
+			$taxonomy->cap->manage_terms,
+			'edit-tags.php?taxonomy=' . $taxonomy->name
+		);
+	}
+}
+
+if ( ! function_exists( 'reci_listable_taxonomies' ) ) {
+	/**
+	 * Taxonomies worth showing in the menu.
+	 *
+	 * Excludes WordPress's own plumbing: link categories are a legacy feature
+	 * this site does not use, and pattern categories belong to the block editor
+	 * rather than to RECI's vocabulary.
+	 *
+	 * @return array<int,WP_Taxonomy>
+	 */
+	function reci_listable_taxonomies(): array {
+		$hidden = [ 'link_category', 'wp_pattern_category', 'nav_menu', 'post_format' ];
+
+		$taxonomies = array_filter(
+			get_taxonomies( [ 'show_ui' => true ], 'objects' ),
+			static fn( WP_Taxonomy $taxonomy ): bool => ! in_array( $taxonomy->name, $hidden, true )
+		);
+
+		uasort(
+			$taxonomies,
+			static fn( WP_Taxonomy $a, WP_Taxonomy $b ): int => strcasecmp( $a->labels->name, $b->labels->name )
+		);
+
+		return array_values( $taxonomies );
+	}
+}
+
+/**
+ * Landing page for the Taxonomies menu.
+ *
+ * The parent needs somewhere to go, and a list with term counts is more use
+ * than redirecting to whichever taxonomy happens to be first.
+ */
+function reci_render_taxonomies_index(): void {
+	if ( ! current_user_can( 'manage_categories' ) ) {
+		return;
+	}
+
+	echo '<div class="wrap"><h1>' . esc_html__( 'Taxonomies', 'reci-media-hub' ) . '</h1>';
+	echo '<p class="description">' . esc_html__( 'The vocabularies used to classify content and collaborators.', 'reci-media-hub' ) . '</p>';
+	echo '<table class="widefat striped" style="max-width:900px;"><thead><tr>';
+	echo '<th>' . esc_html__( 'Taxonomy', 'reci-media-hub' ) . '</th>';
+	echo '<th>' . esc_html__( 'Terms', 'reci-media-hub' ) . '</th>';
+	echo '<th>' . esc_html__( 'Applies to', 'reci-media-hub' ) . '</th>';
+	echo '</tr></thead><tbody>';
+
+	foreach ( reci_listable_taxonomies() as $taxonomy ) {
+		$types = array_map(
+			static function ( string $type ): string {
+				$object = get_post_type_object( $type );
+
+				return $object->labels->name ?? $type;
+			},
+			(array) $taxonomy->object_type
+		);
+
+		printf(
+			'<tr><td><a href="%s"><strong>%s</strong></a></td><td>%s</td><td>%s</td></tr>',
+			esc_url( admin_url( 'edit-tags.php?taxonomy=' . $taxonomy->name ) ),
+			esc_html( $taxonomy->labels->name ),
+			esc_html( (string) wp_count_terms( [ 'taxonomy' => $taxonomy->name, 'hide_empty' => false ] ) ),
+			esc_html( implode( ', ', $types ) )
+		);
+	}
+
+	echo '</tbody></table></div>';
+}
+
+/**
  * Order the Submissions submenu.
  *
  * Its three children arrive from three different places — this file, the post
@@ -96,6 +222,7 @@ function reci_reorder_admin_menu(): void {
 		'edit.php?post_type=reci_author', // Collaborators
 		'SEP',
 		'edit.php',                     // Content
+		'reci-taxonomies',              // every taxonomy, gathered
 		'upload.php',                   // Media
 		'edit-comments.php',            // Comments
 		'SEP',
