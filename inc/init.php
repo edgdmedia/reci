@@ -44,6 +44,7 @@ $reci_media_hub_includes = [
 	'/inc/admin/admin-menu.php',
 	'/inc/admin/demo-content.php',
 	'/inc/admin/collaborator-import.php',
+	'/inc/admin/highlighted-works-import.php',
 	'/inc/admin/theme-setup-wizard.php',
 	'/inc/admin/theme-setup-client.php',
 	'/inc/admin/class-reci-journals-list-table.php',

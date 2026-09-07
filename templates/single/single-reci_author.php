@@ -193,12 +193,34 @@ get_header();
 							</div>
 						<?php endif; ?>
 
-						<?php if (! empty($profile['highlighted'])) : ?>
+						<?php $highlighted = (array) ($profile['highlighted'] ?? []); ?>
+
+						<?php if (! empty($highlighted['links'])) : ?>
 							<div>
 								<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Highlighted Work', 'reci-media-hub'); ?></p>
-								<ul class="mt-2 flex flex-col gap-1">
-									<?php foreach ((array) $profile['highlighted'] as $highlighted_link) : ?>
-										<li><a href="<?php echo esc_url((string) $highlighted_link); ?>" class="break-words text-amber-700 underline underline-offset-2 hover:text-amber-800" rel="noopener noreferrer" target="_blank"><?php echo esc_html((string) $highlighted_link); ?></a></li>
+								<ul class="mt-2 flex flex-col gap-2">
+									<?php foreach ($highlighted['links'] as $work) : ?>
+										<li>
+											<a href="<?php echo esc_url($work['url']); ?>" class="break-words font-medium text-amber-700 underline underline-offset-2 hover:text-amber-800" rel="noopener noreferrer" target="_blank" title="<?php echo esc_attr($work['url']); ?>">
+												<?php echo esc_html($work['label']); ?>
+												<span aria-hidden="true">&nearr;</span>
+											</a>
+											<?php if ('' !== $work['note']) : ?>
+												<span class="block text-sm leading-6 text-zinc-600"><?php echo esc_html($work['note']); ?></span>
+											<?php endif; ?>
+										</li>
+									<?php endforeach; ?>
+								</ul>
+							</div>
+						<?php endif; ?>
+
+						<?php if (! empty($highlighted['citations'])) : ?>
+							<div>
+								<?php // References with no link — mostly published work. Listed as text because that is what they are. ?>
+								<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Publications', 'reci-media-hub'); ?></p>
+								<ul class="mt-2 flex list-disc flex-col gap-2 pl-5">
+									<?php foreach ($highlighted['citations'] as $citation) : ?>
+										<li class="text-sm leading-6 text-zinc-700"><?php echo esc_html($citation); ?></li>
 									<?php endforeach; ?>
 								</ul>
 							</div>

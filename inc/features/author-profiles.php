@@ -209,10 +209,80 @@ if (! function_exists('reci_media_hub_get_author_profile_data')) {
 			'pitt'         => (string) get_post_meta($profile_id, '_reci_author_pitt_affiliation', true),
 			'website'      => reci_media_hub_get_author_profile_website($profile_id),
 			'social_links' => $lines('_reci_author_social_links'),
-			'highlighted'  => $lines('_reci_author_highlighted_links'),
+			'highlighted'  => reci_author_highlighted_works($profile_id),
 			'cv_id'        => $cv_id,
 			'cv_url'       => $cv_id > 0 ? (string) wp_get_attachment_url($cv_id) : '',
 		];
+	}
+}
+
+if (! function_exists('reci_author_highlighted_works')) {
+	/**
+	 * Structured highlighted works for a profile.
+	 *
+	 * Returns two lists. They are different things: 'links' point at work hosted
+	 * elsewhere, 'citations' are references with no URL — mostly academic, and
+	 * the majority of what the Pitt import carried. Rendering them as one list
+	 * made the citations look like broken links.
+	 *
+	 * Falls back to the legacy one-per-line string so a profile edited by hand
+	 * in wp-admin still shows something.
+	 *
+	 * @return array{links: array<int,array<string,string>>, citations: array<int,string>}
+	 */
+	function reci_author_highlighted_works(int $profile_id): array {
+		$stored = get_post_meta($profile_id, '_reci_author_highlighted_works', true);
+
+		if (is_array($stored) && ! empty($stored)) {
+			$links = $citations = [];
+
+			foreach ($stored as $entry) {
+				$url = (string) ($entry['url'] ?? '');
+				$note = trim((string) ($entry['note'] ?? ''));
+
+				if ('' !== $url) {
+					$title = trim((string) ($entry['title'] ?? ''));
+					$links[] = [
+						'url'   => $url,
+						// No title in the source, so name the destination instead.
+						// A reader can judge "congress.gov" — they cannot judge a
+						// forty-character article slug.
+						'label' => '' !== $title ? $title : reci_link_domain($url),
+						'note'  => $note,
+					];
+					continue;
+				}
+
+				if ('' !== $note) {
+					$citations[] = $note;
+				}
+			}
+
+			return ['links' => $links, 'citations' => $citations];
+		}
+
+		// Legacy: a newline-separated string of bare URLs.
+		$raw = (string) get_post_meta($profile_id, '_reci_author_highlighted_links', true);
+		$links = [];
+
+		foreach (array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])) as $line) {
+			if (filter_var($line, FILTER_VALIDATE_URL)) {
+				$links[] = ['url' => $line, 'label' => reci_link_domain($line), 'note' => ''];
+			}
+		}
+
+		return ['links' => $links, 'citations' => []];
+	}
+}
+
+if (! function_exists('reci_link_domain')) {
+	/**
+	 * Host of a URL, without www., for use as a link label.
+	 */
+	function reci_link_domain(string $url): string {
+		$host = (string) wp_parse_url($url, PHP_URL_HOST);
+
+		return '' !== $host ? preg_replace('/^www\./', '', $host) : $url;
 	}
 }
 
