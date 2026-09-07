@@ -128,17 +128,19 @@ function reci_handle_content_update(): void {
 	$was_published = 'publish' === $post->post_status;
 	if ( $was_published ) {
 		$update['post_status'] = 'pending';
+
+		// Set before the update, not after: wp_update_post() fires
+		// transition_post_status synchronously, and the staff notification reads
+		// this flag to tell a revision from a first-time submission. Written
+		// afterwards it would always arrive too late.
+		update_post_meta( $post_id, '_reci_submission_was_published', '1' );
+		update_post_meta( $post_id, '_reci_submission_revised_at', current_time( 'mysql' ) );
 	}
 
 	$result = wp_update_post( $update, true );
 	if ( is_wp_error( $result ) ) {
 		wp_safe_redirect( add_query_arg( 'edit_error', 'save_failed', $edit_url ) );
 		exit;
-	}
-
-	if ( $was_published ) {
-		update_post_meta( $post_id, '_reci_submission_was_published', '1' );
-		update_post_meta( $post_id, '_reci_submission_revised_at', current_time( 'mysql' ) );
 	}
 
 	$link = esc_url_raw( wp_unslash( $_POST['submission_content_link'] ?? '' ) );

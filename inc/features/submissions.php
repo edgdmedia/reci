@@ -1424,34 +1424,11 @@ if (! function_exists('reci_media_hub_send_submission_notifications')) {
 			);
 		}
 
-		if (is_email($admin_email)) {
-			$admin_subject = sprintf(
-				/* translators: %s site name */
-				__('[%s] New Content Submission', 'reci-media-hub'),
-				$site_name
-			);
-			$admin_rows = [
-				__('Title', 'reci-media-hub')        => (string) $post->post_title,
-				__('Post type', 'reci-media-hub')    => $post_type_label,
-				__('Content type', 'reci-media-hub') => $content_type !== '' ? $content_type : '-',
-				__('Status', 'reci-media-hub')       => (string) $post->post_status,
-				__('Contributor', 'reci-media-hub')  => $display_name,
-				__('Email', 'reci-media-hub')        => $submitter_email !== '' ? $submitter_email : '-',
-			];
-			if ($content_link !== '') {
-				$admin_rows[__('Content link', 'reci-media-hub')] = $content_link;
-			}
-
-			$admin_blocks = [
-				['type' => 'text', 'text' => __('A new submission has been received.', 'reci-media-hub')],
-				['type' => 'details', 'rows' => $admin_rows],
-			];
-			if (is_string($edit_url) && $edit_url !== '') {
-				$admin_blocks[] = ['type' => 'button', 'label' => __('Open in the editor', 'reci-media-hub'), 'url' => $edit_url];
-			}
-
-			reci_send_email($admin_email, $admin_subject, __('New content submission', 'reci-media-hub'), $admin_blocks, (string) $post->post_title);
-		}
+		// No staff email here. reci_maybe_notify_staff_about_submission(), on
+		// transition_post_status, already notifies every staff reviewer
+		// individually with a link straight to the edit screen. This block mailed
+		// admin_email as well, so staff received two notifications for the same
+		// submission — and with N reviewers it was N+1.
 	}
 }
 
