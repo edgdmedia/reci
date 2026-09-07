@@ -71,28 +71,149 @@ taxonomy that cannot show it, *and* to `post_content` where you can see it.
 
 ---
 
-## Table 3 — What each post type expects vs. what the form collects
+## Table 3 — Every post type's fields vs. what the submission form collects
 
-Meta from `inc/content/meta-fields.php`. "Collected" means the submission form
-asks for it.
+Meta from `inc/content/meta-fields.php`. **Cat.** = catered for by the
+submission form.
 
-| Post type | Type-specific fields the CPT defines | Collected by the form? |
+### Shared by every submitted type
+
+| Post-type field | Submission field that fills it | Cat. |
+|---|---|:--:|
+| `post_title` | `title` | yes |
+| `post_excerpt` | `abstract` | yes |
+| `post_content` | the 7 concatenated blocks | partly — see Table 1 |
+| `post_author` | logged-in user | yes |
+| featured image | — | **no** |
+| `reci_sphere` | `selectedSpheres` | yes |
+| `reci_target_audience` | `targetAudience` | yes |
+| `reci_practice_focus` | `practiceType` | written, but unregistered — Table 2 |
+| `post_tag` | `keywords` goes to `post_content` instead | **no** |
+| `reci_location` | `location` collected, never posted | **no** |
+| `_reci_submission_content_link` | `contentLink` | yes |
+| `_reci_submission_file_id` / `_url` | file upload | yes |
+| `_reci_submission_file_description` | `fileDescription` | yes |
+
+### `post` — blog, article, exhibit, other
+
+| Post-type field | Submission field | Cat. |
+|---|---|:--:|
+| `_post_read_time_label` | — | **no** |
+| `_post_featured_rank` | — | **no** |
+| `_post_source_name` | — | **no** |
+| `_post_source_url` | — | **no** |
+| `_post_canonical_url` | — | **no** (`contentLink` is close but stored elsewhere) |
+
+### `reci_podcast`
+
+| Post-type field | Submission field | Cat. |
+|---|---|:--:|
+| `_reci_podcast_audio_url` | — | **no** |
+| `_reci_podcast_video_url` | — | **no** |
+| `_reci_podcast_duration_label` | — | **no** |
+| `_reci_podcast_duration_secs` | — | **no** |
+| `_reci_podcast_episode_number` | — | **no** |
+| `_reci_podcast_season_number` | — | **no** |
+| `_reci_podcast_transcript_url` | — | **no** |
+| `_reci_podcast_spotify_url` | — | **no** |
+| `_reci_podcast_apple_url` | — | **no** |
+| `reci_show` taxonomy | — | **no** |
+
+**0 of 10.** A submitted podcast has no audio.
+
+### `reci_video`
+
+| Post-type field | Submission field | Cat. |
+|---|---|:--:|
+| `_reci_video_url` | — | **no** |
+| `_reci_video_platform` | — | **no** |
+| `_reci_video_external_id` | — | **no** |
+| `_reci_video_duration_label` | — | **no** |
+| `_reci_video_duration_secs` | — | **no** |
+
+**0 of 5.** A submitted video has no video.
+
+### `reci_assessment`
+
+*Correction to my earlier note: this type does have a full field set — I said it
+had none, and that was wrong.*
+
+| Post-type field | Submission field | Cat. |
+|---|---|:--:|
+| `_reci_assessment_type` | — | **no** |
+| `_reci_assessment_questions` | — | **no** |
+| `_reci_assessment_result_ranges` | — | **no** |
+| `_reci_assessment_intro` | — | **no** |
+| `_reci_assessment_instructions` | — | **no** |
+| `_reci_assessment_estimated_time` | — | **no** |
+| `_reci_assessment_completion_title` | — | **no** |
+| `_reci_assessment_completion_message` | — | **no** |
+
+**0 of 8.** A submitted assessment has no questions, so it cannot be taken.
+This is a repeating question-builder — realistically staff work, not something
+to put in the submission wizard.
+
+### `reci_document`
+
+| Post-type field | Submission field | Cat. |
+|---|---|:--:|
+| *no metabox and no `_reci_document_*` meta exists* | — | n/a |
+
+The type is submittable and the file upload is its real payload, so this is the
+one type the form already serves. But none of its three taxonomies are
+registered for it (Table 2).
+
+### `reci_course` and `reci_event` — not submittable
+
+Both have complete field sets and neither appears in
+`reci_media_hub_submission_type_map()`, so nothing can reach them through the
+form at all.
+
+| `reci_course` | `reci_event` |
+|---|---|
+| `_reci_course_start_date` | `_reci_event_start_date` / `_end_date` |
+| `_reci_course_duration_weeks` | `_reci_event_start_time` / `_end_time` |
+| `_reci_course_lessons` | `_reci_event_timezone` |
+| `_reci_course_level` | `_reci_event_is_virtual` |
+| `_reci_course_format` | `_reci_event_location_name` / `_location_address` |
+| `_reci_course_fee_label` | `_reci_event_registration_url` |
+| `_reci_course_enrollment_url` | `_reci_event_cta_label` |
+
+### `reci_reflection` — not submittable
+
+`_reci_reflection_blueprint` and friends are built by the reflection builder, not
+by a form. Correctly excluded.
+
+---
+
+## Table 4 — The other direction: submission fields with no post-type home
+
+| Submission field | Wants to be | Currently |
 |---|---|---|
-| `post` (blog, article, exhibit, other) | `_post_canonical_url`, `_post_source_name`, `_post_source_url`, `_post_read_time_label`, `_post_featured_rank` | **none** |
-| `reci_podcast` | `_reci_podcast_audio_url`, `_apple_url`, `_spotify_url`, `_video_url`, `_transcript_url`, `_episode_number`, `_season_number`, `_duration_label`, `_duration_secs` | **none** |
-| `reci_video` | `_reci_video_url`, `_platform`, `_external_id`, `_duration_label`, `_duration_secs` | **none** |
-| `reci_document` | *no metabox defined at all* | n/a |
-| `reci_assessment` | *no metabox defined at all* | n/a |
-| `reci_course` | `_reci_course_start_date`, `_duration_weeks`, `_lessons`, `_level`, `_format`, `_fee_label`, `_enrollment_url` | **none** — and `course` is not in the type map, so it cannot be submitted |
-| `reci_event` | `_reci_event_start_date`, `_end_date`, `_start_time`, `_end_time`, `_timezone`, `_is_virtual`, `_location_name`, `_location_address`, `_registration_url`, `_cta_label` | **none** — and `event` is not in the type map either |
+| `evidenceBasis` | new meta | `post_content` text only |
+| `processOrientation` | new meta | `post_content` text only |
+| `equityFocus` | new meta | `post_content` text only |
+| `keywords` | `post_tag` | `post_content` text only |
+| `location` | `reci_location` | collected, never posted |
+| `bio`, `role`, `organization`, `website` | the author's `reci_author` profile | `_reci_submission_*` meta on the post, duplicating the profile |
 
-Every podcast submitted through the form arrives with no audio URL, no episode
-number and no duration. Every video arrives with no video URL — only the generic
-`_reci_submission_content_link`. Staff have to open wp-admin and fill all of it
-in by hand, which is exactly the wp-admin dependency you are trying to remove.
+---
 
-`reci_document` and `reci_assessment` are in the submission type map but have no
-field definitions anywhere, so there is nothing to collect even in principle.
+## Scorecard
+
+| Type | Type-specific fields | Collected | Gap |
+|---|---:|---:|---|
+| `post` | 5 | 0 | all |
+| `reci_podcast` | 10 | 0 | all |
+| `reci_video` | 5 | 0 | all |
+| `reci_assessment` | 8 | 0 | all |
+| `reci_document` | 0 | n/a | none |
+| `reci_course` | 7 | — | not submittable |
+| `reci_event` | 10 | — | not submittable |
+
+Only `reci_document` is fully served, and only because it has no fields of its
+own. Every other submittable type arrives empty and is completed by hand in
+wp-admin.
 
 ---
 
