@@ -1015,6 +1015,79 @@ if ( ! function_exists( 'reci_render_submit_gate' ) ) {
 	}
 }
 
+// ── Follow intent carried through sign-in ────────────────────────────────────
+
+if ( ! function_exists( 'reci_follow_after_login_url' ) ) {
+	/**
+	 * Sign-in URL that remembers the visitor meant to follow this collaborator.
+	 *
+	 * The intent rides on redirect_to, so after authenticating they land back on
+	 * the profile with the follow already applied.
+	 */
+	function reci_follow_after_login_url( int $profile_id ): string {
+		$target = add_query_arg( 'reci_follow', $profile_id, (string) get_permalink( $profile_id ) );
+		$sign_in = function_exists( 'reci_get_auth_page_url' ) ? reci_get_auth_page_url( 'sign-in' ) : '';
+
+		return '' !== $sign_in
+			? add_query_arg( 'redirect_to', rawurlencode( $target ), $sign_in )
+			: wp_login_url( $target );
+	}
+}
+
+/**
+ * Apply a pending follow at the moment of login.
+ *
+ * Hooked to wp_login rather than read from the URL on page load: this only runs
+ * as part of an authentication the visitor just performed, so a crafted link
+ * cannot make a signed-in user follow someone.
+ */
+add_action( 'wp_login', 'reci_apply_pending_follow', 10, 2 );
+function reci_apply_pending_follow( string $user_login, WP_User $user ): void {
+	$redirect = isset( $_REQUEST['redirect_to'] ) ? (string) wp_unslash( $_REQUEST['redirect_to'] ) : '';
+
+	if ( '' === $redirect ) {
+		return;
+	}
+
+	$query = (string) wp_parse_url( urldecode( $redirect ), PHP_URL_QUERY );
+
+	if ( '' === $query ) {
+		return;
+	}
+
+	parse_str( $query, $args );
+	$profile_id = absint( $args['reci_follow'] ?? 0 );
+
+	if ( $profile_id <= 0 || 'reci_author' !== get_post_type( $profile_id ) ) {
+		return;
+	}
+
+	$following = reci_get_user_followed_collaborator_ids( $user->ID );
+
+	if ( in_array( $profile_id, $following, true ) ) {
+		return;
+	}
+
+	$following[] = $profile_id;
+	update_user_meta( $user->ID, 'reci_followed_collaborators', array_values( array_unique( array_map( 'absint', $following ) ) ) );
+}
+
+/**
+ * Drop the intent parameter once it has been acted on.
+ *
+ * Leaving it in the address bar would mean a reload or a shared link carrying an
+ * instruction that has already been carried out.
+ */
+add_action( 'template_redirect', 'reci_clean_follow_intent_url' );
+function reci_clean_follow_intent_url(): void {
+	if ( empty( $_GET['reci_follow'] ) || ! is_singular( 'reci_author' ) ) {
+		return;
+	}
+
+	wp_safe_redirect( remove_query_arg( 'reci_follow' ) );
+	exit;
+}
+
 if ( ! function_exists( 'reci_toggle_follow_collaborator' ) ) {
 	function reci_toggle_follow_collaborator(): void {
 		if ( ! is_user_logged_in() ) {

@@ -153,7 +153,15 @@ get_header();
 					</div>
 
 					<!-- Hidden redirect -->
-					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( home_url( '/' ) ); ?>" />
+					<?php
+					// Honour a redirect_to passed in the URL. It was hardcoded to the
+					// homepage, so anything that sent a visitor here to finish an action
+					// — following a collaborator, reaching a gated page — lost its
+					// destination the moment they signed in.
+					$requested_redirect = isset( $_GET['redirect_to'] ) ? urldecode( (string) wp_unslash( $_GET['redirect_to'] ) ) : '';
+					$safe_redirect      = '' !== $requested_redirect ? wp_validate_redirect( $requested_redirect, home_url( '/' ) ) : home_url( '/' );
+					?>
+					<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $safe_redirect ); ?>" />
 
 					<!-- Submit -->
 						<button

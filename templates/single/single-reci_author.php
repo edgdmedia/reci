@@ -68,6 +68,45 @@ $listing_config = [
 ];
 
 $is_logged_in = is_user_logged_in();
+
+// Profile links, assembled once. Each carries an icon so the row reads as a
+// set of destinations rather than a wall of buttons.
+$profile_links = [];
+
+if (! empty($profile['website'])) {
+	$profile_links[] = ['url' => (string) $profile['website'], 'label' => __('Website', 'reci-media-hub'), 'icon' => 'globe'];
+}
+
+foreach ((array) ($profile['social_links'] ?? []) as $social_link) {
+	$social_host = (string) wp_parse_url((string) $social_link, PHP_URL_HOST);
+	$profile_links[] = [
+		'url'   => (string) $social_link,
+		'label' => '' !== $social_host ? (string) preg_replace('/^www\./', '', $social_host) : __('Profile', 'reci-media-hub'),
+		'icon'  => 'link',
+	];
+}
+
+if (! empty($profile['cv_url'])) {
+	$profile_links[] = ['url' => (string) $profile['cv_url'], 'label' => __('Download CV', 'reci-media-hub'), 'icon' => 'download'];
+}
+
+if (! function_exists('reci_profile_link_icon')) {
+	/**
+	 * Inline icon for a profile link, by kind.
+	 */
+	function reci_profile_link_icon(string $kind): string {
+		$paths = [
+			'globe'    => '<circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />',
+			'download' => '<path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />',
+			'link'     => '<path d="M13.8 10.2a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1.1-1.1M10.2 13.8a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1.1 1.1" />',
+		];
+
+		return sprintf(
+			'<svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">%s</svg>',
+			$paths[$kind] ?? $paths['link']
+		);
+	}
+}
 $followed_collaborators = $is_logged_in && function_exists( 'reci_get_user_followed_collaborator_ids' ) ? reci_get_user_followed_collaborator_ids( get_current_user_id() ) : [];
 $is_following = in_array( $profile_id, $followed_collaborators, true );
 
@@ -87,6 +126,42 @@ get_header();
 					<div class="flex items-center gap-3">
 						<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
 						<h1 class="text-neutral-800 text-5xl font-bold font-heading"><?php echo esc_html((string) ($profile['name'] ?? get_the_title())); ?></h1>
+
+						<?php
+						// Follow sits beside the name as an icon. It was a full button
+						// with a paragraph under it, which made the left column taller
+						// than the portrait it is meant to sit level with.
+						$follow_label = $is_following
+							? __('Following — click to unfollow', 'reci-media-hub')
+							: __('Follow this collaborator', 'reci-media-hub');
+						?>
+						<?php if ($is_logged_in) : ?>
+							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="leading-none">
+								<input type="hidden" name="action" value="reci_toggle_follow_collaborator" />
+								<input type="hidden" name="collaborator_id" value="<?php echo esc_attr((string) $profile_id); ?>" />
+								<input type="hidden" name="redirect_to" value="<?php echo esc_url((string) get_permalink($profile_id)); ?>" />
+								<?php wp_nonce_field('reci_toggle_follow_collaborator_' . $profile_id, 'reci_follow_collaborator_nonce'); ?>
+								<button type="submit"
+									class="inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors <?php echo $is_following ? 'border-amber-400 bg-amber-400 text-neutral-900 hover:bg-amber-300' : 'border-zinc-300 text-zinc-600 hover:border-amber-400 hover:text-amber-700'; ?>"
+									title="<?php echo esc_attr($follow_label); ?>"
+									aria-label="<?php echo esc_attr($follow_label); ?>">
+									<?php if ($is_following) : ?>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
+									<?php else : ?>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+									<?php endif; ?>
+								</button>
+							</form>
+						<?php else : ?>
+							<?php // Carries the intent through sign-in: the follow is applied
+							// on authentication and the visitor lands back here. ?>
+							<a href="<?php echo esc_url(reci_follow_after_login_url($profile_id)); ?>"
+								class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-300 text-zinc-600 transition-colors hover:border-amber-400 hover:text-amber-700"
+								title="<?php echo esc_attr__('Follow this collaborator', 'reci-media-hub'); ?>"
+								aria-label="<?php echo esc_attr__('Follow this collaborator', 'reci-media-hub'); ?>">
+								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" /></svg>
+							</a>
+						<?php endif; ?>
 					</div>
 
 					<?php if (! empty($profile['title'])) : ?>
@@ -104,24 +179,34 @@ get_header();
 						</div>
 					<?php endif; ?>
 
-					<?php if ($is_logged_in) : ?>
-						<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="pt-3">
-							<input type="hidden" name="action" value="reci_toggle_follow_collaborator" />
-							<input type="hidden" name="collaborator_id" value="<?php echo esc_attr((string) $profile_id); ?>" />
-							<input type="hidden" name="redirect_to" value="<?php echo esc_url((string) get_permalink($profile_id)); ?>" />
-							<?php wp_nonce_field('reci_toggle_follow_collaborator_' . $profile_id, 'reci_follow_collaborator_nonce'); ?>
-							<button type="submit" class="<?php echo $is_following ? 'btn btn-primary btn-md' : 'btn btn-outline-primary btn-md'; ?> inline-flex items-center gap-2">
-								<?php if ($is_following) : ?>
-									<?php // A tick reads as "done" at a glance, where the word alone needs reading. ?>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-									<?php esc_html_e('Following', 'reci-media-hub'); ?>
-								<?php else : ?>
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-									<?php esc_html_e('Follow Collaborator', 'reci-media-hub'); ?>
-								<?php endif; ?>
-							</button>
-						</form>
-						<p class="text-sm leading-6 text-zinc-600 max-w-md"><?php esc_html_e('Follow this collaborator to keep up with their published work in your dashboard feed.', 'reci-media-hub'); ?></p>
+					<?php
+					$expertise_terms = get_the_terms($profile_id, 'reci_expertise');
+					if (! is_wp_error($expertise_terms) && ! empty($expertise_terms)) :
+					?>
+						<div class="pt-2">
+							<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Subject Areas', 'reci-media-hub'); ?></p>
+							<div class="mt-2 flex flex-wrap gap-2">
+								<?php foreach ($expertise_terms as $expertise_term) : ?>
+									<a href="<?php echo esc_url((string) get_term_link($expertise_term)); ?>" class="inline-flex rounded-lg border border-zinc-300 px-3 py-1 text-sm text-neutral-700 transition-colors hover:border-amber-400 hover:text-amber-800"><?php echo esc_html($expertise_term->name); ?></a>
+								<?php endforeach; ?>
+							</div>
+						</div>
+					<?php endif; ?>
+
+					<?php if (! empty($profile_links)) : ?>
+						<?php // Icons only. The label lives in the tooltip and the accessible
+						// name, so the row stays compact instead of a stack of wide buttons. ?>
+						<div class="flex flex-wrap items-center gap-2 pt-3">
+							<?php foreach ($profile_links as $profile_link) : ?>
+								<a href="<?php echo esc_url($profile_link['url']); ?>"
+									class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-300 text-zinc-600 transition-colors hover:border-amber-400 hover:text-amber-700"
+									title="<?php echo esc_attr($profile_link['label']); ?>"
+									aria-label="<?php echo esc_attr($profile_link['label']); ?>"
+									rel="noopener noreferrer" target="_blank">
+									<?php echo reci_profile_link_icon((string) $profile_link['icon']); // phpcs:ignore WordPress.Security.EscapeOutput -- fixed inline SVG. ?>
+								</a>
+							<?php endforeach; ?>
+						</div>
 					<?php endif; ?>
 				</div>
 
@@ -173,44 +258,8 @@ get_header();
 							</dl>
 						<?php endif; ?>
 
-						<?php
-						$expertise_terms = get_the_terms($profile_id, 'reci_expertise');
-						if (! is_wp_error($expertise_terms) && ! empty($expertise_terms)) :
-						?>
-							<div>
-								<p class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e('Subject Areas', 'reci-media-hub'); ?></p>
-								<div class="mt-2 flex flex-wrap gap-2">
-									<?php foreach ($expertise_terms as $expertise_term) : ?>
-										<a href="<?php echo esc_url((string) get_term_link($expertise_term)); ?>" class="inline-flex rounded-lg border border-zinc-300 px-3 py-1 text-sm text-neutral-700 transition-colors hover:border-amber-400 hover:text-amber-800"><?php echo esc_html($expertise_term->name); ?></a>
-									<?php endforeach; ?>
-								</div>
-							</div>
-						<?php endif; ?>
-
-						<?php
-						$profile_links = [];
-						if (! empty($profile['website'])) {
-							$profile_links[] = ['url' => (string) $profile['website'], 'label' => __('Website', 'reci-media-hub')];
-						}
-						foreach ((array) ($profile['social_links'] ?? []) as $social_link) {
-							$social_host = (string) wp_parse_url((string) $social_link, PHP_URL_HOST);
-							$profile_links[] = [
-								'url'   => (string) $social_link,
-								'label' => '' !== $social_host ? (string) preg_replace('/^www\./', '', $social_host) : __('Profile', 'reci-media-hub'),
-							];
-						}
-						if (! empty($profile['cv_url'])) {
-							$profile_links[] = ['url' => (string) $profile['cv_url'], 'label' => __('Download CV', 'reci-media-hub')];
-						}
-
-						if (! empty($profile_links)) :
-						?>
-							<div class="flex flex-wrap gap-3">
-								<?php foreach ($profile_links as $profile_link) : ?>
-									<a href="<?php echo esc_url($profile_link['url']); ?>" class="btn btn-outline-primary btn-md" rel="noopener noreferrer" target="_blank"><?php echo esc_html($profile_link['label']); ?></a>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
+						<?php // Subject areas and the profile links moved up to the hero,
+						// where they fill the column beside the portrait. ?>
 
 						<?php $highlighted = (array) ($profile['highlighted'] ?? []); ?>
 
