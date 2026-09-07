@@ -1,0 +1,8 @@
+/* wp_editor() on the front end: the dashboard is a Tailwind page, so give the
+   editor chrome back the box model and spacing wp-admin assumes. */
+.reci-editor .wp-editor-container { border: 1px solid #d4d4d8; border-radius: .5rem; overflow: hidden; }
+.reci-editor .wp-editor-tabs { margin-bottom: 0; }
+.reci-editor .wp-switch-editor { border-radius: .375rem .375rem 0 0; }
+.reci-editor .mce-panel, .reci-editor .mce-toolbar-grp { background: #fafafa; }
+.reci-editor textarea.wp-editor-area { border: 0; padding: .75rem 1rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875rem; line-height: 1.6; }
+.reci-editor .mce-btn button { padding: 2px 4px; }

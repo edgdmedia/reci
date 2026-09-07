@@ -72,9 +72,36 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 		<p class="mt-2 text-xs text-zinc-500"><?php esc_html_e( 'The short description shown in listings.', 'reci-media-hub' ); ?></p>
 	</div>
 
-	<div>
-		<label class="mb-2 block text-sm font-medium text-zinc-800" for="reci-edit-details"><?php esc_html_e( 'Details', 'reci-media-hub' ); ?></label>
-		<textarea id="reci-edit-details" name="submission_details" rows="18" class="<?php echo esc_attr( $input_classes ); ?> font-mono text-sm leading-6"><?php echo esc_textarea( $edit_post->post_content ); ?></textarea>
+	<div class="reci-editor">
+		<label class="mb-2 block text-sm font-medium text-zinc-800" for="submission_details"><?php esc_html_e( 'Details', 'reci-media-hub' ); ?></label>
+		<?php
+		// Submissions made before this editor existed hold plain text with bare
+		// newlines. TinyMCE would collapse those into a single paragraph, so give
+		// unmarked-up content its paragraphs before handing it over. One-way: once
+		// saved it is real HTML and this no longer applies.
+		$editor_content = (string) $edit_post->post_content;
+		if ( '' !== $editor_content && $editor_content === wp_strip_all_tags( $editor_content ) ) {
+			$editor_content = wpautop( $editor_content );
+		}
+
+		wp_editor(
+			$editor_content,
+			'submission_details',
+			[
+				'textarea_name' => 'submission_details',
+				'textarea_rows' => 18,
+				// Subscribers hold no upload_files capability, so the media button
+				// would open a modal that cannot do anything.
+				'media_buttons' => false,
+				'teeny'         => true,
+				'quicktags'     => [ 'buttons' => 'strong,em,link,ul,ol,li,block,close' ],
+				'tinymce'       => [
+					'toolbar1' => 'formatselect,bold,italic,bullist,numlist,blockquote,link,unlink,undo,redo',
+					'toolbar2' => '',
+				],
+			]
+		);
+		?>
 		<p class="mt-2 text-xs text-zinc-500"><?php esc_html_e( 'The full body of your submission, including the sections you filled in when you submitted it.', 'reci-media-hub' ); ?></p>
 	</div>
 

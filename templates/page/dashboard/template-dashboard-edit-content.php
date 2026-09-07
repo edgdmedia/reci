@@ -22,6 +22,16 @@ if ( ! reci_user_can_edit_submission( $post_id ) ) {
 
 $edited_post = get_post( $post_id );
 
+// wp_editor() outside wp-admin needs its scripts and styles enqueued explicitly;
+// call this before get_header() so it lands in wp_head.
+wp_enqueue_editor();
+wp_enqueue_style(
+	'reci-dashboard-editor',
+	get_template_directory_uri() . '/assets/css/dashboard-editor.css',
+	[],
+	(string) filemtime( get_template_directory() . '/assets/css/dashboard-editor.css' )
+);
+
 get_header( 'dashboard' );
 ?>
 <main class="layout-page bg-slate-50">
