@@ -335,6 +335,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						'practiceOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_practice_focus') : [],
 						'targetAudienceOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_target_audience') : [],
 						'locationOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_location') : [],
+						'typeFields' => function_exists('reci_submission_type_fields') ? reci_submission_type_fields() : [],
 						'currentUser'    => [
 							'isLoggedIn'   => $is_logged_in_user,
 							'firstName'    => $first_name,

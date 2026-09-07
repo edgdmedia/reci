@@ -148,6 +148,14 @@ function reci_handle_content_update(): void {
 		delete_post_meta( $post_id, '_reci_submission_content_link' );
 	}
 
+	// Type-specific fields, through the same writer the submission uses — it only
+	// accepts keys declared for that content type, so a crafted POST cannot set
+	// arbitrary meta here either.
+	$content_type = (string) get_post_meta( $post_id, '_reci_submission_content_type', true );
+	if ( '' !== $content_type && function_exists( 'reci_save_submission_type_fields' ) ) {
+		reci_save_submission_type_fields( $post_id, $content_type );
+	}
+
 	// Taxonomies: only the ones the submission flow owns, and only when the form
 	// actually posted the field — an absent key means "not on this form", which
 	// is different from "cleared".

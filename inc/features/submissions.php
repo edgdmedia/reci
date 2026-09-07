@@ -220,14 +220,12 @@ if (! function_exists('reci_media_hub_submission_type_definitions')) {
 				'examples'  => 'Research papers, reports, curricula, policy briefs, toolkits',
 				'wordRange' => 'Varies by format',
 			],
-			[
-				'id'        => 'assessment',
-				'label'     => $labels['assessment'] ?? __('Quiz / Tool', 'reci-media-hub'),
-				'icon'      => '⬡',
-				'desc'      => 'Self-assessments, surveys, diagnostic instruments, or interactive tools that help users evaluate their racial equity consciousness.',
-				'examples'  => 'Self-reflection instruments, organizational audits, learning diagnostics, checklists',
-				'wordRange' => 'Varies by format',
-			],
+			// 'assessment' is deliberately absent. A quiz needs a question set,
+			// scales, choices and result ranges — eight fields including a
+			// repeating builder — and a submission without them produces a quiz
+			// that cannot be taken. Staff build these in wp-admin. The type map
+			// still contains 'assessment', so restoring this entry is all it
+			// takes to put it back.
 			[
 				'id'        => 'other',
 				'label'     => $labels['other'] ?? __('Other Content', 'reci-media-hub'),
@@ -942,6 +940,30 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		$location = is_string($location_raw) ? sanitize_text_field(wp_unslash($location_raw)) : '';
 		if ($location !== '') {
 			update_post_meta($post_id, '_reci_submission_location', $location);
+		}
+
+		// Featured image. Separate from submission_file, which is the content
+		// payload for a resource — a document submission can have both.
+		if (
+			isset($_FILES['submission_featured_image']) &&
+			is_array($_FILES['submission_featured_image']) &&
+			! empty($_FILES['submission_featured_image']['name']) &&
+			((int) ($_FILES['submission_featured_image']['error'] ?? 0)) === UPLOAD_ERR_OK
+		) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+
+			$thumb_id = media_handle_upload('submission_featured_image', $post_id);
+			if (! is_wp_error($thumb_id) && $thumb_id > 0) {
+				set_post_thumbnail($post_id, (int) $thumb_id);
+			}
+		}
+
+		// Whatever the chosen type needs: audio URL for a podcast, video URL for
+		// a video, source and canonical URLs for written pieces.
+		if (function_exists('reci_save_submission_type_fields')) {
+			reci_save_submission_type_fields($post_id, $content_type);
 		}
 
 		$file_upload_failed = false;

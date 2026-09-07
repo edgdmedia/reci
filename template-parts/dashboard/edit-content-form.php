@@ -110,6 +110,41 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 		<input id="reci-edit-link" name="submission_content_link" type="url" value="<?php echo esc_attr( $content_link ); ?>" class="<?php echo esc_attr( $input_classes ); ?>" placeholder="https://" />
 	</div>
 
+	<?php
+	// The fields this content type has of its own — audio URL for a podcast,
+	// video URL for a video, source and canonical URLs for written pieces. The
+	// submission form collects them, so the editor has to be able to fix them.
+	$type_key    = (string) get_post_meta( $post_id, '_reci_submission_content_type', true );
+	$type_fields = ( '' !== $type_key && function_exists( 'reci_submission_type_fields' ) )
+		? reci_submission_type_fields( $type_key )
+		: [];
+	?>
+	<?php if ( ! empty( $type_fields ) ) : ?>
+	<fieldset class="space-y-5 border-t border-zinc-200 pt-6">
+		<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'Media details', 'reci-media-hub' ); ?></legend>
+		<?php foreach ( $type_fields as $field ) : ?>
+			<?php
+			$field_key   = (string) $field['key'];
+			$field_value = (string) get_post_meta( $post_id, $field_key, true );
+			$field_id    = 'reci-edit-' . sanitize_html_class( ltrim( $field_key, '_' ) );
+			$input_type  = 'number' === $field['type'] ? 'number' : ( 'url' === $field['type'] ? 'url' : 'text' );
+			?>
+			<div>
+				<label class="mb-2 block text-sm font-medium text-zinc-800" for="<?php echo esc_attr( $field_id ); ?>">
+					<?php echo esc_html( (string) $field['label'] ); ?>
+					<?php if ( ! empty( $field['required'] ) ) : ?><span class="text-red-600">*</span><?php endif; ?>
+				</label>
+				<input id="<?php echo esc_attr( $field_id ); ?>" name="<?php echo esc_attr( $field_key ); ?>" type="<?php echo esc_attr( $input_type ); ?>"
+				       value="<?php echo esc_attr( $field_value ); ?>" placeholder="<?php echo esc_attr( (string) ( $field['placeholder'] ?? '' ) ); ?>"
+				       class="<?php echo esc_attr( $input_classes ); ?>" <?php echo ! empty( $field['required'] ) ? 'required' : ''; ?> />
+				<?php if ( ! empty( $field['help'] ) ) : ?>
+					<p class="mt-2 text-xs text-zinc-500"><?php echo esc_html( (string) $field['help'] ); ?></p>
+				<?php endif; ?>
+			</div>
+		<?php endforeach; ?>
+	</fieldset>
+	<?php endif; ?>
+
 	<?php foreach ( reci_media_hub_submission_taxonomies() as $taxonomy ) : ?>
 		<?php
 		$tax_object = get_taxonomy( $taxonomy );

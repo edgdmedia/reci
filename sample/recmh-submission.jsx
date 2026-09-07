@@ -23,7 +23,7 @@ const RECMHSubmission = () => {
     role: bootUser.role || "",
     bio: bootUser.bio || "",
     website: bootUser.website || "",
-    agreeTerms: false, agreeReview: false, locations: [],
+    agreeTerms: false, agreeReview: false, locations: [], typeValues: {},
   });
   const [submitted, setSubmitted] = useState(false);
   const [showGuidelinesPanel, setShowGuidelinesPanel] = useState(false);
@@ -31,6 +31,7 @@ const RECMHSubmission = () => {
   const [animateIn, setAnimateIn] = useState(true);
   const [tooltipSphere, setTooltipSphere] = useState(null);
   const [submissionFile, setSubmissionFile] = useState(null);
+  const [featuredImage, setFeaturedImage] = useState(null);
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const topRef = useRef(null);
@@ -276,6 +277,21 @@ const RECMHSubmission = () => {
         : [...prev.locations, termId],
     }));
 
+  // Fields the chosen content type needs, from the PHP schema. A video asks for
+  // a video URL, a podcast for audio and episode numbers, a written piece for
+  // its original source. Everything shares the rest of the step.
+  const typeFieldMap = submissionConfig.typeFields && typeof submissionConfig.typeFields === "object"
+    ? submissionConfig.typeFields
+    : {};
+  const typeFields = (contentType && Array.isArray(typeFieldMap[contentType])) ? typeFieldMap[contentType] : [];
+
+  const updateTypeValue = (key, value) =>
+    setFormData((prev) => ({ ...prev, typeValues: { ...prev.typeValues, [key]: value } }));
+
+  const missingRequiredTypeField = typeFields.some(
+    (f) => f.required && !String(formData.typeValues[f.key] || "").trim()
+  );
+
   const findPracticeOption = (name) => practiceTypeOptions.find((option) => option.name === name) || null;
   const findAudienceOption = (name) => audienceOptions.find((option) => option.name === name) || null;
 
@@ -309,7 +325,7 @@ const RECMHSubmission = () => {
     switch (currentStep) {
       case 0: return contentType !== null;
       case 1: return selectedSpheres.length > 0;
-      case 2: return formData.title.trim() && formData.abstract.trim() && formData.evidenceBasis.trim();
+      case 2: return formData.title.trim() && formData.abstract.trim() && formData.evidenceBasis.trim() && !missingRequiredTypeField;
       default: return true;
     }
   };
@@ -333,6 +349,7 @@ const RECMHSubmission = () => {
     setContentType(null);
     setSelectedSpheres([]);
     setSubmissionFile(null);
+    setFeaturedImage(null);
     setSubmitError("");
     setIsSubmitting(false);
     setFormData({
@@ -340,7 +357,7 @@ const RECMHSubmission = () => {
       targetAudience: [], keywords: "", contentLink: "", fileDescription: "",
       practiceType: "", equityFocus: "",
       firstName: "", lastName: "", email: "", organization: "", role: "",
-      bio: "", website: "", agreeTerms: false, agreeReview: false, locations: [],
+      bio: "", website: "", agreeTerms: false, agreeReview: false, locations: [], typeValues: {},
     });
   };
 
@@ -375,6 +392,15 @@ const RECMHSubmission = () => {
       payload.append("submission_keywords", formData.keywords || "");
       payload.append("submission_content_link", formData.contentLink || "");
       payload.append("submission_file_description", formData.fileDescription || "");
+
+      // Type-specific values, keyed by the meta key the server expects. The
+      // server only accepts keys declared for the chosen type.
+      typeFields.forEach((f) => {
+        payload.append(f.key, formData.typeValues[f.key] || "");
+      });
+      if (featuredImage) {
+        payload.append("submission_featured_image", featuredImage);
+      }
 
       // Consent was gating this button and going nowhere.
       payload.append("submission_agree_terms", formData.agreeTerms ? "1" : "0");
@@ -1033,6 +1059,25 @@ const RECMHSubmission = () => {
                       </div>
                     )}
 
+                    {typeFields.length > 0 && (
+                      <div style={{ display: "grid", gap: 20 }}>
+                        {typeFields.map((f) => (
+                          <div key={f.key}>
+                            <label className="field-label">
+                              {f.label}{f.required ? " *" : ""}
+                            </label>
+                            <input
+                              className="field-input"
+                              type={f.type === "number" ? "number" : f.type === "url" ? "url" : "text"}
+                              placeholder={f.placeholder || ""}
+                              value={formData.typeValues[f.key] || ""}
+                              onChange={(e) => updateTypeValue(f.key, e.target.value)} />
+                            {f.help && <div className="field-hint">{f.help}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                       <div>
                         <label className="field-label">Keywords / Tags</label>
@@ -1053,6 +1098,13 @@ const RECMHSubmission = () => {
                       <input className="field-input" type="file"
                         onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)} />
                       <div className="field-hint">Attach a document, manuscript, media file, or supplementary file.</div>
+                    </div>
+
+                    <div>
+                      <label className="field-label">Featured Image (optional)</label>
+                      <input className="field-input" type="file" accept="image/*"
+                        onChange={(e) => setFeaturedImage(e.target.files?.[0] || null)} />
+                      <div className="field-hint">Used as the thumbnail in listings and at the top of the page.</div>
                     </div>
 
                     <div>
@@ -1122,6 +1174,10 @@ const RECMHSubmission = () => {
                       {formData.processOrientation && <div className="review-row"><div className="review-label">Process Focus</div><div className="review-value">{formData.processOrientation}</div></div>}
                       {formData.equityFocus && <div className="review-row"><div className="review-label">Equity Focus</div><div className="review-value">{formData.equityFocus}</div></div>}
                       {formData.targetAudience.length > 0 && <div className="review-row"><div className="review-label">Audience</div><div className="review-value">{formData.targetAudience.join(", ")}</div></div>}
+                      {typeFields.filter((f) => String(formData.typeValues[f.key] || "").trim()).map((f) => (
+                        <div className="review-row" key={f.key}><div className="review-label">{f.label}</div><div className="review-value">{formData.typeValues[f.key]}</div></div>
+                      ))}
+                      {featuredImage && <div className="review-row"><div className="review-label">Featured Image</div><div className="review-value">{featuredImage.name}</div></div>}
                       {formData.locations.length > 0 && <div className="review-row"><div className="review-label">Location</div><div className="review-value">{locationOptions.filter((l) => formData.locations.includes(l.termId)).map((l) => l.name).join(", ")}</div></div>}
                       {formData.keywords && <div className="review-row"><div className="review-label">Keywords</div><div className="review-value">{formData.keywords}</div></div>}
                       {formData.contentLink && <div className="review-row"><div className="review-label">Content Link</div><div className="review-value" style={{ color: "var(--terracotta)" }}>{formData.contentLink}</div></div>}

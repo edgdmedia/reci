@@ -29,6 +29,7 @@ $reci_media_hub_includes = [
 	'/inc/features/author-profiles.php',
 	'/inc/features/collaborators.php',
 	'/inc/features/content-editing.php',
+	'/inc/features/submission-type-fields.php',
 	'/inc/features/emails.php',
 	'/inc/features/auth.php',
 	'/inc/features/notifications.php',
