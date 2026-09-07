@@ -87,6 +87,63 @@ function reci_submission_edit_url( int $post_id ): string {
 	return home_url( '/dashboard/my-content/edit/' . $post_id . '/' );
 }
 
+// ── Create handler ───────────────────────────────────────────────────────────
+
+add_action( 'admin_post_reci_create_content', 'reci_handle_content_create' );
+
+/**
+ * Start a draft and hand off to the editor.
+ *
+ * The draft exists before the editor opens, so the create and edit paths are the
+ * same screen and the same save handler — there is no second form to drift.
+ */
+function reci_handle_content_create(): void {
+	$chooser = home_url( '/dashboard/my-content/new/' );
+
+	$nonce = isset( $_POST['reci_create_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['reci_create_nonce'] ) ) : '';
+	if ( ! wp_verify_nonce( $nonce, 'reci_create_content' ) ) {
+		wp_safe_redirect( add_query_arg( 'create_error', 'invalid_nonce', $chooser ) );
+		exit;
+	}
+
+	// Level 2 submits for review through /submit/; this route belongs to anyone
+	// who publishes their own work.
+	if ( ! current_user_can( 'publish_posts' ) ) {
+		wp_safe_redirect( home_url( '/submit/' ) );
+		exit;
+	}
+
+	$content_type = isset( $_POST['content_type'] ) ? sanitize_key( wp_unslash( $_POST['content_type'] ) ) : '';
+	$type_map     = function_exists( 'reci_media_hub_submission_type_map' ) ? reci_media_hub_submission_type_map() : [];
+
+	if ( ! isset( $type_map[ $content_type ] ) ) {
+		wp_safe_redirect( add_query_arg( 'create_error', 'invalid_type', $chooser ) );
+		exit;
+	}
+
+	$post_id = wp_insert_post(
+		[
+			'post_type'   => $type_map[ $content_type ],
+			'post_status' => 'draft',
+			'post_title'  => __( 'Untitled', 'reci-media-hub' ),
+			'post_author' => get_current_user_id(),
+		],
+		true
+	);
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		wp_safe_redirect( add_query_arg( 'create_error', 'save_failed', $chooser ) );
+		exit;
+	}
+
+	// The editor reads this to decide which type-specific fields to show.
+	update_post_meta( $post_id, '_reci_submission_content_type', $content_type );
+	update_post_meta( $post_id, '_reci_submission_submitter_user_id', get_current_user_id() );
+
+	wp_safe_redirect( reci_submission_edit_url( (int) $post_id ) );
+	exit;
+}
+
 // ── Update handler ───────────────────────────────────────────────────────────
 
 add_action( 'admin_post_reci_update_content', 'reci_handle_content_update' );

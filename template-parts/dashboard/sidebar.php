@@ -37,11 +37,18 @@ $is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_c
 				<p class="px-3 text-xs font-semibold uppercase tracking-wider text-zinc-400">Collaborator</p>
 			</li>
 			<li>
-				<?php // `/submit/` is the canonical submission route — the dashboard links out to it. ?>
-				<a href="<?php echo esc_url( home_url( '/submit/' ) ); ?>"
+				<?php
+				// Level 2 submits for review through the canonical /submit/ route.
+				// Level 3 and above publish their own, so they add content in the
+				// dashboard instead — same verb, different destination.
+				$can_publish_own = current_user_can( 'publish_posts' );
+				$add_url         = $can_publish_own ? home_url( '/dashboard/my-content/new/' ) : home_url( '/submit/' );
+				$add_label       = $can_publish_own ? __( 'Add Content', 'reci-media-hub' ) : __( 'Submit Content', 'reci-media-hub' );
+				?>
+				<a href="<?php echo esc_url( $add_url ); ?>"
 				   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-100">
 					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-					Submit Content
+					<?php echo esc_html( $add_label ); ?>
 				</a>
 			</li>
 			<li>
