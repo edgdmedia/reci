@@ -77,8 +77,20 @@ get_header();
 	<div class="reci-container-full border-b border-zinc-400">
 		<div class="reci-container py-14">
 			<div class="flex flex-col md:flex-row justify-between items-start gap-6">
-				<div class="flex items-center w-full md:flex-1 md:min-w-0">
-					<div class="flex flex-col gap-3">
+				<div class="flex items-center gap-6 w-full md:flex-1 md:min-w-0">
+					<?php
+					// The portrait belongs with the name, not beside the biography. In
+					// the About column it stayed pinned to the top while a long bio ran
+					// on past it, leaving a tall empty gap down the side of the page.
+					?>
+					<?php if (! empty($profile['image_url'])) : ?>
+						<img src="<?php echo esc_url((string) $profile['image_url']); ?>" alt="<?php echo esc_attr((string) $profile['image_alt']); ?>" class="h-28 w-28 flex-shrink-0 rounded-full object-cover" />
+					<?php else : ?>
+						<div class="flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-full bg-zinc-200">
+							<span class="text-zinc-400 text-3xl font-bold font-heading"><?php echo esc_html(substr($profile['name'] ?? get_the_title(), 0, 2)); ?></span>
+						</div>
+					<?php endif; ?>
+					<div class="flex min-w-0 flex-col gap-3">
 						<div class="flex items-center gap-3">
 							<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
 							<h1 class="text-neutral-800 text-5xl font-bold font-heading"><?php echo esc_html((string) ($profile['name'] ?? get_the_title())); ?></h1>
@@ -122,15 +134,10 @@ get_header();
 					<h2 class="text-neutral-700 text-2xl font-bold font-subhead"><?php esc_html_e('About the Collaborator', 'reci-media-hub'); ?></h2>
 				</div>
 				<div class="w-full h-px bg-zinc-300"></div>
-				<div class="flex flex-col md:flex-row items-start gap-6">
-					<?php if (! empty($profile['image_url'])) : ?>
-						<img src="<?php echo esc_url((string) $profile['image_url']); ?>" alt="<?php echo esc_attr((string) $profile['image_alt']); ?>" class="w-full md:w-72 md:h-72 object-cover rounded-xl flex-shrink-0" />
-					<?php else : ?>
-						<div class="w-full md:w-72 md:h-72 rounded-xl bg-zinc-200 flex items-center justify-center flex-shrink-0">
-							<span class="text-zinc-400 text-5xl font-bold font-heading"><?php echo esc_html(substr($profile['name'] ?? get_the_title(), 0, 2)); ?></span>
-						</div>
-					<?php endif; ?>
-					<div class="flex min-w-0 flex-1 flex-col gap-6">
+				<?php // Full width, with the portrait now in the hero. Nothing sits
+				// beside the biography, so it cannot run out from under anything. ?>
+				<div class="flex flex-col items-start gap-6">
+					<div class="flex w-full min-w-0 flex-col gap-6">
 						<div class="text-neutral-700 text-xl font-normal leading-7">
 							<?php the_content(); ?>
 						</div>
