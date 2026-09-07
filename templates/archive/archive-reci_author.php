@@ -75,6 +75,19 @@ if (count($query_args['tax_query']) === 1) {
 
 $author_query = new WP_Query($query_args);
 
+// Filters, as query args — used by both the follow redirect and pagination.
+$pagination_query_args = array_filter([
+	'search'      => $current_search,
+	'focus'       => $current_focus,
+	'affiliation' => $current_affiliation,
+], static fn($value) => '' !== $value);
+
+// One lookup for the whole page rather than one per card.
+$viewer_is_logged_in = is_user_logged_in();
+$followed_ids        = $viewer_is_logged_in && function_exists('reci_get_user_followed_collaborator_ids')
+	? reci_get_user_followed_collaborator_ids(get_current_user_id())
+	: [];
+
 get_header();
 ?>
 <main class="layout-page">
@@ -129,31 +142,62 @@ get_header();
 				<?php while ($author_query->have_posts()) : $author_query->the_post();
 					$profile = reci_media_hub_get_author_profile_data(get_the_ID());
 				?>
-					<a href="<?php the_permalink(); ?>" class="group flex flex-col items-center text-center gap-4 p-8 rounded-xl bg-white border border-zinc-200 hover:border-zinc-400 transition-colors no-underline">
-						<?php if (! empty($profile['image_url'])) : ?>
-							<img src="<?php echo esc_url($profile['image_url']); ?>" alt="<?php echo esc_attr($profile['image_alt']); ?>" class="w-28 h-28 rounded-full object-cover" />
-						<?php else : ?>
-							<div class="w-28 h-28 rounded-full bg-zinc-200 flex items-center justify-center">
-								<span class="text-zinc-400 text-3xl font-bold font-heading"><?php echo esc_html(substr(get_the_title(), 0, 2)); ?></span>
-							</div>
-						<?php endif; ?>
-						<div class="flex flex-col gap-1">
-							<h2 class="text-neutral-800 text-xl font-bold font-heading group-hover:text-[#003594] transition-colors"><?php the_title(); ?></h2>
-							<?php if (! empty($profile['title'])) : ?>
-								<p class="text-neutral-500 text-sm font-medium"><?php echo esc_html($profile['title']); ?></p>
+					<?php $is_followed = in_array((int) get_the_ID(), $followed_ids, true); ?>
+					<?php // The card is a div, not a link: a form cannot live inside an
+					// anchor, so the profile link and the follow button sit side by side. ?>
+					<div class="group flex flex-col items-center text-center gap-4 p-8 rounded-xl bg-white border border-zinc-200 hover:border-zinc-400 transition-colors">
+						<a href="<?php the_permalink(); ?>" class="flex flex-col items-center gap-4 no-underline">
+							<?php if (! empty($profile['image_url'])) : ?>
+								<img src="<?php echo esc_url($profile['image_url']); ?>" alt="<?php echo esc_attr($profile['image_alt']); ?>" class="w-28 h-28 rounded-full object-cover" />
+							<?php else : ?>
+								<div class="w-28 h-28 rounded-full bg-zinc-200 flex items-center justify-center">
+									<span class="text-zinc-400 text-3xl font-bold font-heading"><?php echo esc_html(substr(get_the_title(), 0, 2)); ?></span>
+								</div>
 							<?php endif; ?>
-						</div>
-					</a>
+							<div class="flex flex-col gap-1">
+								<h2 class="text-neutral-800 text-xl font-bold font-heading group-hover:text-[#003594] transition-colors"><?php the_title(); ?></h2>
+								<?php if (! empty($profile['title'])) : ?>
+									<p class="text-neutral-500 text-sm font-medium"><?php echo esc_html($profile['title']); ?></p>
+								<?php endif; ?>
+							</div>
+						</a>
+
+						<?php if ($viewer_is_logged_in) : ?>
+							<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="mt-auto pt-2">
+								<input type="hidden" name="action" value="reci_toggle_follow_collaborator" />
+								<input type="hidden" name="collaborator_id" value="<?php echo esc_attr((string) get_the_ID()); ?>" />
+								<?php // Come back to the page and filters the visitor was on. ?>
+								<input type="hidden" name="redirect_to" value="<?php echo esc_url(add_query_arg($pagination_query_args ?? [], get_pagenum_link(max(1, $paged)))); ?>" />
+								<?php wp_nonce_field('reci_toggle_follow_collaborator_' . get_the_ID(), 'reci_follow_collaborator_nonce'); ?>
+								<button type="submit" class="<?php echo $is_followed ? 'btn btn-primary btn-sm' : 'btn btn-outline-primary btn-sm'; ?>">
+									<?php echo esc_html($is_followed ? __('Following', 'reci-media-hub') : __('Follow', 'reci-media-hub')); ?>
+								</button>
+							</form>
+						<?php else : ?>
+							<a href="<?php echo esc_url(home_url('/sign-in/')); ?>" class="mt-auto pt-2 text-sm font-medium text-amber-700 hover:text-amber-800">
+								<?php esc_html_e('Sign in to follow', 'reci-media-hub'); ?>
+							</a>
+						<?php endif; ?>
+					</div>
 				<?php endwhile; ?>
 			</div>
 
 			<div class="self-stretch mt-8 flex items-center justify-center gap-2">
 				<?php
+				// The base must carry the %_% placeholder or paginate_links has nowhere
+				// to put the page number — every link came out as /collaborators/,
+				// so page 2, 3 and 10 all led back to page 1. Building it from a
+				// sentinel page number is the reliable way to get that placeholder
+				// in the right place whatever the permalink structure.
+				$pagination_base = str_replace( 999999999, '%#%', esc_url_raw( get_pagenum_link( 999999999 ) ) );
+
+				// Filters survive paging, so page 2 of a filtered list stays filtered.
 				echo paginate_links([
 					'total'     => $author_query->max_num_pages,
 					'current'   => $paged,
-					'format'    => '?paged=%#%',
-					'base'      => $current_search !== '' ? add_query_arg('search', $current_search, get_pagenum_link(1)) : get_pagenum_link(1),
+					'format'    => '',
+					'base'      => $pagination_base,
+					'add_args'  => $pagination_query_args,
 					'prev_text' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">&laquo;</span>',
 					'next_text' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">&raquo;</span>',
 					'before_page_number' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">',

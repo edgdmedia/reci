@@ -261,17 +261,62 @@ if (! function_exists('reci_author_highlighted_works')) {
 			return ['links' => $links, 'citations' => $citations];
 		}
 
-		// Legacy: a newline-separated string of bare URLs.
-		$raw = (string) get_post_meta($profile_id, '_reci_author_highlighted_links', true);
-		$links = [];
+		// Legacy value: one run-on string of URLs and prose, which is what the
+		// collaborator import writes. Requiring each line to validate as a URL
+		// meant this rendered as nothing at all on any site where the structured
+		// import had not been run — worse than the single mashed link it replaced.
+		// Parse it instead, so a profile shows something useful either way.
+		return reci_parse_legacy_highlighted_works(
+			(string) get_post_meta($profile_id, '_reci_author_highlighted_links', true)
+		);
+	}
+}
 
-		foreach (array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])) as $line) {
-			if (filter_var($line, FILTER_VALIDATE_URL)) {
-				$links[] = ['url' => $line, 'label' => reci_link_domain($line), 'note' => ''];
-			}
+if (! function_exists('reci_parse_legacy_highlighted_works')) {
+	/**
+	 * Pull links and prose out of the unstructured highlighted-works string.
+	 *
+	 * A lighter version of scripts/extract-highlighted-works.py, for data that
+	 * never went through it. Text following a URL is treated as that link's note;
+	 * text before the first URL, or a value with no URL at all, becomes a
+	 * citation.
+	 *
+	 * @return array{links: array<int,array<string,string>>, citations: array<int,string>}
+	 */
+	function reci_parse_legacy_highlighted_works(string $raw): array {
+		$raw = trim($raw);
+
+		if ('' === $raw) {
+			return ['links' => [], 'citations' => []];
 		}
 
-		return ['links' => $links, 'citations' => []];
+		if (! preg_match_all('#https?://[^\s<>"\')]+#i', $raw, $matches, PREG_OFFSET_CAPTURE)) {
+			return ['links' => [], 'citations' => [$raw]];
+		}
+
+		$links     = [];
+		$citations = [];
+
+		$lead = trim(substr($raw, 0, $matches[0][0][1]));
+		if ('' !== $lead) {
+			$citations[] = $lead;
+		}
+
+		foreach ($matches[0] as $index => $match) {
+			[$url, $offset] = $match;
+
+			$after = $offset + strlen($url);
+			$next  = $matches[0][$index + 1][1] ?? strlen($raw);
+			$note  = trim(substr($raw, $after, $next - $after), " \t\n\r-–—:;,.");
+
+			$links[] = [
+				'url'   => $url,
+				'label' => reci_link_domain($url),
+				'note'  => $note,
+			];
+		}
+
+		return ['links' => $links, 'citations' => $citations];
 	}
 }
 
