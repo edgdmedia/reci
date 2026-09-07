@@ -55,12 +55,17 @@ get_header();
 				$reg_errors = [
 					'missing_fields'        => 'Please fill in your name, email, and password.',
 					'password_mismatch'     => 'Passwords do not match.',
-					'password_too_short'    => 'Password must be at least 8 characters.',
 					'registration_disabled' => 'Registration is currently disabled.',
 					'invalid_nonce'         => 'Security check failed. Please try again.',
 					'existing_user_email'   => 'An account with this email address already exists.',
 					'existing_user_login'   => 'That username is already taken.',
 				];
+				// Password rules are defined once in auth.php; pull their wording in
+				// rather than restating it here, where it would drift.
+				if ( function_exists( 'reci_password_error_messages' ) ) {
+					$reg_errors += reci_password_error_messages();
+				}
+
 				$reg_code = sanitize_key( $_GET['reg_error'] ?? '' );
 				if ( $reg_code ) :
 					$reg_msg = $reg_errors[ $reg_code ] ?? 'Something went wrong. Please try again.';
@@ -156,6 +161,7 @@ get_header();
 								name="user_pass"
 								placeholder="<?php echo esc_attr__( 'Enter Your Password', 'reci-media-hub' ); ?>"
 								autocomplete="new-password"
+								aria-describedby="reci-password-rules"
 								class="w-full px-4 py-5 pr-12 rounded-lg outline outline-[0.5px] outline-zinc-400 text-sm font-normal text-neutral-800 placeholder-zinc-400 bg-white focus:outline-[#003594] focus:outline-2 transition-all"
 							/>
 							<button
@@ -169,6 +175,11 @@ get_header();
 								</svg>
 							</button>
 						</div>
+						<?php if ( function_exists( 'reci_password_rules_text' ) ) : ?>
+							<p id="reci-password-rules" class="text-xs leading-5 text-zinc-500">
+								<?php echo esc_html( reci_password_rules_text() ); ?>
+							</p>
+						<?php endif; ?>
 					</div>
 
 					<!-- Confirm Password -->

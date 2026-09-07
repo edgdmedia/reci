@@ -102,6 +102,14 @@ $is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_c
 					Settings
 				</a>
 			</li>
+
+			<li class="pt-3 mt-3 border-t border-zinc-200">
+				<a href="<?php echo esc_url( home_url( '/' ) ); ?>"
+				   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-100">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+					Back to Site
+				</a>
+			</li>
 		</ul>
 
 		<div class="pt-4 mt-4 border-t border-zinc-200">
@@ -112,11 +120,6 @@ $is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_c
 					<p class="text-xs text-zinc-500 truncate"><?php echo esc_html( $current_user->user_email ); ?></p>
 				</div>
 			</div>
-			<a href="<?php echo esc_url( home_url( '/' ) ); ?>"
-			   class="flex items-center gap-2 px-3 py-2 mt-1 text-sm text-zinc-600 hover:text-zinc-900 transition-colors rounded-lg hover:bg-zinc-100">
-				<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-				Back to Site
-			</a>
 		</div>
 	</nav>
 </aside>

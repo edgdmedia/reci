@@ -133,21 +133,47 @@ if ( ! function_exists( 'reci_collaborator_profile_field_definitions' ) ) {
 	 */
 	function reci_collaborator_profile_field_definitions(): array {
 		return [
-			'reci_firstname'            => [ 'label' => __( 'First Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'reci_lastname'             => [ 'label' => __( 'Last Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'user_email'                => [ 'label' => __( 'Email', 'reci-media-hub' ), 'type' => 'email', 'required' => true, 'width' => 'half' ],
-			'reci_affiliated_with_pitt' => [ 'label' => __( 'Affiliated with Pitt', 'reci-media-hub' ), 'type' => 'select', 'required' => true, 'width' => 'half', 'options' => [ 'Yes', 'No' ] ],
-			'reci_pitt_affiliation'     => [ 'label' => __( 'Pitt Affiliation', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half' ],
-			'submission_organization'   => [ 'label' => __( 'Affiliation / Organization', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'reci_department'           => [ 'label' => __( 'Department (School / Organization)', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'submission_role'           => [ 'label' => __( 'Role / Title', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half' ],
-			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6 ],
-			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half' ],
-			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.' ],
+			'reci_firstname'            => [ 'label' => __( 'First Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'reci_lastname'             => [ 'label' => __( 'Last Name', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'user_email'                => [ 'label' => __( 'Email', 'reci-media-hub' ), 'type' => 'email', 'required' => true, 'width' => 'half', 'audience' => 'all' ],
+			'submission_bio'            => [ 'label' => __( 'Personal Bio (150 words or less)', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 6, 'audience' => 'all' ],
+			'reci_affiliated_with_pitt' => [ 'label' => __( 'Affiliated with Pitt', 'reci-media-hub' ), 'type' => 'select', 'required' => true, 'width' => 'half', 'options' => [ 'Yes', 'No' ], 'audience' => 'collaborator' ],
+			'reci_pitt_affiliation'     => [ 'label' => __( 'Pitt Affiliation', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_organization'   => [ 'label' => __( 'Affiliation / Organization', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_department'           => [ 'label' => __( 'Department (School / Organization)', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_role'           => [ 'label' => __( 'Role / Title', 'reci-media-hub' ), 'type' => 'text', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'submission_website'        => [ 'label' => __( 'Professional Website', 'reci-media-hub' ), 'type' => 'url', 'required' => false, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_social_handles'       => [ 'label' => __( 'Social Media Handles', 'reci-media-hub' ), 'type' => 'text', 'required' => false, 'width' => 'half', 'placeholder' => 'LinkedIn, X, Instagram, etc.', 'audience' => 'collaborator' ],
 			// Multi-value fields; these become taxonomy terms on the public profile.
-			'reci_affiliation_term'     => [ 'label' => __( 'Your Affiliation', 'reci-media-hub' ), 'type' => 'taxonomy_select', 'taxonomy' => 'reci_affiliation', 'required' => true, 'width' => 'half' ],
-			'reci_expertise_terms'      => [ 'label' => __( 'Subject Areas You Work In', 'reci-media-hub' ), 'type' => 'taxonomy_checkboxes', 'taxonomy' => 'reci_expertise', 'required' => false, 'width' => 'full', 'allow_other' => true, 'optional_hint' => false, 'choices' => function_exists( 'reci_media_hub_default_expertise_terms' ) ? reci_media_hub_default_expertise_terms() : [] ],
+			'reci_affiliation_term'     => [ 'label' => __( 'Your Affiliation', 'reci-media-hub' ), 'type' => 'taxonomy_select', 'taxonomy' => 'reci_affiliation', 'required' => true, 'width' => 'half', 'audience' => 'collaborator' ],
+			'reci_expertise_terms'      => [ 'label' => __( 'Subject Areas You Work In', 'reci-media-hub' ), 'type' => 'taxonomy_checkboxes', 'taxonomy' => 'reci_expertise', 'required' => false, 'width' => 'full', 'allow_other' => true, 'optional_hint' => false, 'choices' => function_exists( 'reci_media_hub_default_expertise_terms' ) ? reci_media_hub_default_expertise_terms() : [], 'audience' => 'collaborator' ],
 		];
+	}
+}
+
+if ( ! function_exists( 'reci_profile_fields_for_audience' ) ) {
+	/**
+	 * Filter the canonical fields down to one audience.
+	 *
+	 * Every account holds the 'all' fields. The 'collaborator' fields describe a
+	 * professional identity a subscriber has no use for, so the dashboard profile
+	 * only shows them to collaborators. The application form and the submit flow
+	 * still ask for everything — that is where the full set is collected.
+	 *
+	 * @param string $audience 'all' for the shared subset, 'collaborator' for the full set.
+	 * @return array<string,array<string,mixed>>
+	 */
+	function reci_profile_fields_for_audience( string $audience = 'all' ): array {
+		$fields = reci_collaborator_profile_field_definitions();
+
+		if ( 'collaborator' === $audience ) {
+			return $fields;
+		}
+
+		return array_filter(
+			$fields,
+			static fn( array $field ): bool => 'all' === ( $field['audience'] ?? 'all' )
+		);
 	}
 }
 
@@ -521,8 +547,11 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 				exit;
 			}
 
-			if ( strlen( $password ) < 8 ) {
-				wp_safe_redirect( add_query_arg( 'application_error', 'password_too_short', $target_url ) );
+			$password_error = function_exists( 'reci_password_error_code' )
+				? reci_password_error_code( $password )
+				: ( mb_strlen( $password ) < 8 ? 'password_too_short' : '' );
+			if ( '' !== $password_error ) {
+				wp_safe_redirect( add_query_arg( 'application_error', $password_error, $target_url ) );
 				exit;
 			}
 

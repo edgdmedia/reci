@@ -184,6 +184,65 @@ add_action( 'template_redirect', function (): void {
 add_action( 'admin_post_nopriv_reci_register', 'reci_handle_registration' );
 add_action( 'admin_post_reci_register',        'reci_handle_registration' );
 
+// ── Password strength ─────────────────────────────────────────────────────────
+
+if ( ! function_exists( 'reci_password_rules_text' ) ) {
+	/**
+	 * The password rule, stated once so the form hint and the error agree.
+	 */
+	function reci_password_rules_text(): string {
+		return __( 'At least 8 characters, including an uppercase letter, a lowercase letter, a number and a symbol.', 'reci-media-hub' );
+	}
+}
+
+if ( ! function_exists( 'reci_password_error_code' ) ) {
+	/**
+	 * Validate a password against the site rule.
+	 *
+	 * Returns an empty string when the password passes, otherwise the error code
+	 * to hand back to the form. Both the sign-up handler and the collaborator
+	 * application call this, so the two flows cannot drift apart.
+	 */
+	function reci_password_error_code( string $password ): string {
+		// Count characters, not bytes: a multi-byte password is not short.
+		if ( mb_strlen( $password ) < 8 ) {
+			return 'password_too_short';
+		}
+		if ( ! preg_match( '/[A-Z]/', $password ) ) {
+			return 'password_needs_upper';
+		}
+		if ( ! preg_match( '/[a-z]/', $password ) ) {
+			return 'password_needs_lower';
+		}
+		if ( ! preg_match( '/[0-9]/', $password ) ) {
+			return 'password_needs_number';
+		}
+		// Anything that is not a letter, a digit or whitespace counts as a symbol.
+		if ( ! preg_match( '/[^\p{L}\p{N}\s]/u', $password ) ) {
+			return 'password_needs_symbol';
+		}
+
+		return '';
+	}
+}
+
+if ( ! function_exists( 'reci_password_error_messages' ) ) {
+	/**
+	 * Human-readable text for each password error code.
+	 *
+	 * @return array<string,string>
+	 */
+	function reci_password_error_messages(): array {
+		return [
+			'password_too_short'    => __( 'Password must be at least 8 characters.', 'reci-media-hub' ),
+			'password_needs_upper'  => __( 'Password must include an uppercase letter.', 'reci-media-hub' ),
+			'password_needs_lower'  => __( 'Password must include a lowercase letter.', 'reci-media-hub' ),
+			'password_needs_number' => __( 'Password must include a number.', 'reci-media-hub' ),
+			'password_needs_symbol' => __( 'Password must include a symbol, such as ! ? # or @.', 'reci-media-hub' ),
+		];
+	}
+}
+
 function reci_handle_registration(): void {
 	$sign_up_url = reci_get_auth_page_url( 'sign-up' ) ?: wp_registration_url();
 
@@ -218,8 +277,9 @@ function reci_handle_registration(): void {
 		exit;
 	}
 
-	if ( strlen( $password ) < 8 ) {
-		wp_safe_redirect( add_query_arg( 'reg_error', 'password_too_short', $sign_up_url ) );
+	$password_error = reci_password_error_code( (string) $password );
+	if ( '' !== $password_error ) {
+		wp_safe_redirect( add_query_arg( 'reg_error', $password_error, $sign_up_url ) );
 		exit;
 	}
 
@@ -289,7 +349,11 @@ function reci_handle_email_verification(): void {
 	delete_user_meta( $user_id, '_reci_verify_token' );
 
 	wp_set_auth_cookie( $user_id );
-	wp_safe_redirect( home_url( '/' ) );
+
+	// Land on the dashboard with a flag the header turns into a confirmation.
+	// Verifying and then being dropped on the homepage with no acknowledgement
+	// reads as a link that did nothing.
+	wp_safe_redirect( add_query_arg( 'verified', '1', home_url( '/dashboard/' ) ) );
 	exit;
 }
 

@@ -19,7 +19,12 @@ get_header('dashboard');
 			get_template_part(
 				'template-parts/dashboard/page-header',
 				null,
-				[ 'title' => 'Account Profile', 'subtitle' => 'Your contributor details, shared with collaborator onboarding and the submit flow.' ]
+				[
+					'title'    => 'Account Profile',
+					'subtitle' => ( function_exists( 'reci_user_is_collaborator' ) && reci_user_is_collaborator( get_current_user_id() ) )
+						? 'Your contributor details, shared with your public profile and the submit flow.'
+						: 'Your account details.',
+				]
 			);
 			?>
 			<?php get_template_part( 'template-parts/dashboard/profile-form' ); ?>

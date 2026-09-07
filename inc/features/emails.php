@@ -45,7 +45,7 @@ if ( ! function_exists( 'reci_email_from_name' ) ) {
 			: '';
 
 		if ( '' === $name ) {
-			$name = get_bloginfo( 'name' ) ?: 'RECI Media Hub';
+			$name = get_bloginfo( 'name' ) ?: 'RECI Collaboratory';
 		}
 
 		return (string) apply_filters( 'reci_email_from_name', $name );
@@ -83,7 +83,7 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 	 */
 	function reci_email_render( string $heading, array $blocks, string $preheader = '' ): string {
 		$c    = reci_email_palette();
-		$site = esc_html( get_bloginfo( 'name' ) ?: 'RECI Media Hub' );
+		$site = esc_html( get_bloginfo( 'name' ) ?: 'RECI Collaboratory' );
 		$home = esc_url( home_url( '/' ) );
 
 		$body = '';
@@ -94,9 +94,16 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 		$year    = esc_html( (string) gmdate( 'Y' ) );
 		$contact = function_exists( 'reci_setting' ) ? (string) reci_setting( 'footer_email', '' ) : '';
 
-		// No image logo: it is blocked by default in many clients and cannot load
-		// at all from a local or firewalled host. A text wordmark always renders.
-		$wordmark = '<span class="reci-link" style="font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';">' . $site . '</span>';
+		// Site logo, with the wordmark as its alt text. Many clients block images by
+		// default and a local host cannot serve them at all, so the alt has to read
+		// as the masthead on its own — hence the styled alt rather than a bare name.
+		$logo_id  = function_exists( 'reci_setting' ) ? (int) reci_setting( 'branding_reci_logo' ) : 0;
+		$logo_url = $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
+		if ( '' === $logo_url ) {
+			$logo_url = get_template_directory_uri() . '/assets/images/reci-collab.png';
+		}
+
+		$wordmark = '<img src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="180" style="display:block;width:180px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';
 
 		return '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><head>
@@ -126,7 +133,7 @@ if ( ! function_exists( 'reci_email_render' ) ) {
     <tr><td style="border-top:3px solid ' . $c['yellow'] . ';font-size:0;line-height:0;">&nbsp;</td></tr>
 
     <tr><td style="padding:28px 4px 8px;font-family:Arial,Helvetica,sans-serif;">
-      <h1 class="reci-ink" style="margin:0 0 20px;padding:0 0 0 14px;border-left:4px solid ' . $c['yellow'] . ';font-family:\'Arial Narrow\',Arial,sans-serif;font-size:29px;line-height:1.15;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
+      <h1 class="reci-ink" style="margin:0 0 20px;padding:0;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:29px;line-height:1.15;color:' . $c['ink'] . ';font-weight:bold;">' . esc_html( $heading ) . '</h1>
       ' . $body . '
     </td></tr>
 
@@ -183,7 +190,7 @@ if ( ! function_exists( 'reci_email_render_block' ) ) {
 		}
 
 		if ( 'note' === $type ) {
-			return '<p class="reci-muted" style="margin:0 0 18px;padding:2px 0 2px 14px;border-left:3px solid ' . $c['yellow'] . ';font-size:14px;line-height:1.6;color:' . $c['muted'] . ';">' . esc_html( (string) ( $block['text'] ?? '' ) ) . '</p>';
+			return '<p class="reci-muted" style="margin:0 0 18px;padding:0;font-size:14px;font-style:italic;line-height:1.6;color:' . $c['muted'] . ';">' . esc_html( (string) ( $block['text'] ?? '' ) ) . '</p>';
 		}
 
 		// Plain paragraph. A raw URL is linked so the fallback stays clickable.
@@ -222,7 +229,7 @@ if ( ! function_exists( 'reci_email_plain_text' ) ) {
 		}
 
 		$lines[] = '--';
-		$lines[] = (string) ( get_bloginfo( 'name' ) ?: 'RECI Media Hub' ) . ' — ' . home_url( '/' );
+		$lines[] = (string) ( get_bloginfo( 'name' ) ?: 'RECI Collaboratory' ) . ' — ' . home_url( '/' );
 
 		return implode( "\n", $lines );
 	}
