@@ -48,6 +48,7 @@ $reci_media_hub_includes = [
 	'/inc/admin/highlighted-works-promote.php',
 	'/inc/admin/theme-setup-wizard.php',
 	'/inc/admin/theme-setup-client.php',
+	'/inc/admin/class-reci-submissions-list-table.php',
 	'/inc/admin/class-reci-journals-list-table.php',
 	'/inc/admin/class-reci-assessments-list-table.php',
 	
