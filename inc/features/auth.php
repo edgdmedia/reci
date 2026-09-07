@@ -34,7 +34,18 @@ function reci_get_auth_page_id( string $slug ): int {
  */
 function reci_get_auth_page_url( string $slug ): string {
 	$id = reci_get_auth_page_id( $slug );
-	return $id ? ( get_permalink( $id ) ?: '' ) : '';
+	$url = $id ? (string) ( get_permalink( $id ) ?: '' ) : '';
+
+	if ( '' !== $url ) {
+		return $url;
+	}
+
+	// The stored id can point at a page that no longer exists — a reinstall or a
+	// re-import leaves the option behind. Without this every caller silently fell
+	// back to wp-login.php, which is the screen these pages exist to replace.
+	$page = get_page_by_path( $slug );
+
+	return $page instanceof WP_Post ? (string) ( get_permalink( $page ) ?: '' ) : '';
 }
 
 /**

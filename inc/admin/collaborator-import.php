@@ -229,6 +229,52 @@ if ( ! function_exists( 'reci_collaborator_import_profile' ) ) {
 			'_reci_author_pitt_affiliated'   => $is_pitt ? 'Yes' : '',
 		];
 
+		// Structured highlighted works, so one import produces everything rather
+		// than leaving a second pass to be remembered. The extracted file is
+		// preferred because it kept the entry boundaries the flat string lost;
+		// parsing that string is the fallback for a profile it does not cover.
+		$structured = [];
+
+		if ( function_exists( 'reci_highlighted_works_dataset' ) ) {
+			$dataset    = reci_highlighted_works_dataset();
+			$structured = $dataset[ $import_slug ] ?? [];
+		}
+
+		if ( empty( $structured ) && function_exists( 'reci_parse_legacy_highlighted_works' ) ) {
+			$parsed = reci_parse_legacy_highlighted_works( (string) ( $record['highlighted_contributions'] ?? '' ) );
+
+			foreach ( $parsed['links'] as $link ) {
+				$structured[] = [ 'url' => $link['url'], 'title' => '', 'note' => $link['note'] ];
+			}
+
+			foreach ( $parsed['citations'] as $citation ) {
+				$structured[] = [ 'url' => '', 'title' => '', 'note' => $citation ];
+			}
+		}
+
+		if ( ! empty( $structured ) ) {
+			$clean = [];
+
+			foreach ( $structured as $entry ) {
+				$url  = esc_url_raw( (string) ( $entry['url'] ?? '' ) );
+				$note = sanitize_textarea_field( (string) ( $entry['note'] ?? '' ) );
+
+				if ( '' === $url && '' === $note ) {
+					continue;
+				}
+
+				$clean[] = [
+					'url'   => $url,
+					'title' => sanitize_text_field( (string) ( $entry['title'] ?? '' ) ),
+					'note'  => $note,
+				];
+			}
+
+			// Assigned rather than merged: re-importing should restate the source,
+			// not append to what a previous run left behind.
+			update_post_meta( $profile_id, '_reci_author_highlighted_works', $clean );
+		}
+
 		foreach ( $meta as $key => $value ) {
 			update_post_meta( $profile_id, $key, $value );
 		}

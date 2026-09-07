@@ -75,6 +75,14 @@ if (count($query_args['tax_query']) === 1) {
 
 $author_query = new WP_Query($query_args);
 
+// Filters, as query args, so they travel with the pagination links.
+$pagination_query_args = array_filter([
+	'search'      => $current_search,
+	'focus'       => $current_focus,
+	'affiliation' => $current_affiliation,
+], static fn($value) => '' !== $value);
+
+
 get_header();
 ?>
 <main class="layout-page">
@@ -149,11 +157,20 @@ get_header();
 
 			<div class="self-stretch mt-8 flex items-center justify-center gap-2">
 				<?php
+				// The base must carry the %_% placeholder or paginate_links has nowhere
+				// to put the page number — every link came out as /collaborators/,
+				// so page 2, 3 and 10 all led back to page 1. Building it from a
+				// sentinel page number is the reliable way to get that placeholder
+				// in the right place whatever the permalink structure.
+				$pagination_base = str_replace( 999999999, '%#%', esc_url_raw( get_pagenum_link( 999999999 ) ) );
+
+				// Filters survive paging, so page 2 of a filtered list stays filtered.
 				echo paginate_links([
 					'total'     => $author_query->max_num_pages,
 					'current'   => $paged,
-					'format'    => '?paged=%#%',
-					'base'      => $current_search !== '' ? add_query_arg('search', $current_search, get_pagenum_link(1)) : get_pagenum_link(1),
+					'format'    => '',
+					'base'      => $pagination_base,
+					'add_args'  => $pagination_query_args,
 					'prev_text' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">&laquo;</span>',
 					'next_text' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">&raquo;</span>',
 					'before_page_number' => '<span class="inline-flex items-center justify-center min-w-11 h-11 px-3 rounded-lg border border-zinc-300 text-sm font-medium text-neutral-800 hover:bg-zinc-100">',

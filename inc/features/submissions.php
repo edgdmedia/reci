@@ -1565,139 +1565,66 @@ if (! function_exists('reci_media_hub_register_submission_admin_page')) {
 
 if (! function_exists('reci_media_hub_render_submission_admin_page')) {
 	/**
-	 * Render the consolidated submissions admin page.
+	 * Render the submissions queue.
+	 *
+	 * The table is Reci_Submissions_List_Table, so this screen gets the standard
+	 * status links, search, sorting, pagination and bulk actions rather than the
+	 * hand-rolled markup that was here.
 	 */
 	function reci_media_hub_render_submission_admin_page(): void {
 		if (! current_user_can('edit_others_posts')) {
 			wp_die(esc_html__('You are not allowed to view submissions.', 'reci-media-hub'));
 		}
 
-		$post_status = isset($_GET['post_status']) && is_string($_GET['post_status'])
-			? sanitize_key(wp_unslash($_GET['post_status']))
-			: '';
-		$post_type = isset($_GET['post_type']) && is_string($_GET['post_type'])
-			? sanitize_key(wp_unslash($_GET['post_type']))
-			: '';
-		$search = isset($_GET['s']) && is_string($_GET['s'])
-			? sanitize_text_field(wp_unslash($_GET['s']))
-			: '';
+		$table   = new Reci_Submissions_List_Table();
+		$changed = $table->process_bulk_action();
+		$table->prepare_items();
 
+		// Export honours the current filters, so the download matches the screen.
 		$filters = [
-			'posts_per_page' => 100,
-			// Default to pending: staff open this screen to find what is waiting,
-			// not to browse everything ever submitted. 'any' is the explicit
-			// opt-out, so the empty default and "show me everything" stay distinct.
-			'post_status'    => '' === $post_status
-				? 'pending'
-				: ( 'any' === $post_status ? [ 'pending', 'draft', 'publish' ] : $post_status ),
-			'post_type'      => $post_type,
-			'search'         => $search,
+			'post_status' => isset($_GET['post_status']) ? sanitize_key(wp_unslash($_GET['post_status'])) : 'pending',
+			'post_type'   => isset($_GET['submission_type']) ? sanitize_key(wp_unslash($_GET['submission_type'])) : '',
+			'search'      => isset($_GET['s']) ? sanitize_text_field(wp_unslash($_GET['s'])) : '',
 		];
-		if (! current_user_can('edit_others_posts')) {
-			$filters['author_id'] = get_current_user_id();
-		}
-
-		$posts = reci_media_hub_get_submission_posts($filters);
-		$post_types = reci_media_hub_submission_supported_post_types();
 
 		echo '<div class="wrap">';
-		echo '<h1>' . esc_html__('Submissions', 'reci-media-hub') . '</h1>';
-		echo '<p>' . esc_html__('Unified queue for content submissions across mapped post types.', 'reci-media-hub') . '</p>';
+		echo '<h1 class="wp-heading-inline">' . esc_html__('Submissions', 'reci-media-hub') . '</h1>';
 
-		echo '<form method="get" style="margin: 12px 0 18px;">';
+		printf(
+			' <a href="%s" class="page-title-action">%s</a> <a href="%s" class="page-title-action">%s</a>',
+			esc_url(reci_media_hub_get_submission_export_url($filters, 'csv')),
+			esc_html__('Export CSV', 'reci-media-hub'),
+			esc_url(reci_media_hub_get_submission_export_url($filters, 'json')),
+			esc_html__('Export JSON', 'reci-media-hub')
+		);
+
+		echo '<hr class="wp-header-end" />';
+
+		if ($changed > 0) {
+			printf(
+				'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+				esc_html(sprintf(
+					/* translators: %d: number of submissions. */
+					_n('%d submission updated.', '%d submissions updated.', $changed, 'reci-media-hub'),
+					$changed
+				))
+			);
+		}
+
+		$table->views();
+
+		// GET, so filters, sorting and paging stay linkable in the URL.
+		echo '<form method="get">';
 		echo '<input type="hidden" name="page" value="reci-submissions" />';
-		echo '<input type="search" name="s" value="' . esc_attr($search) . '" placeholder="' . esc_attr__('Search title', 'reci-media-hub') . '" style="min-width:220px;" /> ';
-		echo '<select name="post_status">';
-		$status_options = [
-			''        => __('Pending (default)', 'reci-media-hub'),
-			'any'     => __('All statuses', 'reci-media-hub'),
-			'pending' => __('Pending', 'reci-media-hub'),
-			'draft'   => __('Draft', 'reci-media-hub'),
-			'publish' => __('Published', 'reci-media-hub'),
-		];
-		foreach ($status_options as $value => $label) {
-			echo '<option value="' . esc_attr($value) . '"' . selected($post_status, $value, false) . '>' . esc_html($label) . '</option>';
-		}
-		echo '</select> ';
-		echo '<select name="post_type">';
-		echo '<option value="">' . esc_html__('All post types', 'reci-media-hub') . '</option>';
-		foreach ($post_types as $type) {
-			$type_object = get_post_type_object($type);
-			$type_label = $type_object && ! empty($type_object->labels->singular_name) ? $type_object->labels->singular_name : $type;
-			echo '<option value="' . esc_attr($type) . '"' . selected($post_type, $type, false) . '>' . esc_html((string) $type_label) . '</option>';
-		}
-		echo '</select> ';
-		echo '<button type="submit" class="button button-primary">' . esc_html__('Filter', 'reci-media-hub') . '</button>';
+		printf('<input type="hidden" name="post_status" value="%s" />', esc_attr($filters['post_status']));
+		$table->search_box(__('Search submissions', 'reci-media-hub'), 'reci-submission-search');
 		echo '</form>';
 
-		$csv_url = reci_media_hub_get_submission_export_url($filters, 'csv');
-		$json_url = reci_media_hub_get_submission_export_url($filters, 'json');
-		echo '<p>';
-		echo '<a class="button" href="' . esc_url($csv_url) . '">' . esc_html__('Export CSV', 'reci-media-hub') . '</a> ';
-		echo '<a class="button" href="' . esc_url($json_url) . '">' . esc_html__('Export JSON', 'reci-media-hub') . '</a>';
-		echo '</p>';
+		// POST, because bulk actions change things.
+		echo '<form method="post">';
+		$table->display();
+		echo '</form>';
 
-		if (empty($posts)) {
-			echo '<p>' . esc_html__('No submissions found for the current filters.', 'reci-media-hub') . '</p>';
-			echo '</div>';
-			return;
-		}
-
-		echo '<table class="widefat striped">';
-		echo '<thead><tr>';
-		echo '<th>' . esc_html__('Date', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Title', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Status', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Post Type', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Content Type', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Contributor', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Email', 'reci-media-hub') . '</th>';
-		echo '<th>' . esc_html__('Actions', 'reci-media-hub') . '</th>';
-		echo '</tr></thead><tbody>';
-
-		foreach ($posts as $post) {
-			$post_type_object = get_post_type_object($post->post_type);
-			$post_type_label = $post_type_object && ! empty($post_type_object->labels->singular_name)
-				? (string) $post_type_object->labels->singular_name
-				: (string) $post->post_type;
-
-			$first_name = (string) get_post_meta($post->ID, '_reci_submission_first_name', true);
-			$last_name = (string) get_post_meta($post->ID, '_reci_submission_last_name', true);
-			$contributor = trim($first_name . ' ' . $last_name);
-			$email = (string) get_post_meta($post->ID, '_reci_submission_email', true);
-			$content_type = (string) get_post_meta($post->ID, '_reci_submission_content_type', true);
-			$edit_url = get_edit_post_link($post->ID, '');
-
-			echo '<tr>';
-			echo '<td>' . esc_html(get_the_date('Y-m-d H:i', $post)) . '</td>';
-			echo '<td><strong>' . esc_html($post->post_title) . '</strong></td>';
-			echo '<td>' . esc_html($post->post_status) . '</td>';
-			echo '<td>' . esc_html($post_type_label) . '</td>';
-			echo '<td>' . esc_html($content_type !== '' ? $content_type : '-') . '</td>';
-			echo '<td>' . esc_html($contributor !== '' ? $contributor : '-') . '</td>';
-			echo '<td>' . esc_html($email !== '' ? $email : '-') . '</td>';
-			echo '<td>';
-			if (is_string($edit_url) && $edit_url !== '') {
-				echo '<a class="button button-small" href="' . esc_url($edit_url) . '">' . esc_html__('Open', 'reci-media-hub') . '</a> ';
-			}
-
-			// Approve without opening the post: the point of a single queue is
-			// that routine approvals never leave it.
-			if ('pending' === $post->post_status && current_user_can('publish_post', $post->ID)) {
-				$publish_url = wp_nonce_url(
-					add_query_arg(
-						['action' => 'reci_publish_submission', 'post' => $post->ID],
-						admin_url('admin-post.php')
-					),
-					'reci_publish_submission_' . $post->ID
-				);
-				echo '<a class="button button-small button-primary" href="' . esc_url($publish_url) . '">' . esc_html__('Publish', 'reci-media-hub') . '</a>';
-			}
-			echo '</td>';
-			echo '</tr>';
-		}
-
-		echo '</tbody></table>';
 		echo '</div>';
 	}
 }

@@ -1015,6 +1015,79 @@ if ( ! function_exists( 'reci_render_submit_gate' ) ) {
 	}
 }
 
+// ── Follow intent carried through sign-in ────────────────────────────────────
+
+if ( ! function_exists( 'reci_follow_after_login_url' ) ) {
+	/**
+	 * Sign-in URL that remembers the visitor meant to follow this collaborator.
+	 *
+	 * The intent rides on redirect_to, so after authenticating they land back on
+	 * the profile with the follow already applied.
+	 */
+	function reci_follow_after_login_url( int $profile_id ): string {
+		$target = add_query_arg( 'reci_follow', $profile_id, (string) get_permalink( $profile_id ) );
+		$sign_in = function_exists( 'reci_get_auth_page_url' ) ? reci_get_auth_page_url( 'sign-in' ) : '';
+
+		return '' !== $sign_in
+			? add_query_arg( 'redirect_to', rawurlencode( $target ), $sign_in )
+			: wp_login_url( $target );
+	}
+}
+
+/**
+ * Apply a pending follow at the moment of login.
+ *
+ * Hooked to wp_login rather than read from the URL on page load: this only runs
+ * as part of an authentication the visitor just performed, so a crafted link
+ * cannot make a signed-in user follow someone.
+ */
+add_action( 'wp_login', 'reci_apply_pending_follow', 10, 2 );
+function reci_apply_pending_follow( string $user_login, WP_User $user ): void {
+	$redirect = isset( $_REQUEST['redirect_to'] ) ? (string) wp_unslash( $_REQUEST['redirect_to'] ) : '';
+
+	if ( '' === $redirect ) {
+		return;
+	}
+
+	$query = (string) wp_parse_url( urldecode( $redirect ), PHP_URL_QUERY );
+
+	if ( '' === $query ) {
+		return;
+	}
+
+	parse_str( $query, $args );
+	$profile_id = absint( $args['reci_follow'] ?? 0 );
+
+	if ( $profile_id <= 0 || 'reci_author' !== get_post_type( $profile_id ) ) {
+		return;
+	}
+
+	$following = reci_get_user_followed_collaborator_ids( $user->ID );
+
+	if ( in_array( $profile_id, $following, true ) ) {
+		return;
+	}
+
+	$following[] = $profile_id;
+	update_user_meta( $user->ID, 'reci_followed_collaborators', array_values( array_unique( array_map( 'absint', $following ) ) ) );
+}
+
+/**
+ * Drop the intent parameter once it has been acted on.
+ *
+ * Leaving it in the address bar would mean a reload or a shared link carrying an
+ * instruction that has already been carried out.
+ */
+add_action( 'template_redirect', 'reci_clean_follow_intent_url' );
+function reci_clean_follow_intent_url(): void {
+	if ( empty( $_GET['reci_follow'] ) || ! is_singular( 'reci_author' ) ) {
+		return;
+	}
+
+	wp_safe_redirect( remove_query_arg( 'reci_follow' ) );
+	exit;
+}
+
 if ( ! function_exists( 'reci_toggle_follow_collaborator' ) ) {
 	function reci_toggle_follow_collaborator(): void {
 		if ( ! is_user_logged_in() ) {
@@ -1089,52 +1162,45 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Main Objective for Membership', 'reci-media-hub' ) . '</strong><span>' . esc_html( $membership_objective ?: '—' ) . '</span></div>';
 		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Profile Picture', 'reci-media-hub' ) . '</strong><span>' . esc_html( $profile_image_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
 		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'CV Upload', 'reci-media-hub' ) . '</strong><span>' . esc_html( $cv_attachment_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
+		// Keeps the original Review Actions presentation — a description above a
+		// row of primary and secondary buttons. What changed is the wiring: the
+		// old pair posted to action=reci_collaborator_decision, for which no
+		// handler was ever registered, so neither button did anything. These use
+		// the approve and reject endpoints, and each only appears when it applies.
 		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
-		echo '<p class="description">' . esc_html__( 'Use the buttons below for a clear approve or reject workflow.', 'reci-media-hub' ) . '</p>';
-		echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="reci_collaborator_decision" />';
-		echo '<input type="hidden" name="application_id" value="' . esc_attr( (string) $post->ID ) . '" />';
-		echo '<input type="hidden" name="decision" value="approve" />';
-		wp_nonce_field( 'reci_collaborator_decision_' . $post->ID, 'reci_collaborator_decision_nonce' );
-		submit_button( __( 'Approve Collaborator', 'reci-media-hub' ), 'primary', 'submit', false );
-		echo '</form>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="reci_collaborator_decision" />';
-		echo '<input type="hidden" name="application_id" value="' . esc_attr( (string) $post->ID ) . '" />';
-		echo '<input type="hidden" name="decision" value="reject" />';
-		wp_nonce_field( 'reci_collaborator_decision_' . $post->ID, 'reci_collaborator_decision_nonce' );
-		submit_button( __( 'Reject Application', 'reci-media-hub' ), 'secondary', 'submit', false );
-		echo '</form>';
-		echo '</div></div>';
+
 		if ( current_user_can( 'reci_approve_collaborators' ) ) {
-			echo '<p style="margin:18px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+			if ( 'publish' === $post->post_status ) {
+				$hint = __( 'Approved. Rejecting revokes access, unpublishes their profile and emails the applicant.', 'reci-media-hub' );
+			} elseif ( 'draft' === $post->post_status ) {
+				$hint = __( 'Rejected. Approving reinstates the collaborator and republishes their profile.', 'reci-media-hub' );
+			} else {
+				$hint = __( 'Approving publishes their profile, promotes the account and emails the applicant.', 'reci-media-hub' );
+			}
+
+			echo '<p class="description">' . esc_html( $hint ) . '</p>';
+			echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">';
 
 			if ( 'publish' !== $post->post_status ) {
 				printf(
-					'<a href="%s" class="button button-primary button-large">%s</a>',
+					'<a href="%s" class="button button-primary">%s</a>',
 					esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
-					esc_html__( 'Approve collaborator', 'reci-media-hub' )
+					esc_html__( 'Approve Collaborator', 'reci-media-hub' )
 				);
 			}
 
 			if ( 'draft' !== $post->post_status ) {
 				printf(
-					'<a href="%s" class="button button-large" style="color:#9d2f45;border-color:#9d2f45;">%s</a>',
+					'<a href="%s" class="button button-secondary">%s</a>',
 					esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
-					esc_html__( 'Reject', 'reci-media-hub' )
+					esc_html__( 'Reject Application', 'reci-media-hub' )
 				);
 			}
 
-			printf(
-				'<span class="description">%s</span>',
-				'publish' === $post->post_status
-					? esc_html__( 'Rejecting revokes access and emails the applicant.', 'reci-media-hub' )
-					: esc_html__( 'Approving publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
-			);
-
-			echo '</p>';
+			echo '</div>';
 		}
+
+		echo '</div>';
 
 		echo '</div>';
 	}
