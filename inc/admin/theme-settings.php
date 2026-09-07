@@ -212,10 +212,12 @@ function reci_email_log_page_html(): void {
 		return;
 	}
 
-	$rows      = function_exists( 'reci_get_email_log' ) ? reci_get_email_log( 200 ) : [];
 	$retention = (int) reci_setting( 'email_log_retention', 30 );
+	$table     = new Reci_Email_Log_List_Table();
+	$table->prepare_items();
 
-	echo '<div class="wrap"><h1>' . esc_html__( 'Email Log', 'reci-media-hub' ) . '</h1>';
+	echo '<div class="wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Email Log', 'reci-media-hub' ) . '</h1>';
+	echo '<hr class="wp-header-end" />';
 
 	echo '<p class="description">';
 	if ( $retention > 0 ) {
@@ -227,46 +229,20 @@ function reci_email_log_page_html(): void {
 	} else {
 		esc_html_e( 'Retention is set to keep everything — no entry is deleted automatically.', 'reci-media-hub' );
 	}
-	echo ' <a href="' . esc_url( admin_url( 'admin.php?page=reci-settings&tab=email' ) ) . '">' . esc_html__( 'Change this', 'reci-media-hub' ) . '</a>.</p>';
+	echo ' <a href="' . esc_url( admin_url( 'admin.php?page=reci-settings&tab=email' ) ) . '">' . esc_html__( 'Change this', 'reci-media-hub' ) . '</a>. ';
+	esc_html_e( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' );
+	echo '</p>';
 
-	if ( empty( $rows ) ) {
-		echo '<p>' . esc_html__( 'Nothing sent yet.', 'reci-media-hub' ) . '</p></div>';
-		return;
-	}
+	$table->views();
 
-	reci_render_email_log_table( $rows );
+	echo '<form method="get">';
+	echo '<input type="hidden" name="page" value="reci-email-log" />';
+	printf( '<input type="hidden" name="log_status" value="%s" />', esc_attr( isset( $_GET['log_status'] ) ? sanitize_key( wp_unslash( $_GET['log_status'] ) ) : 'any' ) );
+	$table->search_box( __( 'Search log', 'reci-media-hub' ), 'reci-email-log-search' );
+	$table->display();
+	echo '</form>';
 
-	echo '<p class="description">' . esc_html__( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' ) . '</p>';
 	echo '</div>';
-}
-
-/**
- * Shared renderer for the email log table.
- *
- * @param array<int,object> $rows
- */
-function reci_render_email_log_table( array $rows ): void {
-	echo '<table class="widefat striped" style="max-width:1000px;"><thead><tr>';
-	foreach ( [ __( 'When', 'reci-media-hub' ), __( 'To', 'reci-media-hub' ), __( 'Subject', 'reci-media-hub' ), __( 'Via', 'reci-media-hub' ), __( 'Result', 'reci-media-hub' ) ] as $th ) {
-		echo '<th>' . esc_html( $th ) . '</th>';
-	}
-	echo '</tr></thead><tbody>';
-
-	foreach ( $rows as $row ) {
-		$ok = 'sent' === $row->status;
-		printf(
-			'<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><span style="color:%s;font-weight:600;">%s</span>%s</td></tr>',
-			esc_html( mysql2date( 'j M Y, H:i', $row->created_at ) ),
-			esc_html( $row->recipient ),
-			esc_html( $row->subject ),
-			esc_html( $row->transport ),
-			$ok ? '#1f7a5a' : '#9d2f45',
-			esc_html( $ok ? __( 'Sent', 'reci-media-hub' ) : __( 'Failed', 'reci-media-hub' ) ),
-			'' !== $row->error ? '<br /><span style="color:#6A6D70;font-size:12px;">' . esc_html( $row->error ) . '</span>' : ''
-		);
-	}
-
-	echo '</tbody></table>';
 }
 
 // ---------------------------------------------------------------------------

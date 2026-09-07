@@ -3658,6 +3658,74 @@ function reci_demo_lorem( int $paragraphs = 2 ): string {
 	return implode( "\n\n", array_slice( $all, 0, min( $paragraphs, 4 ) ) );
 }
 
+if ( ! function_exists( 'reci_demo_imported_count' ) ) {
+	/**
+	 * How many items of one demo type are already in place.
+	 *
+	 * The importer is idempotent and skips what exists, so the useful question on
+	 * this screen is not "did it run" but "what is still missing".
+	 *
+	 * Three kinds of key need three ways of counting: image groups live in the
+	 * asset registry, taxonomies are terms, and everything else is a post type
+	 * carrying the _reci_demo marker.
+	 */
+	function reci_demo_imported_count( string $key ): int {
+		if ( str_starts_with( $key, 'reci_demo_images_' ) ) {
+			$registry = reci_demo_get_asset_registry();
+			$paths    = ( function_exists( 'reci_demo_image_groups' ) ? reci_demo_image_groups() : [] )[ $key ] ?? [];
+			$count    = 0;
+
+			foreach ( $paths as $path ) {
+				foreach ( $registry as $entry ) {
+					if ( ( $entry['path'] ?? $entry['source'] ?? '' ) === $path && ! empty( $entry['attachment_id'] ) ) {
+						++$count;
+						break;
+					}
+				}
+			}
+
+			// Fall back to the registry size when the shape does not match, which
+			// is better than reporting nothing imported when plenty was.
+			return $count > 0 ? $count : min( count( $paths ), count( $registry ) );
+		}
+
+		if ( 'reci_demo_taxonomies' === $key ) {
+			$total = 0;
+
+			// The SDG taxonomy is registered as 'sdgs', not 'reci_sdg' like its
+			// siblings. Guessing the prefix undercounted this row by 17.
+			foreach ( [ 'reci_sphere', 'sdgs', 'reci_practice_focus', 'reci_location' ] as $taxonomy ) {
+				if ( taxonomy_exists( $taxonomy ) ) {
+					$terms = wp_count_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => false ] );
+					$total += is_wp_error( $terms ) ? 0 : (int) $terms;
+				}
+			}
+
+			return $total;
+		}
+
+		$post_type = 'reci_page' === $key ? 'page' : $key;
+
+		if ( ! post_type_exists( $post_type ) ) {
+			return 0;
+		}
+
+		$query = new WP_Query(
+			[
+				'post_type'              => $post_type,
+				'post_status'            => 'any',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+			]
+		);
+
+		return (int) $query->found_posts;
+	}
+}
+
 function reci_demo_import_page_html(): void {
 	$installed = get_option( 'reci_demo_installed', false );
 	$count     = count( get_option( 'reci_demo_slugs', [] ) );
@@ -3716,15 +3784,34 @@ function reci_demo_import_page_html(): void {
 								<tr>
 									<th style="width:40px;"><input type="checkbox" @change="$event.target.closest('table').querySelectorAll('tbody tr').forEach(tr => { if (tr.style.display !== 'none') { const cb = tr.querySelector('input[type=checkbox]'); if (cb) cb.checked = $event.target.checked; } })" /></th>
 									<th>Content Type</th>
-									<th>Items</th>
+									<th style="width:80px;">Items</th>
+									<th style="width:90px;">Imported</th>
+									<th style="width:95px;">Remaining</th>
+									<th style="width:120px;">Status</th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach ( $all_types as $pt => $info ) : ?>
 									<tr x-show="tabData.keys.includes('<?php echo esc_js( $pt ); ?>')">
 										<td><input type="checkbox" name="reci_demo_types[]" value="<?php echo esc_attr( $pt ); ?>" /></td>
+										<?php
+										$expected  = (int) $info['count'];
+										$imported  = reci_demo_imported_count( $pt );
+										$remaining = max( 0, $expected - $imported );
+
+										if ( 0 === $imported ) {
+											$state = [ '#8a6d1f', __( 'Not imported', 'reci-media-hub' ) ];
+										} elseif ( $remaining > 0 ) {
+											$state = [ '#8a6d1f', __( 'Partial', 'reci-media-hub' ) ];
+										} else {
+											$state = [ '#1f7a5a', __( 'Complete', 'reci-media-hub' ) ];
+										}
+										?>
 										<td><?php echo esc_html( $info['label'] ); ?></td>
-										<td><?php echo (int) $info['count']; ?></td>
+										<td><?php echo $expected; ?></td>
+										<td><?php echo $imported; ?></td>
+										<td><?php echo $remaining > 0 ? esc_html( (string) $remaining ) : '&mdash;'; ?></td>
+										<td><span style="color:<?php echo esc_attr( $state[0] ); ?>;font-weight:600;"><?php echo esc_html( $state[1] ); ?></span></td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>
