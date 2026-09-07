@@ -1556,6 +1556,20 @@ if (! function_exists('reci_media_hub_register_submission_admin_page')) {
 			'dashicons-editor-ol',
 			29
 		);
+
+		// add_menu_page() does not list the parent in its own submenu, so without
+		// this the queue itself is unreachable from the expanded menu — only
+		// Applications and Journals would show.
+		add_submenu_page(
+			'reci-submissions',
+			__('Submitted Content', 'reci-media-hub'),
+			// Not just "Content": that word is the top-level menu for the library,
+			// and the same label in two places reads as the same destination.
+			__('Submitted Content', 'reci-media-hub'),
+			'edit_others_posts',
+			'reci-submissions',
+			'reci_media_hub_render_submission_admin_page'
+		);
 	}
 }
 

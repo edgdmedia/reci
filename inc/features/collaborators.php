@@ -39,10 +39,10 @@ if ( ! function_exists( 'reci_register_collaborator_application_post_type' ) ) {
 				],
 				'public'             => false,
 				'show_ui'            => true,
-				// Nested under Collaborators: an application is how someone becomes
-				// one, so it belongs beside the directory rather than as a rival
-				// top-level menu.
-				'show_in_menu'       => 'edit.php?post_type=reci_author',
+				// Under Submissions, not Collaborators: an application is a thing
+				// waiting to be reviewed, which is what that menu is for. The
+				// Collaborators menu is the directory of people already approved.
+				'show_in_menu'       => 'reci-submissions',
 				'show_in_rest'       => true,
 				'has_archive'        => false,
 				'rewrite'            => false,

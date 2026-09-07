@@ -31,6 +31,48 @@ if (! function_exists('reci_media_hub_cpt_labels')) {
 	}
 }
 
+if (! function_exists('reci_media_hub_cpt_menu_parent')) {
+	/**
+	 * Which top-level menu a post type belongs under.
+	 *
+	 * Twenty-two top-level entries is a list of database tables, not a list of
+	 * jobs. Grouping by what someone is trying to do gets it to nine.
+	 *
+	 * Reader-facing material goes under Content. Team, Partners and Testimonials
+	 * are site furniture — the components an About page is built from — so they
+	 * sit with Pages rather than beside Articles, which would imply a symmetry
+	 * that is not there.
+	 *
+	 * @return string|bool Parent menu slug, or true for its own top-level entry.
+	 */
+	function reci_media_hub_cpt_menu_parent(string $post_type) {
+		// The built-in post type's menu slug is plain 'edit.php'; only the others
+		// carry a post_type query arg. Getting this wrong silently drops every
+		// child, since _add_post_type_submenus() attaches to a parent that is not
+		// there.
+		$content = 'edit.php';
+		$site    = 'edit.php?post_type=page';
+
+		$parents = [
+			'reci_podcast'       => $content,
+			'reci_video'         => $content,
+			'reci_document'      => $content,
+			'reci_reflection'    => $content,
+			'reci_assessment'    => $content,
+			'reci_course'        => $content,
+			'reci_event'         => $content,
+			'reci_quote'         => $content,
+			'reci_glossary_term' => $content,
+
+			'reci_team'          => $site,
+			'reci_partner'       => $site,
+			'reci_testimonial'   => $site,
+		];
+
+		return $parents[$post_type] ?? true;
+	}
+}
+
 if (! function_exists('reci_media_hub_register_content_types')) {
 	function reci_media_hub_register_content_types(): void {
 		$types = [
@@ -165,7 +207,7 @@ if (! function_exists('reci_media_hub_register_content_types')) {
 					'labels' => reci_media_hub_cpt_labels($config['singular'], $config['plural']),
 					'public'             => true,
 					'show_ui'            => true,
-					'show_in_menu'       => true,
+					'show_in_menu'       => reci_media_hub_cpt_menu_parent($post_type),
 					'show_in_rest'       => true,
 					'has_archive'        => $has_archive,
 					'rewrite'            => $rewrite,
