@@ -793,6 +793,10 @@ if (! function_exists('reci_media_hub_handle_submission')) {
 		}
 
 		$post_type = $type_map[$content_type];
+
+		// /submit/ is the Level 2 review flow, so everything it creates queues for
+		// review. Level 3 and above add content through the dashboard instead,
+		// where publishing is theirs to do.
 		$post_data = [
 			'post_type'    => $post_type,
 			'post_status'  => 'pending',

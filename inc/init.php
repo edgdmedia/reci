@@ -9,6 +9,7 @@ if (! defined('ABSPATH')) {
 }
 
 $reci_media_hub_includes = [
+	'/inc/core/roles.php',
 	'/inc/core/theme-setup.php',
 	'/inc/core/theme-activation.php',
 	'/inc/core/template-routing.php',

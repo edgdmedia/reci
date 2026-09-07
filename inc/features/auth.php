@@ -413,7 +413,12 @@ add_filter( 'wp_authenticate_user', function ( $user ) {
  * Remove the admin bar for non-editors.
  */
 add_action( 'after_setup_theme', function (): void {
-	if ( is_user_logged_in() && ! current_user_can( 'edit_pages' ) ) {
+	// reci_access_admin is held by Editor, Site Manager and Administrator
+	// (levels 4-6). Levels 1-3 live entirely in the front-end dashboard.
+	// It replaces a borrowed edit_pages check, which happened to draw the line
+	// in the same place but said nothing about intent — and would have moved
+	// the moment a role's page rights changed.
+	if ( is_user_logged_in() && ! current_user_can( 'reci_access_admin' ) ) {
 		show_admin_bar( false );
 	}
 } );
@@ -435,7 +440,7 @@ add_action( 'admin_init', function (): void {
 		return;
 	}
 
-	if ( ! current_user_can( 'edit_pages' ) ) {
+	if ( ! current_user_can( 'reci_access_admin' ) ) {
 		wp_safe_redirect( home_url( '/' ) );
 		exit;
 	}

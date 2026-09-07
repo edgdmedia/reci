@@ -41,7 +41,7 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 	</div>
 <?php endif; ?>
 
-<?php if ( $is_published ) : ?>
+<?php if ( $is_published && ! current_user_can( 'publish_posts' ) ) : ?>
 	<div class="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900" role="status">
 		<?php esc_html_e( 'This piece is live. Saving changes returns it to the review queue, so it will come off the public site until a member of staff approves the new version.', 'reci-media-hub' ); ?>
 	</div>
@@ -173,10 +173,25 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 		</fieldset>
 	<?php endforeach; ?>
 
+	<?php
+	// Level 3 and above publish their own work; level 2's edits queue for review.
+	$can_publish = current_user_can( 'publish_posts' );
+	?>
 	<div class="flex flex-wrap items-center gap-4 border-t border-zinc-200 pt-6">
 		<button type="submit" class="btn btn-primary btn-md">
-			<?php echo esc_html( $is_published ? __( 'Save and resubmit for review', 'reci-media-hub' ) : __( 'Save changes', 'reci-media-hub' ) ); ?>
+			<?php
+			if ( $is_published || $can_publish ) {
+				esc_html_e( 'Save changes', 'reci-media-hub' );
+			} else {
+				esc_html_e( 'Save and resubmit for review', 'reci-media-hub' );
+			}
+			?>
 		</button>
+		<?php if ( $can_publish && ! $is_published ) : ?>
+			<button type="submit" name="submission_publish" value="1" class="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:bg-green-50">
+				<?php esc_html_e( 'Publish now', 'reci-media-hub' ); ?>
+			</button>
+		<?php endif; ?>
 		<a href="<?php echo esc_url( get_permalink( $post_id ) ); ?>" class="text-sm font-medium text-zinc-600 hover:text-zinc-900"><?php esc_html_e( 'Preview', 'reci-media-hub' ); ?></a>
 	</div>
 </form>

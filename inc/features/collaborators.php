@@ -67,7 +67,11 @@ if ( ! function_exists( 'reci_user_is_collaborator' ) ) {
 			return false;
 		}
 
-		if ( user_can( $user_id, 'edit_others_posts' ) ) {
+		// The role is the answer now. A collaborator is a Contributor (level 2)
+		// or anything above it, all of which hold edit_posts; a Member does not.
+		// The old _reci_collaborator_status meta stays readable so an account
+		// that predates the migration is not locked out, but nothing writes it.
+		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return true;
 		}
 
@@ -82,7 +86,11 @@ if ( ! function_exists( 'reci_get_collaborator_status' ) ) {
 			return 'guest';
 		}
 
-		if ( user_can( $user_id, 'edit_others_posts' ) ) {
+		// Level 2 and above are collaborators by role. This has to agree with
+		// reci_user_is_collaborator(); when it read edit_others_posts while that
+		// read edit_posts, a Contributor was a collaborator everywhere except the
+		// one gate that decides whether the submit form renders at all.
+		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return 'approved';
 		}
 
@@ -731,6 +739,14 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 		if ( 'publish' === $new_status ) {
 			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
 			update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
+
+			// Approval is a promotion: Member -> Collaborator. Anyone already
+			// higher up the ladder keeps their level, so approving an Editor's
+			// application never demotes them.
+			$approved_user = get_user_by( 'id', $user_id );
+			if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
+				$approved_user->set_role( 'contributor' );
+			}
 			if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 				reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
 			}

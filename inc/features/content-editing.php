@@ -125,8 +125,15 @@ function reci_handle_content_update(): void {
 	// An edit to live content goes back into the review queue, so nothing
 	// reaches the public site unreviewed. Remember where it came from: staff
 	// need to know this was published before, not a first-time submission.
+	// Level 3 and above may publish their own work, so the editor offers it. For
+	// level 2 the button does not render and this check refuses the POST anyway.
+	$wants_publish = ! empty( $_POST['submission_publish'] ) && current_user_can( 'publish_posts' );
+	if ( $wants_publish && 'publish' !== $post->post_status ) {
+		$update['post_status'] = 'publish';
+	}
+
 	$was_published = 'publish' === $post->post_status;
-	if ( $was_published ) {
+	if ( $was_published && ! $wants_publish && ! current_user_can( 'publish_posts' ) ) {
 		$update['post_status'] = 'pending';
 
 		// Set before the update, not after: wp_update_post() fires
