@@ -1089,52 +1089,45 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Main Objective for Membership', 'reci-media-hub' ) . '</strong><span>' . esc_html( $membership_objective ?: '—' ) . '</span></div>';
 		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Profile Picture', 'reci-media-hub' ) . '</strong><span>' . esc_html( $profile_image_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
 		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'CV Upload', 'reci-media-hub' ) . '</strong><span>' . esc_html( $cv_attachment_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
+		// Keeps the original Review Actions presentation — a description above a
+		// row of primary and secondary buttons. What changed is the wiring: the
+		// old pair posted to action=reci_collaborator_decision, for which no
+		// handler was ever registered, so neither button did anything. These use
+		// the approve and reject endpoints, and each only appears when it applies.
 		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
-		echo '<p class="description">' . esc_html__( 'Use the buttons below for a clear approve or reject workflow.', 'reci-media-hub' ) . '</p>';
-		echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="reci_collaborator_decision" />';
-		echo '<input type="hidden" name="application_id" value="' . esc_attr( (string) $post->ID ) . '" />';
-		echo '<input type="hidden" name="decision" value="approve" />';
-		wp_nonce_field( 'reci_collaborator_decision_' . $post->ID, 'reci_collaborator_decision_nonce' );
-		submit_button( __( 'Approve Collaborator', 'reci-media-hub' ), 'primary', 'submit', false );
-		echo '</form>';
-		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		echo '<input type="hidden" name="action" value="reci_collaborator_decision" />';
-		echo '<input type="hidden" name="application_id" value="' . esc_attr( (string) $post->ID ) . '" />';
-		echo '<input type="hidden" name="decision" value="reject" />';
-		wp_nonce_field( 'reci_collaborator_decision_' . $post->ID, 'reci_collaborator_decision_nonce' );
-		submit_button( __( 'Reject Application', 'reci-media-hub' ), 'secondary', 'submit', false );
-		echo '</form>';
-		echo '</div></div>';
+
 		if ( current_user_can( 'reci_approve_collaborators' ) ) {
-			echo '<p style="margin:18px 0 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+			if ( 'publish' === $post->post_status ) {
+				$hint = __( 'Approved. Rejecting revokes access, unpublishes their profile and emails the applicant.', 'reci-media-hub' );
+			} elseif ( 'draft' === $post->post_status ) {
+				$hint = __( 'Rejected. Approving reinstates the collaborator and republishes their profile.', 'reci-media-hub' );
+			} else {
+				$hint = __( 'Approving publishes their profile, promotes the account and emails the applicant.', 'reci-media-hub' );
+			}
+
+			echo '<p class="description">' . esc_html( $hint ) . '</p>';
+			echo '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;">';
 
 			if ( 'publish' !== $post->post_status ) {
 				printf(
-					'<a href="%s" class="button button-primary button-large">%s</a>',
+					'<a href="%s" class="button button-primary">%s</a>',
 					esc_url( reci_collaborator_approve_url( (int) $post->ID ) ),
-					esc_html__( 'Approve collaborator', 'reci-media-hub' )
+					esc_html__( 'Approve Collaborator', 'reci-media-hub' )
 				);
 			}
 
 			if ( 'draft' !== $post->post_status ) {
 				printf(
-					'<a href="%s" class="button button-large" style="color:#9d2f45;border-color:#9d2f45;">%s</a>',
+					'<a href="%s" class="button button-secondary">%s</a>',
 					esc_url( reci_collaborator_reject_url( (int) $post->ID ) ),
-					esc_html__( 'Reject', 'reci-media-hub' )
+					esc_html__( 'Reject Application', 'reci-media-hub' )
 				);
 			}
 
-			printf(
-				'<span class="description">%s</span>',
-				'publish' === $post->post_status
-					? esc_html__( 'Rejecting revokes access and emails the applicant.', 'reci-media-hub' )
-					: esc_html__( 'Approving publishes the profile, promotes the account and emails the applicant.', 'reci-media-hub' )
-			);
-
-			echo '</p>';
+			echo '</div>';
 		}
+
+		echo '</div>';
 
 		echo '</div>';
 	}
