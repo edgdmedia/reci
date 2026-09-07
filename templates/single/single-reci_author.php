@@ -76,52 +76,64 @@ get_header();
 <main class="layout-page">
 	<div class="reci-container-full border-b border-zinc-400">
 		<div class="reci-container py-14">
-			<div class="flex flex-col md:flex-row justify-between items-start gap-6">
-				<div class="flex items-center gap-6 w-full md:flex-1 md:min-w-0">
+			<?php
+			// Identity on the left, portrait on the right. The image is written
+			// second so it falls below the text on a narrow screen and sits to the
+			// right of it once the row direction kicks in — order utilities are not
+			// in the compiled stylesheet, so source order is what does this.
+			?>
+			<div class="flex flex-col md:flex-row justify-between items-start gap-8">
+				<div class="flex w-full min-w-0 flex-col gap-3 md:flex-1">
+					<div class="flex items-center gap-3">
+						<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
+						<h1 class="text-neutral-800 text-5xl font-bold font-heading"><?php echo esc_html((string) ($profile['name'] ?? get_the_title())); ?></h1>
+					</div>
+
+					<?php if (! empty($profile['title'])) : ?>
+						<p class="text-neutral-500 text-lg font-medium"><?php echo esc_html((string) $profile['title']); ?></p>
+					<?php endif; ?>
+
 					<?php
-					// The portrait belongs with the name, not beside the biography. In
-					// the About column it stayed pinned to the top while a long bio ran
-					// on past it, leaving a tall empty gap down the side of the page.
+					$affiliation_chips = get_the_terms($profile_id, 'reci_affiliation');
+					if (! is_wp_error($affiliation_chips) && ! empty($affiliation_chips)) :
 					?>
-					<?php if (! empty($profile['image_url'])) : ?>
-						<img src="<?php echo esc_url((string) $profile['image_url']); ?>" alt="<?php echo esc_attr((string) $profile['image_alt']); ?>" class="h-28 w-28 flex-shrink-0 rounded-full object-cover" />
-					<?php else : ?>
-						<div class="flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-full bg-zinc-200">
-							<span class="text-zinc-400 text-3xl font-bold font-heading"><?php echo esc_html(substr($profile['name'] ?? get_the_title(), 0, 2)); ?></span>
+						<div class="flex flex-wrap gap-2 pt-1">
+							<?php foreach ($affiliation_chips as $chip) : ?>
+								<a href="<?php echo esc_url((string) get_term_link($chip)); ?>" class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800 transition-colors hover:bg-amber-200"><?php echo esc_html($chip->name); ?></a>
+							<?php endforeach; ?>
 						</div>
 					<?php endif; ?>
-					<div class="flex min-w-0 flex-col gap-3">
-						<div class="flex items-center gap-3">
-							<span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
-							<h1 class="text-neutral-800 text-5xl font-bold font-heading"><?php echo esc_html((string) ($profile['name'] ?? get_the_title())); ?></h1>
-						</div>
-						<?php if (! empty($profile['title'])) : ?>
-							<p class="text-neutral-500 text-lg font-medium"><?php echo esc_html((string) $profile['title']); ?></p>
-						<?php endif; ?>
-						<?php
-						$affiliation_chips = get_the_terms($profile_id, 'reci_affiliation');
-						if (! is_wp_error($affiliation_chips) && ! empty($affiliation_chips)) :
-						?>
-							<div class="flex flex-wrap gap-2 pt-1">
-								<?php foreach ($affiliation_chips as $chip) : ?>
-									<a href="<?php echo esc_url((string) get_term_link($chip)); ?>" class="inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800 transition-colors hover:bg-amber-200"><?php echo esc_html($chip->name); ?></a>
-								<?php endforeach; ?>
-							</div>
-						<?php endif; ?>
-					</div>
-				</div>
-				<?php if ( $is_logged_in ) : ?>
-					<div class="w-full md:w-72 md:flex-shrink-0 md:text-right">
-						<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="pt-2 md:pt-0">
+
+					<?php if ($is_logged_in) : ?>
+						<form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="pt-3">
 							<input type="hidden" name="action" value="reci_toggle_follow_collaborator" />
-							<input type="hidden" name="collaborator_id" value="<?php echo esc_attr( (string) $profile_id ); ?>" />
-							<input type="hidden" name="redirect_to" value="<?php echo esc_url( get_permalink( $profile_id ) ); ?>" />
-							<?php wp_nonce_field( 'reci_toggle_follow_collaborator_' . $profile_id, 'reci_follow_collaborator_nonce' ); ?>
-							<button type="submit" class="btn btn-outline-primary btn-md"><?php echo esc_html( $is_following ? __( 'Following', 'reci-media-hub' ) : __( 'Follow Collaborator', 'reci-media-hub' ) ); ?></button>
+							<input type="hidden" name="collaborator_id" value="<?php echo esc_attr((string) $profile_id); ?>" />
+							<input type="hidden" name="redirect_to" value="<?php echo esc_url((string) get_permalink($profile_id)); ?>" />
+							<?php wp_nonce_field('reci_toggle_follow_collaborator_' . $profile_id, 'reci_follow_collaborator_nonce'); ?>
+							<button type="submit" class="<?php echo $is_following ? 'btn btn-primary btn-md' : 'btn btn-outline-primary btn-md'; ?> inline-flex items-center gap-2">
+								<?php if ($is_following) : ?>
+									<?php // A tick reads as "done" at a glance, where the word alone needs reading. ?>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+									<?php esc_html_e('Following', 'reci-media-hub'); ?>
+								<?php else : ?>
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+									<?php esc_html_e('Follow Collaborator', 'reci-media-hub'); ?>
+								<?php endif; ?>
+							</button>
 						</form>
-						<p class="pt-2 text-sm leading-6 text-zinc-600 md:ml-auto md:max-w-xs"><?php esc_html_e( 'Follow this collaborator to keep up with their published work in your dashboard feed.', 'reci-media-hub' ); ?></p>
-					</div>
-				<?php endif; ?>
+						<p class="text-sm leading-6 text-zinc-600 max-w-md"><?php esc_html_e('Follow this collaborator to keep up with their published work in your dashboard feed.', 'reci-media-hub'); ?></p>
+					<?php endif; ?>
+				</div>
+
+				<div class="w-full md:w-72 md:flex-shrink-0">
+					<?php if (! empty($profile['image_url'])) : ?>
+						<img src="<?php echo esc_url((string) $profile['image_url']); ?>" alt="<?php echo esc_attr((string) $profile['image_alt']); ?>" class="w-full md:w-72 md:h-72 rounded-xl object-cover" />
+					<?php else : ?>
+						<div class="w-full md:w-72 md:h-72 rounded-xl bg-zinc-200 flex items-center justify-center">
+							<span class="text-zinc-400 text-5xl font-bold font-heading"><?php echo esc_html(substr($profile['name'] ?? get_the_title(), 0, 2)); ?></span>
+						</div>
+					<?php endif; ?>
+				</div>
 			</div>
 		</div>
 	</div>
