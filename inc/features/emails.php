@@ -200,6 +200,12 @@ if ( ! function_exists( 'reci_email_render_block' ) ) {
 			return '<table role="presentation" cellpadding="0" cellspacing="0" border="0" class="reci-rule" style="margin:0 0 20px;width:100%;font-family:Arial,Helvetica,sans-serif;border-top:1px solid ' . $c['line'] . ';border-bottom:1px solid ' . $c['line'] . ';">' . $rows . '</table>';
 		}
 
+		if ( 'html' === $type ) {
+			// Pre-escaped markup from the plain-text converter. Nothing else
+			// should use this type — every other block escapes its own input.
+			return '<p class="reci-ink" style="margin:0 0 16px;font-size:15px;line-height:1.65;color:' . $c['ink'] . ';">' . ( (string) ( $block['html'] ?? '' ) ) . '</p>';
+		}
+
 		if ( 'note' === $type ) {
 			return '<p class="reci-muted" style="margin:0 0 18px;padding:0;font-size:14px;font-style:italic;line-height:1.6;color:' . $c['muted'] . ';">' . esc_html( (string) ( $block['text'] ?? '' ) ) . '</p>';
 		}
@@ -232,6 +238,8 @@ if ( ! function_exists( 'reci_email_plain_text' ) ) {
 				foreach ( (array) ( $block['rows'] ?? [] ) as $label => $value ) {
 					$lines[] = $label . ': ' . $value;
 				}
+			} elseif ( 'html' === $type ) {
+				$lines[] = (string) ( $block['text'] ?? wp_strip_all_tags( (string) ( $block['html'] ?? '' ) ) );
 			} else {
 				$lines[] = (string) ( $block['text'] ?? '' );
 			}
@@ -275,19 +283,15 @@ if ( ! function_exists( 'reci_send_email' ) ) {
 		};
 		add_action( 'phpmailer_init', $attach_alt );
 
-		// Capture the transport's own error so the log says why, not just that.
-		$error   = '';
-		$capture = static function ( $wp_error ) use ( &$error ) {
-			$error = $wp_error instanceof WP_Error ? $wp_error->get_error_message() : '';
-		};
-		add_action( 'wp_mail_failed', $capture );
+		// Logging happens centrally on wp_mail_succeeded/_failed so that core's
+		// own mail is caught too. Those hooks see only the subject, so the
+		// heading is handed across here.
+		reci_email_pending_heading( $heading );
 
 		$sent = wp_mail( $to, $subject, $html, $headers );
 
-		remove_action( 'wp_mail_failed', $capture );
+		reci_email_pending_heading( '' );
 		remove_action( 'phpmailer_init', $attach_alt );
-
-		reci_log_email( $to, $subject, $heading, (bool) $sent, $error );
 
 		return (bool) $sent;
 	}
@@ -411,6 +415,253 @@ if ( ! function_exists( 'reci_configure_smtp' ) ) {
 }
 
 add_action( 'phpmailer_init', 'reci_configure_smtp' );
+
+/**
+ * Put WordPress's own mail on the configured sender.
+ *
+ * reci_send_email() passes an explicit From header, which wp_mail() honours
+ * ahead of these filters, so this only affects mail the theme does not compose:
+ * password resets, new-user notices, comment moderation. Without it those go
+ * out as wordpress@<domain>, which the authenticated SMTP account will usually
+ * refuse to send on behalf of.
+ */
+if ( ! function_exists( 'reci_default_mail_from' ) ) {
+	function reci_default_mail_from( $from ) {
+		$address = reci_email_from_address();
+
+		return is_email( $address ) ? $address : $from;
+	}
+}
+
+if ( ! function_exists( 'reci_default_mail_from_name' ) ) {
+	function reci_default_mail_from_name( $name ) {
+		$configured = reci_email_from_name();
+
+		return '' !== $configured ? $configured : $name;
+	}
+}
+
+// Late, so the theme's sender wins over anything a host injects earlier.
+add_filter( 'wp_mail_from', 'reci_default_mail_from', 99 );
+add_filter( 'wp_mail_from_name', 'reci_default_mail_from_name', 99 );
+
+/**
+ * ---------------------------------------------------------------------------
+ * WordPress's own mail — password resets, new-user notices, comment
+ * moderation. None of it goes through reci_send_email(), so without the
+ * hooks below it leaves as unstyled plain text and never reaches the log.
+ * ---------------------------------------------------------------------------
+ */
+
+if ( ! function_exists( 'reci_email_heading_from_subject' ) ) {
+	/**
+	 * Core prefixes its subjects with "[Site Name]". That reads as noise in a
+	 * heading directly under the masthead, so it comes off.
+	 */
+	function reci_email_heading_from_subject( string $subject ): string {
+		$blogname = wp_specialchars_decode( (string) get_option( 'blogname' ), ENT_QUOTES );
+		$stripped = trim( (string) preg_replace( '/^\s*\[' . preg_quote( $blogname, '/' ) . '\]\s*/', '', $subject ) );
+
+		return '' !== $stripped ? $stripped : $subject;
+	}
+}
+
+if ( ! function_exists( 'reci_email_html_from_plain' ) ) {
+	/**
+	 * Escape one paragraph of core's plain text and make its links clickable.
+	 *
+	 * The output is trusted markup, so everything that came from the message
+	 * is escaped here and nowhere else.
+	 */
+	function reci_email_html_from_plain( string $text ): string {
+		$c = reci_email_palette();
+
+		// Core wraps bare links in angle brackets, which escape into tag noise.
+		$text  = (string) preg_replace( '/<(https?:\/\/[^>\s]+)>/', '$1', $text );
+		$parts = preg_split( '/(https?:\/\/[^\s<>"\']+)/', $text, -1, PREG_SPLIT_DELIM_CAPTURE );
+		$out   = '';
+
+		foreach ( (array) $parts as $i => $part ) {
+			if ( 0 === $i % 2 ) {
+				$out .= esc_html( (string) $part );
+				continue;
+			}
+
+			// Sentence punctuation runs into the URL; it is not part of the link.
+			$url  = rtrim( (string) $part, '.,;:)' );
+			$tail = substr( (string) $part, strlen( $url ) );
+
+			$out .= '<a class="reci-link" href="' . esc_url( $url ) . '" style="color:' . $c['navy'] . ';">'
+				. esc_html( $url ) . '</a>' . esc_html( (string) $tail );
+		}
+
+		return nl2br( $out );
+	}
+}
+
+if ( ! function_exists( 'reci_email_blocks_from_plain_text' ) ) {
+	/**
+	 * Blank-line-separated paragraphs become blocks, so core's copy survives
+	 * intact and only its presentation changes.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	function reci_email_blocks_from_plain_text( string $message ): array {
+		$chunks = preg_split( '/\n{2,}/', trim( str_replace( "\r\n", "\n", $message ) ) );
+		$blocks = [];
+
+		foreach ( (array) $chunks as $chunk ) {
+			$chunk = trim( (string) $chunk );
+
+			if ( '' === $chunk ) {
+				continue;
+			}
+
+			$blocks[] = [
+				'type' => 'html',
+				'html' => reci_email_html_from_plain( $chunk ),
+				'text' => $chunk,
+			];
+		}
+
+		return $blocks;
+	}
+}
+
+if ( ! function_exists( 'reci_brand_core_email' ) ) {
+	/**
+	 * Wrap plain-text mail in the site's shell.
+	 *
+	 * Anything that declares HTML has composed its own body — reci_send_email()
+	 * included — and is left alone. The original text is kept as the
+	 * text/plain alternative so nothing is lost for clients that prefer it.
+	 *
+	 * @param array<string,mixed> $atts
+	 * @return array<string,mixed>
+	 */
+	function reci_brand_core_email( array $atts ): array {
+		$message = $atts['message'] ?? '';
+
+		if ( ! is_string( $message ) || '' === trim( $message ) ) {
+			return $atts;
+		}
+
+		$headers = $atts['headers'] ?? [];
+		$headers = is_array( $headers ) ? $headers : preg_split( '/\r\n|\r|\n/', (string) $headers );
+		$headers = array_values( array_filter( (array) $headers ) );
+
+		if ( false !== stripos( implode( "\n", $headers ), 'content-type: text/html' ) ) {
+			return $atts;
+		}
+
+		// A plugin may switch the whole site to HTML through this filter.
+		if ( has_filter( 'wp_mail_content_type' )
+			&& 'text/html' === apply_filters( 'wp_mail_content_type', 'text/plain' ) ) {
+			return $atts;
+		}
+
+		// Belt and braces: a body that already contains markup is not ours to wrap.
+		if ( preg_match( '/<(html|body|table|div|p)\b/i', $message ) ) {
+			return $atts;
+		}
+
+		$blocks = reci_email_blocks_from_plain_text( $message );
+
+		if ( empty( $blocks ) ) {
+			return $atts;
+		}
+
+		$headers[]        = 'Content-Type: text/html; charset=UTF-8';
+		$atts['headers']  = $headers;
+		$atts['message']  = reci_email_render(
+			reci_email_heading_from_subject( (string) ( $atts['subject'] ?? '' ) ),
+			$blocks
+		);
+
+		// One-shot: wp_mail() sends immediately after this filter returns.
+		$attach = static function ( $phpmailer ) use ( $message, &$attach ) {
+			$phpmailer->AltBody = $message;
+			remove_action( 'phpmailer_init', $attach );
+		};
+		add_action( 'phpmailer_init', $attach );
+
+		return $atts;
+	}
+}
+
+add_filter( 'wp_mail', 'reci_brand_core_email' );
+
+if ( ! function_exists( 'reci_email_pending_heading' ) ) {
+	/**
+	 * The heading reci_send_email() is currently sending under.
+	 *
+	 * Logging moved to wp_mail_succeeded/_failed so core's mail is caught too,
+	 * and those hooks see only the subject. This carries the heading across.
+	 */
+	function reci_email_pending_heading( ?string $heading = null ): string {
+		static $current = '';
+
+		if ( null !== $heading ) {
+			$current = $heading;
+		}
+
+		return $current;
+	}
+}
+
+if ( ! function_exists( 'reci_log_mail_result' ) ) {
+	/**
+	 * Log every wp_mail() call, whoever made it.
+	 *
+	 * @param array<string,mixed> $mail_data
+	 */
+	function reci_log_mail_result( array $mail_data, bool $sent, string $error = '' ): void {
+		$subject = (string) ( $mail_data['subject'] ?? '' );
+		$heading = reci_email_pending_heading();
+		$heading = '' !== $heading ? $heading : reci_email_heading_from_subject( $subject );
+
+		$recipients = $mail_data['to'] ?? [];
+		$recipients = is_array( $recipients ) ? $recipients : explode( ',', (string) $recipients );
+
+		foreach ( $recipients as $recipient ) {
+			// "Name <addr>" is a legal recipient; the log wants the address.
+			$recipient = trim( (string) $recipient );
+
+			if ( preg_match( '/<([^>]+)>/', $recipient, $m ) ) {
+				$recipient = trim( $m[1] );
+			}
+
+			if ( '' === $recipient ) {
+				continue;
+			}
+
+			reci_log_email( $recipient, $subject, $heading, $sent, $error );
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_log_mail_succeeded' ) ) {
+	function reci_log_mail_succeeded( $mail_data ): void {
+		reci_log_mail_result( (array) $mail_data, true );
+	}
+}
+
+if ( ! function_exists( 'reci_log_mail_failed' ) ) {
+	function reci_log_mail_failed( $wp_error ): void {
+		if ( ! $wp_error instanceof WP_Error ) {
+			return;
+		}
+
+		reci_log_mail_result(
+			(array) $wp_error->get_error_data(),
+			false,
+			(string) $wp_error->get_error_message()
+		);
+	}
+}
+
+add_action( 'wp_mail_succeeded', 'reci_log_mail_succeeded' );
+add_action( 'wp_mail_failed', 'reci_log_mail_failed' );
 
 if ( ! function_exists( 'reci_handle_test_email' ) ) {
 	/**
