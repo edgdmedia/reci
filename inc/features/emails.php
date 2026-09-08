@@ -412,6 +412,35 @@ if ( ! function_exists( 'reci_configure_smtp' ) ) {
 
 add_action( 'phpmailer_init', 'reci_configure_smtp' );
 
+/**
+ * Put WordPress's own mail on the configured sender.
+ *
+ * reci_send_email() passes an explicit From header, which wp_mail() honours
+ * ahead of these filters, so this only affects mail the theme does not compose:
+ * password resets, new-user notices, comment moderation. Without it those go
+ * out as wordpress@<domain>, which the authenticated SMTP account will usually
+ * refuse to send on behalf of.
+ */
+if ( ! function_exists( 'reci_default_mail_from' ) ) {
+	function reci_default_mail_from( $from ) {
+		$address = reci_email_from_address();
+
+		return is_email( $address ) ? $address : $from;
+	}
+}
+
+if ( ! function_exists( 'reci_default_mail_from_name' ) ) {
+	function reci_default_mail_from_name( $name ) {
+		$configured = reci_email_from_name();
+
+		return '' !== $configured ? $configured : $name;
+	}
+}
+
+// Late, so the theme's sender wins over anything a host injects earlier.
+add_filter( 'wp_mail_from', 'reci_default_mail_from', 99 );
+add_filter( 'wp_mail_from_name', 'reci_default_mail_from_name', 99 );
+
 if ( ! function_exists( 'reci_handle_test_email' ) ) {
 	/**
 	 * Send a real test message and report what actually happened.
