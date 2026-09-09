@@ -923,7 +923,13 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			return;
 		}
 
-		if ( 'trash' !== $new_status ) {
+		// Rejection is specifically a move to draft, and only from a state that
+		// represents a real decision. The test used to be "anything that is not
+		// publish or trash", which made 'pending' -- the status a brand new
+		// application waits in -- indistinguishable from a refusal, so moving an
+		// application back into the review queue told the applicant they had
+		// been turned down. Creation is excluded for the same reason.
+		if ( 'draft' === $new_status && in_array( $old_status, [ 'publish', 'pending' ], true ) ) {
 			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
 			update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
 
