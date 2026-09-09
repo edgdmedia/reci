@@ -77,13 +77,11 @@ if ( ! function_exists( 'reci_user_is_collaborator' ) ) {
 
 		// The role is the answer now. A collaborator is a Contributor (level 2)
 		// or anything above it, all of which hold edit_posts; a Member does not.
-		// The old _reci_collaborator_status meta stays readable so an account
-		// that predates the migration is not locked out, but nothing writes it.
 		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return true;
 		}
 
-		return 'approved' === (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
+		return 'approved' === reci_get_collaborator_status( $user_id );
 	}
 }
 
@@ -102,8 +100,30 @@ if ( ! function_exists( 'reci_get_collaborator_status' ) ) {
 			return 'approved';
 		}
 
-		$status = (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
-		return in_array( $status, [ 'approved', 'pending', 'rejected' ], true ) ? $status : 'member';
+		// The application carries the decision -- approving and rejecting are
+		// changes to it. The matching user meta is a copy written at the same
+		// moment, so reading the copy meant two sources of truth for one fact and
+		// whichever route updated only one of them would decide what the site
+		// believed. The record wins; the copy is now only a fallback.
+		$application = reci_get_user_collaborator_application( $user_id );
+
+		if ( $application instanceof WP_Post ) {
+			$by_status = [
+				'publish' => 'approved',
+				'private' => 'approved',
+				'pending' => 'pending',
+				'draft'   => 'rejected',
+			];
+
+			if ( isset( $by_status[ $application->post_status ] ) ) {
+				return $by_status[ $application->post_status ];
+			}
+		}
+
+		// Accounts predating the application post type keep whatever they had.
+		$legacy = (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
+
+		return in_array( $legacy, [ 'approved', 'pending', 'rejected' ], true ) ? $legacy : 'member';
 	}
 }
 
@@ -118,10 +138,48 @@ if ( ! function_exists( 'reci_get_user_followed_collaborator_ids' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_collaborator_application_cache' ) ) {
+	/**
+	 * Per-request store for reci_get_user_collaborator_application().
+	 *
+	 * @param array<int,?WP_Post>|null $set Entries to merge, or [] to clear.
+	 * @return array<int,?WP_Post>
+	 */
+	function reci_collaborator_application_cache( ?array $set = null ): array {
+		static $cache = [];
+
+		if ( is_array( $set ) ) {
+			$cache = empty( $set ) ? [] : $cache + $set;
+		}
+
+		return $cache;
+	}
+}
+
+if ( ! function_exists( 'reci_flush_collaborator_application_cache' ) ) {
+	/**
+	 * Forget what we read. A status change is a decision, and the next read in
+	 * the same request has to see it rather than the row we looked at earlier.
+	 */
+	function reci_flush_collaborator_application_cache(): void {
+		reci_collaborator_application_cache( [] );
+	}
+}
+
 if ( ! function_exists( 'reci_get_user_collaborator_application' ) ) {
 	function reci_get_user_collaborator_application( int $user_id ): ?WP_Post {
 		if ( $user_id <= 0 ) {
 			return null;
+		}
+
+		// reci_get_collaborator_status() reads this on ordinary page loads now,
+		// and several times per request, so the query is answered once. Anything
+		// that changes an application clears it -- see
+		// reci_flush_collaborator_application_cache().
+		$cache = reci_collaborator_application_cache();
+
+		if ( array_key_exists( $user_id, $cache ) ) {
+			return $cache[ $user_id ];
 		}
 
 		$posts = get_posts(
@@ -136,7 +194,10 @@ if ( ! function_exists( 'reci_get_user_collaborator_application' ) ) {
 			]
 		);
 
-		return ! empty( $posts ) && $posts[0] instanceof WP_Post ? $posts[0] : null;
+		$found = ! empty( $posts ) && $posts[0] instanceof WP_Post ? $posts[0] : null;
+		reci_collaborator_application_cache( [ $user_id => $found ] );
+
+		return $found;
 	}
 }
 
@@ -736,6 +797,8 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			exit;
 		}
 
+		reci_flush_collaborator_application_cache();
+
 		update_post_meta( $post_id, '_reci_collaborator_user_id', $user_id );
 		update_post_meta( $post_id, '_reci_submission_first_name', $first_name );
 		update_post_meta( $post_id, '_reci_submission_last_name', $last_name );
@@ -968,6 +1031,8 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 		if ( reci_get_collaborator_application_post_type() !== $post->post_type || $new_status === $old_status ) {
 			return;
 		}
+
+		reci_flush_collaborator_application_cache();
 
 		$user_id = absint( get_post_meta( $post->ID, '_reci_collaborator_user_id', true ) );
 		if ( $user_id <= 0 ) {
