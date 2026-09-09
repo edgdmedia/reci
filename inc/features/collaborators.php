@@ -718,9 +718,7 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			]
 		);
 
-		if ( function_exists( 'reci_send_staff_submission_notification' ) ) {
-			reci_send_staff_submission_notification( (int) $post_id );
-		}
+		reci_send_staff_application_notification( (int) $post_id );
 
 		$success_key = is_user_logged_in() ? 'pending' : 'pending_with_account';
 		wp_safe_redirect( add_query_arg( 'application_success', $success_key, $target_url ) );
@@ -784,6 +782,92 @@ if ( ! function_exists( 'reci_set_collaborator_profile_status' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_send_staff_application_notification' ) ) {
+	/**
+	 * Tell staff a collaborator application is waiting.
+	 *
+	 * This used to call reci_send_staff_submission_notification(), which is
+	 * written for content: it announced "New content submission: <name>" and
+	 * offered to review a piece of work that does not exist. An application is
+	 * a different thing being asked of a different judgement, so it says so.
+	 */
+	function reci_send_staff_application_notification( int $post_id ): void {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
+
+		$name  = trim(
+			(string) get_post_meta( $post_id, '_reci_submission_first_name', true ) . ' ' .
+			(string) get_post_meta( $post_id, '_reci_submission_last_name', true )
+		) ?: get_the_title( $post );
+		$email = (string) get_post_meta( $post_id, '_reci_submission_email', true );
+		$org   = (string) get_post_meta( $post_id, '_reci_submission_organization', true );
+		$edit  = get_edit_post_link( $post_id, '' ) ?: admin_url( 'post.php?post=' . $post_id . '&action=edit' );
+
+		$rows = [ __( 'Applicant', 'reci-media-hub' ) => $name ];
+
+		if ( '' !== $email ) {
+			$rows[ __( 'Email', 'reci-media-hub' ) ] = $email;
+		}
+
+		if ( '' !== $org ) {
+			$rows[ __( 'Organization', 'reci-media-hub' ) ] = $org;
+		}
+
+		$rows[ __( 'Affiliation', 'reci-media-hub' ) ] = (string) get_post_meta( $post_id, '_reci_collaborator_affiliation_term', true ) ?: __( 'Not given', 'reci-media-hub' );
+
+		$blocks = [
+			[ 'type' => 'text', 'text' => __( 'Someone has asked to become a RECI Collaborator. Approving publishes their profile and opens content submission to them.', 'reci-media-hub' ) ],
+			[ 'type' => 'details', 'rows' => $rows ],
+			[ 'type' => 'button', 'label' => __( 'Review this application', 'reci-media-hub' ), 'url' => $edit ],
+		];
+
+		$subject = sprintf( __( 'New collaborator application: %s', 'reci-media-hub' ), $name );
+
+		foreach ( reci_get_staff_notification_recipients() as $user ) {
+			if ( ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					$subject,
+					__( 'New collaborator application', 'reci-media-hub' ),
+					$blocks,
+					$name
+				);
+			}
+
+			if ( ! empty( $user->ID ) && function_exists( 'reci_create_notification' ) ) {
+				reci_create_notification(
+					(int) $user->ID,
+					'staff_collaborator_application',
+					__( 'New collaborator application', 'reci-media-hub' ),
+					sprintf( __( '%s has applied to become a collaborator.', 'reci-media-hub' ), $name ),
+					$edit,
+					$post_id
+				);
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_wants_application_status_email' ) ) {
+	/**
+	 * Whether to email this applicant about an approve/reject decision.
+	 *
+	 * This was gated on the preference being exactly '1', which only the
+	 * dashboard settings screen ever writes -- and an applicant has no reason
+	 * to visit it before applying. So the meta was empty for everyone and
+	 * neither decision email had ever been sent.
+	 *
+	 * The outcome of someone's own application is transactional, not marketing:
+	 * it sends unless they have explicitly turned it off.
+	 */
+	function reci_wants_application_status_email( int $user_id ): bool {
+		return '0' !== (string) get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true );
+	}
+}
+
 if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 	function reci_sync_collaborator_application_status( string $new_status, string $old_status, WP_Post $post ): void {
 		if ( reci_get_collaborator_application_post_type() !== $post->post_type || $new_status === $old_status ) {
@@ -819,7 +903,7 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
 			}
-			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
+			if ( reci_wants_application_status_email( $user_id ) ) {
 				$user = get_user_by( 'id', $user_id );
 				if ( $user && ! empty( $user->user_email ) ) {
 					reci_send_email(
@@ -857,7 +941,7 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			if ( function_exists( 'reci_create_notification' ) ) {
 				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
 			}
-			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
+			if ( reci_wants_application_status_email( $user_id ) ) {
 				$user = get_user_by( 'id', $user_id );
 				if ( $user && ! empty( $user->user_email ) ) {
 					reci_send_email(

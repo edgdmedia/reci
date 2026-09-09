@@ -173,7 +173,7 @@ if ( $message ) : ?>
 				<span class="text-sm text-zinc-700">Email me when collaborators I follow publish new content or resources</span>
 			</label>
 			<label class="flex items-center gap-3">
-				<input type="checkbox" name="notify_collaborator_application_status" value="1" <?php checked( get_user_meta( $current_user_id, 'reci_notify_collaborator_application_status', true ), '1' ); ?> class="text-amber-600 accent-amber-600 rounded">
+				<input type="checkbox" name="notify_collaborator_application_status" value="1" <?php checked( '0' !== (string) get_user_meta( $current_user_id, 'reci_notify_collaborator_application_status', true ) ); ?> class="text-amber-600 accent-amber-600 rounded">
 				<span class="text-sm text-zinc-700">Email me when my collaborator application status changes</span>
 			</label>
 		</div>
