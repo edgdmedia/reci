@@ -802,9 +802,12 @@ const RECMHSubmission = () => {
                   </div>
 
                   <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, alignItems: "start" }}>
-                    {contentTypes.map((type) => (
+                    {contentTypes.map((type, index) => (
                       <div key={type.id}
                         className={`type-card ${contentType === type.id ? "selected" : ""}`}
+                        // An odd number of types leaves the last one alone in a
+                        // half-width column; let it take the row instead.
+                        style={(index === contentTypes.length - 1 && contentTypes.length % 2 === 1) ? { gridColumn: "1 / -1" } : undefined}
                         onClick={() => setContentType(type.id)}
                         onMouseEnter={() => setHoveredType(type.id)}
                         onMouseLeave={() => setHoveredType(null)}
