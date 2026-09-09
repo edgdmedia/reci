@@ -193,6 +193,24 @@ if ( ! function_exists( 'reci_profile_fields_for_audience' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_collaborator_has_profile_image' ) ) {
+	/**
+	 * Whether this applicant already sent a headshot with an earlier submission.
+	 */
+	function reci_collaborator_has_profile_image( int $user_id = 0 ): bool {
+		$user_id = $user_id > 0 ? $user_id : get_current_user_id();
+
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+
+		$existing = reci_get_user_collaborator_application( $user_id );
+
+		return $existing instanceof WP_Post
+			&& absint( get_post_meta( $existing->ID, '_reci_collaborator_profile_image_id', true ) ) > 0;
+	}
+}
+
 if ( ! function_exists( 'reci_collaborator_application_only_field_definitions' ) ) {
 	/**
 	 * Fields that belong to the collaborator application only.
@@ -200,8 +218,19 @@ if ( ! function_exists( 'reci_collaborator_application_only_field_definitions' )
 	 * These never appear in the dashboard profile editor.
 	 */
 	function reci_collaborator_application_only_field_definitions(): array {
+		// A browser cannot prefill a file input, so an applicant editing their
+		// application would be told to upload a headshot they already sent.
+		$has_photo = reci_collaborator_has_profile_image();
+
 		return [
-			'reci_profile_picture'      => [ 'label' => __( 'Profile Picture (Professional headshot)', 'reci-media-hub' ), 'type' => 'file', 'required' => true, 'width' => 'full', 'accept' => 'image/*' ],
+			'reci_profile_picture'      => [
+				'label'    => __( 'Profile Picture (Professional headshot)', 'reci-media-hub' ),
+				'type'     => 'file',
+				'required' => ! $has_photo,
+				'width'    => 'full',
+				'accept'   => 'image/*',
+				'hint'     => $has_photo ? __( 'A photo is already on file. Choose a new one only if you want to replace it.', 'reci-media-hub' ) : '',
+			],
 			'reci_cv_upload'            => [ 'label' => __( 'Attach CV', 'reci-media-hub' ), 'type' => 'file', 'required' => false, 'width' => 'full', 'accept' => '.pdf,.doc,.docx' ],
 			'reci_membership_objective' => [ 'label' => __( 'Main Objective for Membership', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 4 ],
 		];
@@ -242,6 +271,7 @@ if ( ! function_exists( 'reci_get_user_collaborator_profile_data' ) ) {
 			'submission_bio'            => (string) get_user_meta( $user_id, 'description', true ),
 			'submission_website'        => (string) $user->user_url,
 			'reci_social_handles'       => (string) get_user_meta( $user_id, 'reci_social_handles', true ),
+			'reci_membership_objective' => (string) get_user_meta( $user_id, 'reci_membership_objective', true ),
 			'reci_affiliation_term'     => (string) get_user_meta( $user_id, 'reci_affiliation_term', true ),
 			'reci_expertise_terms'      => (array) ( get_user_meta( $user_id, 'reci_expertise_terms', true ) ?: [] ),
 		];
@@ -290,6 +320,7 @@ if ( ! function_exists( 'reci_save_user_collaborator_profile_data' ) ) {
 			'submission_role'           => 'user_title',
 			'submission_bio'            => 'description',
 			'reci_social_handles'       => 'reci_social_handles',
+			'reci_membership_objective' => 'reci_membership_objective',
 		];
 
 		foreach ( $meta_map as $field => $meta_key ) {
@@ -469,6 +500,8 @@ if ( ! function_exists( 'reci_get_collaborator_application_notices' ) ) {
 				'already_approved'     => __( 'Your collaborator access is already active.', 'reci-media-hub' ),
 				'pending'              => __( 'Your collaborator application is under review.', 'reci-media-hub' ),
 				'pending_with_account' => __( 'Your member account has been created and your collaborator application is under review. Please verify your email address if prompted.', 'reci-media-hub' ),
+				'updated'              => __( 'Your application has been updated. It is still under review.', 'reci-media-hub' ),
+				'resubmitted'          => __( 'Thank you — your updated application has been sent back for review.', 'reci-media-hub' ),
 			],
 			'error'   => [
 				'invalid_nonce'          => __( 'Security check failed. Please try again.', 'reci-media-hub' ),
@@ -482,6 +515,38 @@ if ( ! function_exists( 'reci_get_collaborator_application_notices' ) ) {
 				'save_failed'            => __( 'We could not save your application. Please try again.', 'reci-media-hub' ),
 			],
 		];
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_edit_url' ) ) {
+	/**
+	 * Where an applicant goes to change what they submitted.
+	 *
+	 * The collaborator fields live on the application, not on the dashboard
+	 * profile screen -- that one only shows the fields for the role you already
+	 * hold, so a pending applicant found none of their answers there.
+	 */
+	function reci_collaborator_application_edit_url(): string {
+		return add_query_arg( 'edit', 'application', reci_get_collaborator_page_url() );
+	}
+}
+
+if ( ! function_exists( 'reci_is_editing_collaborator_application' ) ) {
+	/**
+	 * True when a logged-in applicant has asked to reopen their own application.
+	 */
+	function reci_is_editing_collaborator_application(): bool {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		if ( 'application' !== sanitize_key( wp_unslash( $_GET['edit'] ?? '' ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return false;
+		}
+
+		$existing = reci_get_user_collaborator_application( get_current_user_id() );
+
+		return $existing instanceof WP_Post && in_array( $existing->post_status, [ 'pending', 'draft' ], true );
 	}
 }
 
@@ -603,10 +668,22 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			exit;
 		}
 
-		$existing = reci_get_user_collaborator_application( $user_id );
-		if ( $existing instanceof WP_Post && 'pending' === $existing->post_status ) {
-			wp_safe_redirect( add_query_arg( 'application_success', 'pending', $target_url ) );
-			exit;
+		// An application already on file is edited in place. This used to bail out
+		// whenever one was pending, silently throwing the submission away, and to
+		// fall through to wp_insert_post() when one had been rejected, leaving the
+		// applicant with two records.
+		$existing       = reci_get_user_collaborator_application( $user_id );
+		$application_id = 0;
+		$was_rejected   = false;
+
+		if ( $existing instanceof WP_Post ) {
+			if ( in_array( $existing->post_status, [ 'publish', 'private' ], true ) ) {
+				wp_safe_redirect( add_query_arg( 'application_success', 'already_approved', $target_url ) );
+				exit;
+			}
+
+			$application_id = (int) $existing->ID;
+			$was_rejected   = 'draft' === $existing->post_status;
 		}
 
 		$first_name   = sanitize_text_field( wp_unslash( $_POST['reci_firstname'] ?? '' ) );
@@ -636,16 +713,23 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			exit;
 		}
 
-		$post_id = wp_insert_post(
-			[
-				'post_type'    => reci_get_collaborator_application_post_type(),
-				'post_status'  => 'pending',
-				'post_title'   => $full_name,
-				'post_content' => $bio,
-				'post_author'  => $user_id,
-			],
-			true
-		);
+		$record = [
+			'post_type'    => reci_get_collaborator_application_post_type(),
+			'post_status'  => 'pending',
+			'post_title'   => $full_name,
+			'post_content' => $bio,
+			'post_author'  => $user_id,
+		];
+
+		if ( $application_id > 0 ) {
+			// Back to pending is the point of resubmitting after a rejection, and
+			// a no-op for one already pending. Neither reads as a verdict --
+			// see reci_collaborator_decision_for_transition().
+			$record['ID'] = $application_id;
+			$post_id      = wp_update_post( $record, true );
+		} else {
+			$post_id = wp_insert_post( $record, true );
+		}
 
 		if ( is_wp_error( $post_id ) || $post_id <= 0 ) {
 			wp_safe_redirect( add_query_arg( 'application_error', 'save_failed', $target_url ) );
@@ -715,12 +799,23 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 				'reci_social_handles'       => $social_handles,
 				'reci_affiliation_term'     => $affiliation_term,
 				'reci_expertise_terms'      => $expertise_terms,
+				'reci_membership_objective' => $membership_objective,
 			]
 		);
 
-		reci_send_staff_application_notification( (int) $post_id );
+		// A new application, or one coming back after a rejection, is news. Tidying
+		// a pending one is not, and staff should not get an email per keystroke.
+		if ( 0 === $application_id || $was_rejected ) {
+			reci_send_staff_application_notification( (int) $post_id );
+		}
 
-		$success_key = is_user_logged_in() ? 'pending' : 'pending_with_account';
+		if ( $was_rejected ) {
+			$success_key = 'resubmitted';
+		} elseif ( $application_id > 0 ) {
+			$success_key = 'updated';
+		} else {
+			$success_key = is_user_logged_in() ? 'pending' : 'pending_with_account';
+		}
 		wp_safe_redirect( add_query_arg( 'application_success', $success_key, $target_url ) );
 		exit;
 	}

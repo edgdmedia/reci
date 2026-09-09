@@ -17,6 +17,14 @@ if ( 'approved' !== $status && reci_collaborator_application_just_submitted() ) 
 	$status = 'pending';
 }
 
+// An applicant reopening their own application: show the form, not the notice.
+// Their answers live on the application, so this is the only screen that has them.
+$is_editing = reci_is_editing_collaborator_application();
+
+if ( $is_editing ) {
+	$status = 'editing';
+}
+
 get_header();
 ?>
 
@@ -40,7 +48,8 @@ get_header();
 					<h2 class="font-heading text-2xl font-bold text-zinc-900"><?php esc_html_e( 'Your Collaborator Application Is Under Review', 'reci-media-hub' ); ?></h2>
 					<p class="mt-3 text-base leading-7 text-zinc-600"><?php esc_html_e( 'Thank you for applying. Your member account is active, and our team is reviewing your collaborator onboarding form. Once approved, your application details will seed your public Collaborator profile and unlock contribution tools.', 'reci-media-hub' ); ?></p>
 					<div class="mt-6 flex flex-wrap gap-3">
-						<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" class="btn btn-primary btn-md"><?php esc_html_e( 'Go to Dashboard', 'reci-media-hub' ); ?></a>
+						<a href="<?php echo esc_url( reci_collaborator_application_edit_url() ); ?>" class="btn btn-primary btn-md"><?php esc_html_e( 'Edit Your Application', 'reci-media-hub' ); ?></a>
+						<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" class="btn btn-outline-primary btn-md"><?php esc_html_e( 'Go to Dashboard', 'reci-media-hub' ); ?></a>
 						<a href="<?php echo esc_url( home_url( '/community/' ) ); ?>" class="btn btn-outline-primary btn-md"><?php esc_html_e( 'Back to Community', 'reci-media-hub' ); ?></a>
 					</div>
 				</div>
@@ -58,7 +67,14 @@ get_header();
 				get_template_part(
 					'template-parts/collaborator/application-form',
 					null,
-					[ 'context' => 'collaborator' ]
+					$is_editing
+						? [
+							'context'      => 'collaborator',
+							'heading'      => __( 'Edit Your Collaborator Application', 'reci-media-hub' ),
+							'intro'        => __( 'Change anything you like and save. Your application stays in the review queue.', 'reci-media-hub' ),
+							'submit_label' => __( 'Save Changes', 'reci-media-hub' ),
+						]
+						: [ 'context' => 'collaborator' ]
 				);
 				?>
 			<?php endif; ?>
