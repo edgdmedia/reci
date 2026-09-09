@@ -872,14 +872,19 @@ const RECMHSubmission = () => {
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {spheres.map((sphere) => {
+                  <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, alignItems: "start" }}>
+                    {spheres.map((sphere, index) => {
                       const isSelected = selectedSpheres.includes(sphere.id);
                       const isExpanded = expandedSphere === sphere.id;
+                      // A sphere opened for its guiding questions needs the room,
+                      // and an odd last card would otherwise sit alone in a
+                      // half-width column.
+                      const spansRow = isExpanded || (index === spheres.length - 1 && spheres.length % 2 === 1);
                       return (
                         <div key={sphere.id}
                           className={`sphere-card ${isSelected ? "selected" : ""}`}
                           style={{
+                            gridColumn: spansRow ? "1 / -1" : undefined,
                             borderColor: isSelected ? "transparent" : undefined,
                             boxShadow: isSelected ? `0 0 0 2px ${sphere.color}, 0 8px 32px ${sphere.color}15` : undefined,
                           }}
