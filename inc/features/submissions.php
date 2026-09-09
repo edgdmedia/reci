@@ -1494,7 +1494,7 @@ if (! function_exists('reci_media_hub_pending_submission_count')) {
 				// content, and sends them to a screen that no longer lists it.
 				'meta_query'             => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 					[
-						'key'     => '_reci_submission_content_type',
+						'key'     => '_reci_submission_submitted_at',
 						'compare' => 'EXISTS',
 					],
 				],

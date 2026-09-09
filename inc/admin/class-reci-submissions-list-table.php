@@ -90,16 +90,19 @@ class Reci_Submissions_List_Table extends WP_List_Table {
 	 *
 	 * The screen used to list every post of a submittable type, so demo content
 	 * and anything staff wrote in wp-admin appeared alongside real submissions
-	 * -- 45 of the 59 rows on this install. _reci_submission_content_type is
-	 * written by both routes a contributor can take in, the submit wizard and
-	 * the dashboard editor, and by nothing else.
+	 * -- 45 of the 59 rows on this install.
+	 *
+	 * _reci_submission_submitted_at is stamped when a person actually sends
+	 * something in, and only then. The content type alone is not enough: the
+	 * highlighted-works promotion writes a type onto drafts it creates, which
+	 * are staff-curated, not submitted.
 	 *
 	 * @return array<int,array<string,mixed>>
 	 */
 	private function submission_meta_query(): array {
 		return [
 			[
-				'key'     => '_reci_submission_content_type',
+				'key'     => '_reci_submission_submitted_at',
 				'compare' => 'EXISTS',
 			],
 		];

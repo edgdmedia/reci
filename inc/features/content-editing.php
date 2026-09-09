@@ -201,6 +201,17 @@ function reci_handle_content_update(): void {
 		update_post_meta( $post_id, '_reci_submission_revised_at', current_time( 'mysql' ) );
 	}
 
+	// Stamped the first time this leaves draft, whichever way it goes. The
+	// Submissions screen keys off this to tell contributor work from the drafts
+	// staff tooling creates, so content written in the dashboard editor has to
+	// carry it just as anything sent through the wizard does. Set before the
+	// update, since transition_post_status runs inside it.
+	$resulting_status = $update['post_status'] ?? $post->post_status;
+	if ( 'draft' !== $resulting_status && '' === (string) get_post_meta( $post_id, '_reci_submission_submitted_at', true ) ) {
+		update_post_meta( $post_id, '_reci_submission_submitted_at', current_time( 'mysql' ) );
+		update_post_meta( $post_id, '_reci_submission_submitted_at_gmt', current_time( 'mysql', true ) );
+	}
+
 	$result = wp_update_post( $update, true );
 	if ( is_wp_error( $result ) ) {
 		wp_safe_redirect( add_query_arg( 'edit_error', 'save_failed', $edit_url ) );

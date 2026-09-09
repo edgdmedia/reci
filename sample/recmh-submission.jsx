@@ -746,7 +746,7 @@ const RECMHSubmission = () => {
             background: "var(--surface)", borderBottom: "1px solid var(--border)",
             padding: "0 40px",
           }}>
-            <div className="step-nav-desktop" style={{ maxWidth: 900, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 0, height: 60 }}>
+            <div className="step-nav-desktop" style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 0, height: 60 }}>
               {steps.map((step, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center" }}>
                   <div style={{
@@ -775,7 +775,7 @@ const RECMHSubmission = () => {
               ))}
             </div>
             {/* Mobile step indicator */}
-            <div style={{ display: "none", maxWidth: 900, margin: "0 auto", padding: "12px 0", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "none", maxWidth: 1200, margin: "0 auto", padding: "12px 0", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontFamily: "var(--wp--preset--font-family--body, 'Roboto', sans-serif)", fontSize: 12, fontWeight: 600, color: "var(--earth-deep)" }}>
                 Step {currentStep + 1} of {steps.length}: {steps[currentStep].label}
               </span>
@@ -788,7 +788,7 @@ const RECMHSubmission = () => {
           </div>
 
           {/* ========== MAIN FORM ========== */}
-          <main className="main-content" style={{ maxWidth: 980, margin: "0 auto", padding: "32px 32px 48px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 1px 3px rgba(15,23,42,0.05)", marginTop: "10px"}}>
+          <main className="main-content" style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 32px 48px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 1px 3px rgba(15,23,42,0.05)", marginTop: "10px"}}>
             <div className={animateIn ? "step-fade" : ""} style={{ opacity: animateIn ? undefined : 0 }}>
 
               {/* ===== STEP 0: CONTENT TYPE ===== */}
@@ -801,7 +801,7 @@ const RECMHSubmission = () => {
                     </p>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="grid-2" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 16, alignItems: "start" }}>
                     {contentTypes.map((type) => (
                       <div key={type.id}
                         className={`type-card ${contentType === type.id ? "selected" : ""}`}
