@@ -1133,41 +1133,115 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		$organization = (string) get_post_meta( $post->ID, '_reci_submission_organization', true );
 		$role         = (string) get_post_meta( $post->ID, '_reci_submission_role', true );
 		$website      = (string) get_post_meta( $post->ID, '_reci_submission_website', true );
+		$bio          = (string) get_post_meta( $post->ID, '_reci_submission_bio', true );
 		$affiliated_with_pitt = (string) get_post_meta( $post->ID, '_reci_collaborator_affiliated_with_pitt', true );
 		$pitt_affiliation     = (string) get_post_meta( $post->ID, '_reci_collaborator_pitt_affiliation', true );
 		$department           = (string) get_post_meta( $post->ID, '_reci_collaborator_department', true );
 		$social_handles       = (string) get_post_meta( $post->ID, '_reci_collaborator_social_handles', true );
 		$membership_objective = (string) get_post_meta( $post->ID, '_reci_collaborator_membership_objective', true );
+		$affiliation_term     = (string) get_post_meta( $post->ID, '_reci_collaborator_affiliation_term', true );
+		$expertise_terms      = reci_collaborator_application_expertise( (int) $post->ID );
 		$profile_image_id     = absint( get_post_meta( $post->ID, '_reci_collaborator_profile_image_id', true ) );
 		$cv_attachment_id     = absint( get_post_meta( $post->ID, '_reci_collaborator_cv_attachment_id', true ) );
 
-		echo '<div class="reci-meta-grid">';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Application Status', 'reci-media-hub' ) . '</strong><span>' . esc_html( ucfirst( $status ?: 'pending' ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Linked Member Account', 'reci-media-hub' ) . '</strong><span>' . esc_html( $user instanceof WP_User ? $user->display_name . ' (#' . $user->ID . ')' : __( 'Not linked', 'reci-media-hub' ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Full Name', 'reci-media-hub' ) . '</strong><span>' . esc_html( trim( $first_name . ' ' . $last_name ) ?: get_the_title( $post ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Email', 'reci-media-hub' ) . '</strong><span>' . esc_html( $email ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Organization', 'reci-media-hub' ) . '</strong><span>' . esc_html( $organization ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Affiliated with Pitt', 'reci-media-hub' ) . '</strong><span>' . esc_html( $affiliated_with_pitt ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Pitt Affiliation', 'reci-media-hub' ) . '</strong><span>' . esc_html( $pitt_affiliation ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Department', 'reci-media-hub' ) . '</strong><span>' . esc_html( $department ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Role / Title', 'reci-media-hub' ) . '</strong><span>' . esc_html( $role ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Website', 'reci-media-hub' ) . '</strong><span>';
-		if ( '' !== $website ) {
-			echo '<a href="' . esc_url( $website ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $website ) . '</a>';
-		} else {
-			echo '—';
-		}
-		echo '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Social Handles', 'reci-media-hub' ) . '</strong><span>' . esc_html( $social_handles ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Main Objective for Membership', 'reci-media-hub' ) . '</strong><span>' . esc_html( $membership_objective ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Profile Picture', 'reci-media-hub' ) . '</strong><span>' . esc_html( $profile_image_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'CV Upload', 'reci-media-hub' ) . '</strong><span>' . esc_html( $cv_attachment_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
+		$full_name = trim( $first_name . ' ' . $last_name ) ?: get_the_title( $post );
+		?>
+		<style>
+			.reci-app-review { margin-top: 4px; }
+			.reci-app-review__head { display: flex; gap: 18px; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid #dcdcde; }
+			.reci-app-review__photo img { display: block; width: 96px; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid #dcdcde; }
+			.reci-app-review__photo--empty { width: 96px; height: 96px; border-radius: 6px; border: 1px dashed #c3c4c7; display: flex; align-items: center; justify-content: center; color: #8c8f94; font-size: 11px; text-align: center; line-height: 1.3; padding: 6px; box-sizing: border-box; }
+			.reci-app-review__name { margin: 0 0 6px; font-size: 18px; line-height: 1.3; }
+			.reci-app-review__pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+			.reci-app-review__pill--pending { background: #fcf3d8; color: #7a5b00; }
+			.reci-app-review__pill--approved { background: #e3f2e1; color: #1c5c2e; }
+			.reci-app-review__pill--rejected { background: #fbeaea; color: #8a2424; }
+			/* Label column, value column. Long prose wraps in the value column
+			   rather than breaking the alignment of everything above it. */
+			.reci-app-review__rows { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
+			.reci-app-review__rows > dt,
+			.reci-app-review__rows > dd { padding: 11px 0; border-bottom: 1px solid #f0f0f1; margin: 0; }
+			.reci-app-review__rows > dt { font-weight: 600; color: #50575e; padding-right: 20px; }
+			.reci-app-review__rows > dd { color: #1d2327; word-wrap: break-word; overflow-wrap: anywhere; }
+			.reci-app-review__rows > dd p { margin: 0 0 8px; }
+			.reci-app-review__rows > dd p:last-child { margin-bottom: 0; }
+			.reci-app-review__empty { color: #8c8f94; }
+			.reci-app-review__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+			.reci-app-review__chip { background: #f0f0f1; border-radius: 3px; padding: 3px 9px; font-size: 12px; }
+			.reci-app-review__actions { padding-top: 18px; }
+			@media screen and (max-width: 782px) {
+				.reci-app-review__rows { grid-template-columns: minmax(0, 1fr); }
+				.reci-app-review__rows > dt { padding-bottom: 0; border-bottom: 0; }
+				.reci-app-review__rows > dd { padding-top: 4px; }
+			}
+		</style>
+
+		<div class="reci-app-review">
+			<div class="reci-app-review__head">
+				<div class="reci-app-review__photo">
+					<?php
+					if ( $profile_image_id > 0 && wp_get_attachment_image( $profile_image_id, [ 96, 96 ] ) ) {
+						$full = wp_get_attachment_image_url( $profile_image_id, 'full' );
+						printf(
+							'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+							esc_url( (string) $full ),
+							wp_get_attachment_image( $profile_image_id, [ 96, 96 ] )
+						);
+					} else {
+						echo '<div class="reci-app-review__photo--empty">' . esc_html__( 'No photo', 'reci-media-hub' ) . '</div>';
+					}
+					?>
+				</div>
+				<div>
+					<h2 class="reci-app-review__name"><?php echo esc_html( $full_name ); ?></h2>
+					<?php
+					$state = 'publish' === $post->post_status ? 'approved' : ( 'draft' === $post->post_status ? 'rejected' : 'pending' );
+					printf(
+						'<span class="reci-app-review__pill reci-app-review__pill--%s">%s</span>',
+						esc_attr( $state ),
+						esc_html( ucfirst( $status ?: $state ) )
+					);
+					?>
+					<p style="margin:8px 0 0;color:#50575e;">
+						<?php
+						echo $user instanceof WP_User
+							? esc_html( sprintf( __( 'Linked account: %1$s (#%2$d)', 'reci-media-hub' ), $user->display_name, $user->ID ) )
+							: esc_html__( 'No linked member account', 'reci-media-hub' );
+						?>
+					</p>
+				</div>
+			</div>
+
+			<dl class="reci-app-review__rows">
+				<?php
+				reci_app_review_row( __( 'Email', 'reci-media-hub' ), $email ? sprintf( '<a href="mailto:%1$s">%1$s</a>', esc_attr( $email ) ) : '', true );
+				reci_app_review_row( __( 'Personal Bio', 'reci-media-hub' ), $bio ? wpautop( esc_html( $bio ) ) : '', true );
+				reci_app_review_row( __( 'Subject Areas', 'reci-media-hub' ), reci_app_review_chips( $expertise_terms ), true );
+				reci_app_review_row( __( 'Affiliation', 'reci-media-hub' ), $affiliation_term );
+				reci_app_review_row( __( 'Affiliated with Pitt', 'reci-media-hub' ), $affiliated_with_pitt );
+				reci_app_review_row( __( 'Pitt Affiliation', 'reci-media-hub' ), $pitt_affiliation );
+				reci_app_review_row( __( 'Organization', 'reci-media-hub' ), $organization );
+				reci_app_review_row( __( 'Department', 'reci-media-hub' ), $department );
+				reci_app_review_row( __( 'Role / Title', 'reci-media-hub' ), $role );
+				reci_app_review_row(
+					__( 'Website', 'reci-media-hub' ),
+					$website ? sprintf( '<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>', esc_url( $website ), esc_html( $website ) ) : '',
+					true
+				);
+				reci_app_review_row( __( 'Social Handles', 'reci-media-hub' ), $social_handles );
+				reci_app_review_row( __( 'Main Objective for Membership', 'reci-media-hub' ), $membership_objective ? wpautop( esc_html( $membership_objective ) ) : '', true );
+				reci_app_review_row( __( 'CV Upload', 'reci-media-hub' ), reci_app_review_attachment_link( $cv_attachment_id ), true );
+				?>
+			</dl>
+
+			<div class="reci-app-review__actions">
+		<?php
 		// Keeps the original Review Actions presentation — a description above a
 		// row of primary and secondary buttons. What changed is the wiring: the
 		// old pair posted to action=reci_collaborator_decision, for which no
 		// handler was ever registered, so neither button did anything. These use
 		// the approve and reject endpoints, and each only appears when it applies.
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
+		echo '<strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
 
 		if ( current_user_can( 'reci_approve_collaborators' ) ) {
 			if ( 'publish' === $post->post_status ) {
@@ -1199,10 +1273,101 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 
 			echo '</div>';
 		}
+		?>
+			</div>
+		</div>
+		<?php
+	}
+}
 
-		echo '</div>';
+if ( ! function_exists( 'reci_app_review_row' ) ) {
+	/**
+	 * One label/value pair in the review list.
+	 *
+	 * @param string $value  Already-escaped markup when $is_html, plain text otherwise.
+	 */
+	function reci_app_review_row( string $label, string $value, bool $is_html = false ): void {
+		$value = trim( $value );
 
-		echo '</div>';
+		printf( '<dt>%s</dt>', esc_html( $label ) );
+
+		if ( '' === $value ) {
+			printf( '<dd><span class="reci-app-review__empty">%s</span></dd>', esc_html__( 'Not provided', 'reci-media-hub' ) );
+			return;
+		}
+
+		printf( '<dd>%s</dd>', $is_html ? wp_kses_post( $value ) : esc_html( $value ) );
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_expertise' ) ) {
+	/**
+	 * Subject areas as submitted.
+	 *
+	 * The application stores them as a JSON list on the post rather than as
+	 * taxonomy terms — terms are only created once the application is approved.
+	 *
+	 * @return array<int,string>
+	 */
+	function reci_collaborator_application_expertise( int $post_id ): array {
+		$raw = get_post_meta( $post_id, '_reci_collaborator_expertise_terms', true );
+
+		if ( is_array( $raw ) ) {
+			return array_values( array_filter( array_map( 'strval', $raw ) ) );
+		}
+
+		$raw = trim( (string) $raw );
+
+		if ( '' === $raw ) {
+			return [];
+		}
+
+		$decoded = json_decode( $raw, true );
+
+		if ( is_array( $decoded ) ) {
+			return array_values( array_filter( array_map( 'strval', $decoded ) ) );
+		}
+
+		// Older records stored a comma-separated string.
+		return array_values( array_filter( array_map( 'trim', explode( ',', $raw ) ) ) );
+	}
+}
+
+if ( ! function_exists( 'reci_app_review_chips' ) ) {
+	/**
+	 * @param array<int,string> $items
+	 */
+	function reci_app_review_chips( array $items ): string {
+		if ( empty( $items ) ) {
+			return '';
+		}
+
+		$chips = '';
+		foreach ( $items as $item ) {
+			$chips .= '<span class="reci-app-review__chip">' . esc_html( $item ) . '</span>';
+		}
+
+		return '<div class="reci-app-review__chips">' . $chips . '</div>';
+	}
+}
+
+if ( ! function_exists( 'reci_app_review_attachment_link' ) ) {
+	function reci_app_review_attachment_link( int $attachment_id ): string {
+		if ( $attachment_id <= 0 ) {
+			return '';
+		}
+
+		$url = wp_get_attachment_url( $attachment_id );
+
+		if ( ! $url ) {
+			return '';
+		}
+
+		return sprintf(
+			'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+			esc_url( $url ),
+			esc_html( basename( (string) wp_parse_url( $url, PHP_URL_PATH ) ) )
+		);
 	}
 }
 
