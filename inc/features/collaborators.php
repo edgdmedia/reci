@@ -879,89 +879,131 @@ if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 			return;
 		}
 
-		if ( 'publish' === $new_status ) {
-			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
-			update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
+		$decision = reci_collaborator_decision_for_transition( $new_status, $old_status );
 
-			// Approval is a promotion: Member -> Collaborator. Anyone already
-			// higher up the ladder keeps their level, so approving an Editor's
-			// application never demotes them.
-			$approved_user = get_user_by( 'id', $user_id );
-			if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
-				$approved_user->set_role( 'contributor' );
-			}
-			if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
-				reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
-			}
-			if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
-				reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
-			}
-
-			// Re-approving after a rejection has to put the profile back, or the
-			// account would be a collaborator with no public page.
-			reci_set_collaborator_profile_status( $user_id, 'publish' );
-			if ( function_exists( 'reci_create_notification' ) ) {
-				reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
-			}
-			if ( reci_wants_application_status_email( $user_id ) ) {
-				$user = get_user_by( 'id', $user_id );
-				if ( $user && ! empty( $user->user_email ) ) {
-					reci_send_email(
-						(string) $user->user_email,
-						__( 'Your collaborator application was approved', 'reci-media-hub' ),
-						__( 'You are now a RECI Collaborator', 'reci-media-hub' ),
-						[
-							[ 'type' => 'text', 'text' => sprintf( __( 'Congratulations %s — your collaborator application has been approved.', 'reci-media-hub' ), $user->display_name ) ],
-							[ 'type' => 'text', 'text' => __( 'Your public collaborator profile is live, and content submission is now open to you.', 'reci-media-hub' ) ],
-							[ 'type' => 'button', 'label' => __( 'Submit your first contribution', 'reci-media-hub' ), 'url' => home_url( '/submit/' ) ],
-							[ 'type' => 'note', 'text' => __( 'Keep your profile current from your dashboard — it is what readers see beside your work.', 'reci-media-hub' ) ],
-						],
-						__( 'Your collaborator application has been approved.', 'reci-media-hub' )
-					);
-				}
-			}
+		if ( 'approved' === $decision ) {
+			reci_approve_collaborator_application( $post, $user_id );
 			return;
 		}
 
-		// Rejection is specifically a move to draft, and only from a state that
-		// represents a real decision. The test used to be "anything that is not
-		// publish or trash", which made 'pending' -- the status a brand new
-		// application waits in -- indistinguishable from a refusal, so moving an
-		// application back into the review queue told the applicant they had
-		// been turned down. Creation is excluded for the same reason.
+		if ( 'rejected' === $decision ) {
+			reci_reject_collaborator_application( $post, $user_id );
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_decision_for_transition' ) ) {
+	/**
+	 * Read a verdict out of a status change -- or decline to.
+	 *
+	 * WordPress statuses are the trigger here, not the vocabulary. Keeping the
+	 * translation in one small function is the point: every status that is not
+	 * listed means "no decision was made", so a bulk edit, a Quick Edit or some
+	 * future status cannot be mistaken for an approval or a refusal. Reading a
+	 * verdict out of "not publish, not trash" is exactly how 'pending' came to
+	 * mean rejection.
+	 *
+	 * @return string 'approved', 'rejected', or '' for no decision.
+	 */
+	function reci_collaborator_decision_for_transition( string $new_status, string $old_status ): string {
+		if ( 'publish' === $new_status ) {
+			return 'approved';
+		}
+
+		// Only from a state a live application can actually be in, so creating
+		// one as a draft is not a refusal.
 		if ( 'draft' === $new_status && in_array( $old_status, [ 'publish', 'pending' ], true ) ) {
-			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
-			update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
+			return 'rejected';
+		}
 
-			// Approval promotes, so rejection revokes. Only an account sitting at
-			// Collaborator is demoted: anyone deliberately raised above that was
-			// promoted by a human decision this one should not undo.
-			$rejected_user = get_user_by( 'id', $user_id );
-			if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
-				$rejected_user->set_role( 'subscriber' );
-			}
+		return '';
+	}
+}
 
-			// Take the public profile down with the access. Draft, not deleted, so
-			// re-approving restores it rather than rebuilding it.
-			reci_set_collaborator_profile_status( $user_id, 'draft' );
-			if ( function_exists( 'reci_create_notification' ) ) {
-				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
+if ( ! function_exists( 'reci_approve_collaborator_application' ) ) {
+	/**
+	 * Everything approval means: promote, sync the profile, publish it, tell them.
+	 */
+	function reci_approve_collaborator_application( WP_Post $post, int $user_id ): void {
+		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
+		update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
+
+		// Approval is a promotion: Member -> Collaborator. Anyone already
+		// higher up the ladder keeps their level, so approving an Editor's
+		// application never demotes them.
+		$approved_user = get_user_by( 'id', $user_id );
+		if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
+			$approved_user->set_role( 'contributor' );
+		}
+		if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
+			reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
+		}
+		if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
+			reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
+		}
+
+		// Re-approving after a rejection has to put the profile back, or the
+		// account would be a collaborator with no public page.
+		reci_set_collaborator_profile_status( $user_id, 'publish' );
+		if ( function_exists( 'reci_create_notification' ) ) {
+			reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
+		}
+		if ( reci_wants_application_status_email( $user_id ) ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( $user && ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					__( 'Your collaborator application was approved', 'reci-media-hub' ),
+					__( 'You are now a RECI Collaborator', 'reci-media-hub' ),
+					[
+						[ 'type' => 'text', 'text' => sprintf( __( 'Congratulations %s — your collaborator application has been approved.', 'reci-media-hub' ), $user->display_name ) ],
+						[ 'type' => 'text', 'text' => __( 'Your public collaborator profile is live, and content submission is now open to you.', 'reci-media-hub' ) ],
+						[ 'type' => 'button', 'label' => __( 'Submit your first contribution', 'reci-media-hub' ), 'url' => home_url( '/submit/' ) ],
+						[ 'type' => 'note', 'text' => __( 'Keep your profile current from your dashboard — it is what readers see beside your work.', 'reci-media-hub' ) ],
+					],
+					__( 'Your collaborator application has been approved.', 'reci-media-hub' )
+				);
 			}
-			if ( reci_wants_application_status_email( $user_id ) ) {
-				$user = get_user_by( 'id', $user_id );
-				if ( $user && ! empty( $user->user_email ) ) {
-					reci_send_email(
-						(string) $user->user_email,
-						__( 'Your collaborator application was updated', 'reci-media-hub' ),
-						__( 'An update on your application', 'reci-media-hub' ),
-						[
-							[ 'type' => 'text', 'text' => sprintf( __( 'Hello %s, thank you for applying to contribute to RECI.', 'reci-media-hub' ), $user->display_name ) ],
-							[ 'type' => 'text', 'text' => __( 'Your application was not approved at this time. This is not a closed door — you are welcome to update your details and apply again.', 'reci-media-hub' ) ],
-							[ 'type' => 'button', 'label' => __( 'Update your details', 'reci-media-hub' ), 'url' => home_url( '/dashboard/profile/' ) ],
-						],
-						__( 'An update on your RECI collaborator application.', 'reci-media-hub' )
-					);
-				}
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_reject_collaborator_application' ) ) {
+	/**
+	 * Everything rejection means: revoke, unpublish the profile, tell them.
+	 */
+	function reci_reject_collaborator_application( WP_Post $post, int $user_id ): void {
+		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
+		update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
+
+		// Approval promotes, so rejection revokes. Only an account sitting at
+		// Collaborator is demoted: anyone deliberately raised above that was
+		// promoted by a human decision this one should not undo.
+		$rejected_user = get_user_by( 'id', $user_id );
+		if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
+			$rejected_user->set_role( 'subscriber' );
+		}
+
+		// Take the public profile down with the access. Draft, not deleted, so
+		// re-approving restores it rather than rebuilding it.
+		reci_set_collaborator_profile_status( $user_id, 'draft' );
+		if ( function_exists( 'reci_create_notification' ) ) {
+			reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
+		}
+		if ( reci_wants_application_status_email( $user_id ) ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( $user && ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					__( 'Your collaborator application was updated', 'reci-media-hub' ),
+					__( 'An update on your application', 'reci-media-hub' ),
+					[
+						[ 'type' => 'text', 'text' => sprintf( __( 'Hello %s, thank you for applying to contribute to RECI.', 'reci-media-hub' ), $user->display_name ) ],
+						[ 'type' => 'text', 'text' => __( 'Your application was not approved at this time. This is not a closed door — you are welcome to update your details and apply again.', 'reci-media-hub' ) ],
+						[ 'type' => 'button', 'label' => __( 'Update your details', 'reci-media-hub' ), 'url' => home_url( '/dashboard/profile/' ) ],
+					],
+					__( 'An update on your RECI collaborator application.', 'reci-media-hub' )
+				);
 			}
 		}
 	}
