@@ -1171,6 +1171,61 @@ if ( ! function_exists( 'reci_reject_collaborator_application' ) ) {
 
 add_action( 'transition_post_status', 'reci_sync_collaborator_application_status', 10, 3 );
 
+if ( ! function_exists( 'reci_forget_deleted_collaborator_application' ) ) {
+	/**
+	 * Retract the copy when the application itself goes away.
+	 *
+	 * _reci_collaborator_status on the user mirrors the application's verdict.
+	 * Deleting or trashing the application left that copy behind, and since it
+	 * is the fallback reci_get_collaborator_status() consults when no
+	 * application is found, the applicant kept reading as 'pending' forever --
+	 * the submit page still telling them they were under review with nothing
+	 * left to review.
+	 *
+	 * Roles are deliberately untouched: access is granted by role, and removing
+	 * a record is not the same act as revoking someone's access.
+	 */
+	function reci_forget_deleted_collaborator_application( int $post_id ): void {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+			return;
+		}
+
+		reci_flush_collaborator_application_cache();
+
+		$user_id = absint( get_post_meta( $post_id, '_reci_collaborator_user_id', true ) );
+
+		if ( $user_id <= 0 ) {
+			return;
+		}
+
+		// Another application may still stand for this user; only the last one
+		// leaving clears the copy.
+		$others = get_posts(
+			[
+				'post_type'      => reci_get_collaborator_application_post_type(),
+				'post_status'    => [ 'pending', 'draft', 'publish', 'private' ],
+				'posts_per_page' => 1,
+				'fields'         => 'ids',
+				'exclude'        => [ $post_id ],
+				'meta_key'       => '_reci_collaborator_user_id',
+				'meta_value'     => $user_id,
+			]
+		);
+
+		if ( ! empty( $others ) ) {
+			return;
+		}
+
+		delete_user_meta( $user_id, '_reci_collaborator_status' );
+		reci_flush_collaborator_application_cache();
+	}
+}
+
+add_action( 'before_delete_post', 'reci_forget_deleted_collaborator_application' );
+add_action( 'trashed_post', 'reci_forget_deleted_collaborator_application' );
+
 if ( ! function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 	/**
 	 * Publish a user's collaborator profile to their public `reci_author` post.
