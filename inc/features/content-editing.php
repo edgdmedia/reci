@@ -108,9 +108,8 @@ function reci_handle_content_create(): void {
 
 	// Level 2 submits for review through /submit/; this route belongs to anyone
 	// who publishes their own work.
-	if ( ! current_user_can( 'publish_posts' ) ) {
-		wp_safe_redirect( home_url( '/submit/' ) );
-		exit;
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_die( esc_html__( 'You are not allowed to create content.', 'reci-media-hub' ) );
 	}
 
 	$content_type = isset( $_POST['content_type'] ) ? sanitize_key( wp_unslash( $_POST['content_type'] ) ) : '';
@@ -187,6 +186,15 @@ function reci_handle_content_update(): void {
 	$wants_publish = ! empty( $_POST['submission_publish'] ) && current_user_can( 'publish_posts' );
 	if ( $wants_publish && 'publish' !== $post->post_status ) {
 		$update['post_status'] = 'publish';
+	}
+
+	// Level 2 writes a draft here and hands it over when ready. Without this the
+	// draft had no way out: publishing needs a capability they do not hold, and
+	// a plain save leaves the status alone, so the piece was written and then
+	// stranded.
+	$wants_review = ! empty( $_POST['submission_submit'] );
+	if ( $wants_review && ! $wants_publish && in_array( $post->post_status, [ 'draft', 'auto-draft' ], true ) ) {
+		$update['post_status'] = 'pending';
 	}
 
 	$was_published = 'publish' === $post->post_status;

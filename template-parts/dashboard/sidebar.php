@@ -38,12 +38,12 @@ $is_author    = function_exists( 'reci_user_is_collaborator' ) && reci_user_is_c
 			</li>
 			<li>
 				<?php
-				// Level 2 submits for review through the canonical /submit/ route.
-				// Level 3 and above publish their own, so they add content in the
-				// dashboard instead — same verb, different destination.
-				$can_publish_own = current_user_can( 'publish_posts' );
-				$add_url         = $can_publish_own ? home_url( '/dashboard/my-content/new/' ) : home_url( '/submit/' );
-				$add_label       = $can_publish_own ? __( 'Add Content', 'reci-media-hub' ) : __( 'Submit Content', 'reci-media-hub' );
+				// Anyone who can write starts here. Level 2 hands the draft over
+				// for review from inside the editor; level 3 and above publish
+				// their own. /submit/ remains the route for cataloguing work that
+				// already exists elsewhere.
+				$add_url   = home_url( '/dashboard/my-content/new/' );
+				$add_label = __( 'Add Content', 'reci-media-hub' );
 				?>
 				<a href="<?php echo esc_url( $add_url ); ?>"
 				   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-zinc-700 hover:bg-zinc-100">

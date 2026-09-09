@@ -177,16 +177,29 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 	// Level 3 and above publish their own work; level 2's edits queue for review.
 	$can_publish = current_user_can( 'publish_posts' );
 	?>
+	<?php
+	// A level 2 draft is work in progress: saving keeps it private, and a
+	// separate action hands it to staff. Anything already published skips this,
+	// since saving it already sends it back for review.
+	$is_draft_in_progress = ! $can_publish && ! $is_published && 'draft' === $edit_post->post_status;
+	?>
 	<div class="flex flex-wrap items-center gap-4 border-t border-zinc-200 pt-6">
 		<button type="submit" class="btn btn-primary btn-md">
 			<?php
-			if ( $is_published || $can_publish ) {
+			if ( $is_draft_in_progress ) {
+				esc_html_e( 'Save draft', 'reci-media-hub' );
+			} elseif ( $is_published || $can_publish ) {
 				esc_html_e( 'Save changes', 'reci-media-hub' );
 			} else {
 				esc_html_e( 'Save and resubmit for review', 'reci-media-hub' );
 			}
 			?>
 		</button>
+		<?php if ( $is_draft_in_progress ) : ?>
+			<button type="submit" name="submission_submit" value="1" class="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-50">
+				<?php esc_html_e( 'Submit for review', 'reci-media-hub' ); ?>
+			</button>
+		<?php endif; ?>
 		<?php if ( $can_publish && ! $is_published ) : ?>
 			<button type="submit" name="submission_publish" value="1" class="rounded-lg border border-green-300 px-4 py-2 text-sm font-medium text-green-800 transition-colors hover:bg-green-50">
 				<?php esc_html_e( 'Publish now', 'reci-media-hub' ); ?>

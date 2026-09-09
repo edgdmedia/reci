@@ -48,19 +48,15 @@ get_header('dashboard');
 				[
 					'title'    => 'My Content',
 					'subtitle' => 'Everything you have written, and where each piece stands.',
-					// Level 2 submits for review at the canonical /submit/ route;
-					// level 3 and above start a draft they can publish themselves.
-					'action'   => current_user_can( 'publish_posts' )
-						? sprintf(
-							'<a href="%s" class="btn btn-primary btn-md">%s</a>',
-							esc_url( home_url( '/dashboard/my-content/new/' ) ),
-							esc_html__( 'Add new content', 'reci-media-hub' )
-						)
-						: sprintf(
-							'<a href="%s" class="btn btn-primary btn-md">%s</a>',
-							esc_url( home_url( '/submit/' ) ),
-							esc_html__( 'Submit new content', 'reci-media-hub' )
-						),
+					// Writing and cataloguing are different jobs, so both are
+					// offered rather than picking one by capability.
+					'action'   => sprintf(
+						'<a href="%s" class="btn btn-primary btn-md">%s</a> <a href="%s" class="btn btn-outline-primary btn-md">%s</a>',
+						esc_url( home_url( '/dashboard/my-content/new/' ) ),
+						esc_html__( 'Write new post', 'reci-media-hub' ),
+						esc_url( home_url( '/submit/' ) ),
+						esc_html__( 'Submit existing work', 'reci-media-hub' )
+					),
 				]
 			);
 			?>
