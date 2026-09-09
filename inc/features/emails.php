@@ -578,18 +578,48 @@ if ( ! function_exists( 'reci_brand_core_email' ) ) {
 			$blocks
 		);
 
-		// One-shot: wp_mail() sends immediately after this filter returns.
-		$attach = static function ( $phpmailer ) use ( $message, &$attach ) {
-			$phpmailer->AltBody = $message;
-			remove_action( 'phpmailer_init', $attach );
-		};
-		add_action( 'phpmailer_init', $attach );
+		reci_email_pending_alt_body( $message );
 
 		return $atts;
 	}
 }
 
 add_filter( 'wp_mail', 'reci_brand_core_email' );
+
+if ( ! function_exists( 'reci_email_pending_alt_body' ) ) {
+	/**
+	 * The text/plain alternative waiting to be attached to the next send.
+	 *
+	 * A self-removing phpmailer_init closure used to do this, but it only
+	 * removes itself if it actually fires. When something short-circuits
+	 * pre_wp_mail the closure survives and lands the wrong body on the next
+	 * message, so the value is held here and cleared on use instead.
+	 */
+	function reci_email_pending_alt_body( ?string $text = null ): string {
+		static $current = '';
+
+		if ( null !== $text ) {
+			$current = $text;
+		}
+
+		return $current;
+	}
+}
+
+if ( ! function_exists( 'reci_attach_pending_alt_body' ) ) {
+	function reci_attach_pending_alt_body( $phpmailer ): void {
+		$alt = reci_email_pending_alt_body();
+
+		if ( '' === $alt ) {
+			return;
+		}
+
+		$phpmailer->AltBody = $alt;
+		reci_email_pending_alt_body( '' );
+	}
+}
+
+add_action( 'phpmailer_init', 'reci_attach_pending_alt_body', 20 );
 
 if ( ! function_exists( 'reci_email_pending_heading' ) ) {
 	/**
@@ -662,6 +692,40 @@ if ( ! function_exists( 'reci_log_mail_failed' ) ) {
 
 add_action( 'wp_mail_succeeded', 'reci_log_mail_succeeded' );
 add_action( 'wp_mail_failed', 'reci_log_mail_failed' );
+
+if ( ! function_exists( 'reci_log_intercepted_mail' ) ) {
+	/**
+	 * Log mail that never reaches the transport.
+	 *
+	 * A plugin, host or dev environment can answer pre_wp_mail and take the
+	 * message itself. wp_mail() then returns that answer without firing
+	 * wp_mail_succeeded or wp_mail_failed, so the send would otherwise leave
+	 * no trace at all -- which reads, from the log, exactly like mail having
+	 * stopped. Runs last so it sees whatever the interceptor returned.
+	 *
+	 * @param null|bool           $short_circuit
+	 * @param array<string,mixed> $atts
+	 * @return null|bool
+	 */
+	function reci_log_intercepted_mail( $short_circuit, $atts ) {
+		if ( null === $short_circuit ) {
+			return $short_circuit;
+		}
+
+		// Nothing will consume it now; clear it so it cannot leak onto the next send.
+		reci_email_pending_alt_body( '' );
+
+		reci_log_mail_result(
+			(array) $atts,
+			(bool) $short_circuit,
+			__( 'Handed to another mailer before delivery (pre_wp_mail).', 'reci-media-hub' )
+		);
+
+		return $short_circuit;
+	}
+}
+
+add_filter( 'pre_wp_mail', 'reci_log_intercepted_mail', PHP_INT_MAX, 2 );
 
 if ( ! function_exists( 'reci_handle_test_email' ) ) {
 	/**

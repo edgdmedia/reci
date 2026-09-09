@@ -1489,6 +1489,15 @@ if (! function_exists('reci_media_hub_pending_submission_count')) {
 			[
 				'post_type'              => reci_media_hub_submission_supported_post_types(),
 				'post_status'            => 'pending',
+				// Only what a contributor actually sent. Without this the bubble
+				// counts anything staff left pending in wp-admin, and demo
+				// content, and sends them to a screen that no longer lists it.
+				'meta_query'             => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
+					[
+						'key'     => '_reci_submission_submitted_at',
+						'compare' => 'EXISTS',
+					],
+				],
 				'posts_per_page'         => 1,
 				'fields'                 => 'ids',
 				'no_found_rows'          => false,

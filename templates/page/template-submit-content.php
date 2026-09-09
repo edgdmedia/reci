@@ -61,7 +61,7 @@ get_header();
 					<p class="mt-3 text-base leading-7 text-zinc-600"><?php esc_html_e( 'We have saved everything you submitted. Content submission unlocks on this same page as soon as our team approves your application — you will get a notification when it does.', 'reci-media-hub' ); ?></p>
 					<div class="mt-6 flex flex-wrap gap-3">
 						<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" class="btn btn-primary btn-md"><?php esc_html_e( 'Go to Dashboard', 'reci-media-hub' ); ?></a>
-						<a href="<?php echo esc_url( home_url( '/dashboard/profile/' ) ); ?>" class="btn btn-outline-primary btn-md"><?php esc_html_e( 'Update Your Profile', 'reci-media-hub' ); ?></a>
+						<a href="<?php echo esc_url( reci_collaborator_application_edit_url() ); ?>" class="btn btn-outline-primary btn-md"><?php esc_html_e( 'Edit Your Application', 'reci-media-hub' ); ?></a>
 					</div>
 				</div>
 

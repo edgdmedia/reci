@@ -2,7 +2,7 @@
 /**
  * Front-end editing of a collaborator's own submissions.
  *
- * Collaborators are Subscribers carrying `_reci_collaborator_status = approved`;
+ * Collaborators are Contributors (level 2) and above, identified by role;
  * they hold no `edit_posts` capability and are redirected out of wp-admin. So
  * ownership is checked explicitly here rather than delegated to `current_user_can`,
  * and no capability is granted — wp-admin stays closed by construction.
@@ -108,9 +108,8 @@ function reci_handle_content_create(): void {
 
 	// Level 2 submits for review through /submit/; this route belongs to anyone
 	// who publishes their own work.
-	if ( ! current_user_can( 'publish_posts' ) ) {
-		wp_safe_redirect( home_url( '/submit/' ) );
-		exit;
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		wp_die( esc_html__( 'You are not allowed to create content.', 'reci-media-hub' ) );
 	}
 
 	$content_type = isset( $_POST['content_type'] ) ? sanitize_key( wp_unslash( $_POST['content_type'] ) ) : '';
@@ -189,6 +188,15 @@ function reci_handle_content_update(): void {
 		$update['post_status'] = 'publish';
 	}
 
+	// Level 2 writes a draft here and hands it over when ready. Without this the
+	// draft had no way out: publishing needs a capability they do not hold, and
+	// a plain save leaves the status alone, so the piece was written and then
+	// stranded.
+	$wants_review = ! empty( $_POST['submission_submit'] );
+	if ( $wants_review && ! $wants_publish && in_array( $post->post_status, [ 'draft', 'auto-draft' ], true ) ) {
+		$update['post_status'] = 'pending';
+	}
+
 	$was_published = 'publish' === $post->post_status;
 	if ( $was_published && ! $wants_publish && ! current_user_can( 'publish_posts' ) ) {
 		$update['post_status'] = 'pending';
@@ -199,6 +207,17 @@ function reci_handle_content_update(): void {
 		// afterwards it would always arrive too late.
 		update_post_meta( $post_id, '_reci_submission_was_published', '1' );
 		update_post_meta( $post_id, '_reci_submission_revised_at', current_time( 'mysql' ) );
+	}
+
+	// Stamped the first time this leaves draft, whichever way it goes. The
+	// Submissions screen keys off this to tell contributor work from the drafts
+	// staff tooling creates, so content written in the dashboard editor has to
+	// carry it just as anything sent through the wizard does. Set before the
+	// update, since transition_post_status runs inside it.
+	$resulting_status = $update['post_status'] ?? $post->post_status;
+	if ( 'draft' !== $resulting_status && '' === (string) get_post_meta( $post_id, '_reci_submission_submitted_at', true ) ) {
+		update_post_meta( $post_id, '_reci_submission_submitted_at', current_time( 'mysql' ) );
+		update_post_meta( $post_id, '_reci_submission_submitted_at_gmt', current_time( 'mysql', true ) );
 	}
 
 	$result = wp_update_post( $update, true );

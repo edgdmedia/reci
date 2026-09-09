@@ -85,6 +85,29 @@ class Reci_Submissions_List_Table extends WP_List_Table {
 		return $views;
 	}
 
+	/**
+	 * What makes a post a submission.
+	 *
+	 * The screen used to list every post of a submittable type, so demo content
+	 * and anything staff wrote in wp-admin appeared alongside real submissions
+	 * -- 45 of the 59 rows on this install.
+	 *
+	 * _reci_submission_submitted_at is stamped when a person actually sends
+	 * something in, and only then. The content type alone is not enough: the
+	 * highlighted-works promotion writes a type onto drafts it creates, which
+	 * are staff-curated, not submitted.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	private function submission_meta_query(): array {
+		return [
+			[
+				'key'     => '_reci_submission_submitted_at',
+				'compare' => 'EXISTS',
+			],
+		];
+	}
+
 	private function current_status(): string {
 		$status = isset( $_GET['post_status'] ) ? sanitize_key( wp_unslash( $_GET['post_status'] ) ) : 'pending';
 
@@ -96,6 +119,7 @@ class Reci_Submissions_List_Table extends WP_List_Table {
 			[
 				'post_type'              => $this->post_types(),
 				'post_status'            => 'any' === $status ? [ 'pending', 'draft', 'publish' ] : $status,
+				'meta_query'             => $this->submission_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				'posts_per_page'         => 1,
 				'fields'                 => 'ids',
 				'update_post_meta_cache' => false,
@@ -155,6 +179,7 @@ class Reci_Submissions_List_Table extends WP_List_Table {
 			[
 				'post_type'      => $type && in_array( $type, $this->post_types(), true ) ? $type : $this->post_types(),
 				'post_status'    => 'any' === $status ? [ 'pending', 'draft', 'publish' ] : $status,
+				'meta_query'     => $this->submission_meta_query(), // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query
 				's'              => $search,
 				'orderby'        => in_array( $orderby, [ 'title', 'date' ], true ) ? $orderby : 'date',
 				'order'          => $order,

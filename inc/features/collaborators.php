@@ -77,13 +77,11 @@ if ( ! function_exists( 'reci_user_is_collaborator' ) ) {
 
 		// The role is the answer now. A collaborator is a Contributor (level 2)
 		// or anything above it, all of which hold edit_posts; a Member does not.
-		// The old _reci_collaborator_status meta stays readable so an account
-		// that predates the migration is not locked out, but nothing writes it.
 		if ( user_can( $user_id, 'edit_posts' ) ) {
 			return true;
 		}
 
-		return 'approved' === (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
+		return 'approved' === reci_get_collaborator_status( $user_id );
 	}
 }
 
@@ -102,8 +100,27 @@ if ( ! function_exists( 'reci_get_collaborator_status' ) ) {
 			return 'approved';
 		}
 
-		$status = (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
-		return in_array( $status, [ 'approved', 'pending', 'rejected' ], true ) ? $status : 'member';
+		// The application carries the decision -- approving and rejecting are
+		// changes to it. The matching user meta is a copy written at the same
+		// moment, so reading the copy meant two sources of truth for one fact and
+		// whichever route updated only one of them would decide what the site
+		// believed. The record wins; the copy is now only a fallback.
+		$application = reci_get_user_collaborator_application( $user_id );
+
+		if ( $application instanceof WP_Post ) {
+			$by_status = [
+				'publish' => 'approved',
+				'private' => 'approved',
+				'pending' => 'pending',
+				'draft'   => 'rejected',
+			];
+
+			if ( isset( $by_status[ $application->post_status ] ) ) {
+				return $by_status[ $application->post_status ];
+			}
+		}
+
+		return 'member';
 	}
 }
 
@@ -118,10 +135,48 @@ if ( ! function_exists( 'reci_get_user_followed_collaborator_ids' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_collaborator_application_cache' ) ) {
+	/**
+	 * Per-request store for reci_get_user_collaborator_application().
+	 *
+	 * @param array<int,?WP_Post>|null $set Entries to merge, or [] to clear.
+	 * @return array<int,?WP_Post>
+	 */
+	function reci_collaborator_application_cache( ?array $set = null ): array {
+		static $cache = [];
+
+		if ( is_array( $set ) ) {
+			$cache = empty( $set ) ? [] : $cache + $set;
+		}
+
+		return $cache;
+	}
+}
+
+if ( ! function_exists( 'reci_flush_collaborator_application_cache' ) ) {
+	/**
+	 * Forget what we read. A status change is a decision, and the next read in
+	 * the same request has to see it rather than the row we looked at earlier.
+	 */
+	function reci_flush_collaborator_application_cache(): void {
+		reci_collaborator_application_cache( [] );
+	}
+}
+
 if ( ! function_exists( 'reci_get_user_collaborator_application' ) ) {
 	function reci_get_user_collaborator_application( int $user_id ): ?WP_Post {
 		if ( $user_id <= 0 ) {
 			return null;
+		}
+
+		// reci_get_collaborator_status() reads this on ordinary page loads now,
+		// and several times per request, so the query is answered once. Anything
+		// that changes an application clears it -- see
+		// reci_flush_collaborator_application_cache().
+		$cache = reci_collaborator_application_cache();
+
+		if ( array_key_exists( $user_id, $cache ) ) {
+			return $cache[ $user_id ];
 		}
 
 		$posts = get_posts(
@@ -136,7 +191,10 @@ if ( ! function_exists( 'reci_get_user_collaborator_application' ) ) {
 			]
 		);
 
-		return ! empty( $posts ) && $posts[0] instanceof WP_Post ? $posts[0] : null;
+		$found = ! empty( $posts ) && $posts[0] instanceof WP_Post ? $posts[0] : null;
+		reci_collaborator_application_cache( [ $user_id => $found ] );
+
+		return $found;
 	}
 }
 
@@ -193,6 +251,24 @@ if ( ! function_exists( 'reci_profile_fields_for_audience' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_collaborator_has_profile_image' ) ) {
+	/**
+	 * Whether this applicant already sent a headshot with an earlier submission.
+	 */
+	function reci_collaborator_has_profile_image( int $user_id = 0 ): bool {
+		$user_id = $user_id > 0 ? $user_id : get_current_user_id();
+
+		if ( $user_id <= 0 ) {
+			return false;
+		}
+
+		$existing = reci_get_user_collaborator_application( $user_id );
+
+		return $existing instanceof WP_Post
+			&& absint( get_post_meta( $existing->ID, '_reci_collaborator_profile_image_id', true ) ) > 0;
+	}
+}
+
 if ( ! function_exists( 'reci_collaborator_application_only_field_definitions' ) ) {
 	/**
 	 * Fields that belong to the collaborator application only.
@@ -200,8 +276,19 @@ if ( ! function_exists( 'reci_collaborator_application_only_field_definitions' )
 	 * These never appear in the dashboard profile editor.
 	 */
 	function reci_collaborator_application_only_field_definitions(): array {
+		// A browser cannot prefill a file input, so an applicant editing their
+		// application would be told to upload a headshot they already sent.
+		$has_photo = reci_collaborator_has_profile_image();
+
 		return [
-			'reci_profile_picture'      => [ 'label' => __( 'Profile Picture (Professional headshot)', 'reci-media-hub' ), 'type' => 'file', 'required' => true, 'width' => 'full', 'accept' => 'image/*' ],
+			'reci_profile_picture'      => [
+				'label'    => __( 'Profile Picture (Professional headshot)', 'reci-media-hub' ),
+				'type'     => 'file',
+				'required' => ! $has_photo,
+				'width'    => 'full',
+				'accept'   => 'image/*',
+				'hint'     => $has_photo ? __( 'A photo is already on file. Choose a new one only if you want to replace it.', 'reci-media-hub' ) : '',
+			],
 			'reci_cv_upload'            => [ 'label' => __( 'Attach CV', 'reci-media-hub' ), 'type' => 'file', 'required' => false, 'width' => 'full', 'accept' => '.pdf,.doc,.docx' ],
 			'reci_membership_objective' => [ 'label' => __( 'Main Objective for Membership', 'reci-media-hub' ), 'type' => 'textarea', 'required' => true, 'width' => 'full', 'rows' => 4 ],
 		];
@@ -242,6 +329,7 @@ if ( ! function_exists( 'reci_get_user_collaborator_profile_data' ) ) {
 			'submission_bio'            => (string) get_user_meta( $user_id, 'description', true ),
 			'submission_website'        => (string) $user->user_url,
 			'reci_social_handles'       => (string) get_user_meta( $user_id, 'reci_social_handles', true ),
+			'reci_membership_objective' => (string) get_user_meta( $user_id, 'reci_membership_objective', true ),
 			'reci_affiliation_term'     => (string) get_user_meta( $user_id, 'reci_affiliation_term', true ),
 			'reci_expertise_terms'      => (array) ( get_user_meta( $user_id, 'reci_expertise_terms', true ) ?: [] ),
 		];
@@ -290,6 +378,7 @@ if ( ! function_exists( 'reci_save_user_collaborator_profile_data' ) ) {
 			'submission_role'           => 'user_title',
 			'submission_bio'            => 'description',
 			'reci_social_handles'       => 'reci_social_handles',
+			'reci_membership_objective' => 'reci_membership_objective',
 		];
 
 		foreach ( $meta_map as $field => $meta_key ) {
@@ -469,6 +558,8 @@ if ( ! function_exists( 'reci_get_collaborator_application_notices' ) ) {
 				'already_approved'     => __( 'Your collaborator access is already active.', 'reci-media-hub' ),
 				'pending'              => __( 'Your collaborator application is under review.', 'reci-media-hub' ),
 				'pending_with_account' => __( 'Your member account has been created and your collaborator application is under review. Please verify your email address if prompted.', 'reci-media-hub' ),
+				'updated'              => __( 'Your application has been updated. It is still under review.', 'reci-media-hub' ),
+				'resubmitted'          => __( 'Thank you — your updated application has been sent back for review.', 'reci-media-hub' ),
 			],
 			'error'   => [
 				'invalid_nonce'          => __( 'Security check failed. Please try again.', 'reci-media-hub' ),
@@ -482,6 +573,38 @@ if ( ! function_exists( 'reci_get_collaborator_application_notices' ) ) {
 				'save_failed'            => __( 'We could not save your application. Please try again.', 'reci-media-hub' ),
 			],
 		];
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_edit_url' ) ) {
+	/**
+	 * Where an applicant goes to change what they submitted.
+	 *
+	 * The collaborator fields live on the application, not on the dashboard
+	 * profile screen -- that one only shows the fields for the role you already
+	 * hold, so a pending applicant found none of their answers there.
+	 */
+	function reci_collaborator_application_edit_url(): string {
+		return add_query_arg( 'edit', 'application', reci_get_collaborator_page_url() );
+	}
+}
+
+if ( ! function_exists( 'reci_is_editing_collaborator_application' ) ) {
+	/**
+	 * True when a logged-in applicant has asked to reopen their own application.
+	 */
+	function reci_is_editing_collaborator_application(): bool {
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+
+		if ( 'application' !== sanitize_key( wp_unslash( $_GET['edit'] ?? '' ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return false;
+		}
+
+		$existing = reci_get_user_collaborator_application( get_current_user_id() );
+
+		return $existing instanceof WP_Post && in_array( $existing->post_status, [ 'pending', 'draft' ], true );
 	}
 }
 
@@ -603,10 +726,22 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			exit;
 		}
 
-		$existing = reci_get_user_collaborator_application( $user_id );
-		if ( $existing instanceof WP_Post && 'pending' === $existing->post_status ) {
-			wp_safe_redirect( add_query_arg( 'application_success', 'pending', $target_url ) );
-			exit;
+		// An application already on file is edited in place. This used to bail out
+		// whenever one was pending, silently throwing the submission away, and to
+		// fall through to wp_insert_post() when one had been rejected, leaving the
+		// applicant with two records.
+		$existing       = reci_get_user_collaborator_application( $user_id );
+		$application_id = 0;
+		$was_rejected   = false;
+
+		if ( $existing instanceof WP_Post ) {
+			if ( in_array( $existing->post_status, [ 'publish', 'private' ], true ) ) {
+				wp_safe_redirect( add_query_arg( 'application_success', 'already_approved', $target_url ) );
+				exit;
+			}
+
+			$application_id = (int) $existing->ID;
+			$was_rejected   = 'draft' === $existing->post_status;
 		}
 
 		$first_name   = sanitize_text_field( wp_unslash( $_POST['reci_firstname'] ?? '' ) );
@@ -636,21 +771,30 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 			exit;
 		}
 
-		$post_id = wp_insert_post(
-			[
-				'post_type'    => reci_get_collaborator_application_post_type(),
-				'post_status'  => 'pending',
-				'post_title'   => $full_name,
-				'post_content' => $bio,
-				'post_author'  => $user_id,
-			],
-			true
-		);
+		$record = [
+			'post_type'    => reci_get_collaborator_application_post_type(),
+			'post_status'  => 'pending',
+			'post_title'   => $full_name,
+			'post_content' => $bio,
+			'post_author'  => $user_id,
+		];
+
+		if ( $application_id > 0 ) {
+			// Back to pending is the point of resubmitting after a rejection, and
+			// a no-op for one already pending. Neither reads as a verdict --
+			// see reci_collaborator_decision_for_transition().
+			$record['ID'] = $application_id;
+			$post_id      = wp_update_post( $record, true );
+		} else {
+			$post_id = wp_insert_post( $record, true );
+		}
 
 		if ( is_wp_error( $post_id ) || $post_id <= 0 ) {
 			wp_safe_redirect( add_query_arg( 'application_error', 'save_failed', $target_url ) );
 			exit;
 		}
+
+		reci_flush_collaborator_application_cache();
 
 		update_post_meta( $post_id, '_reci_collaborator_user_id', $user_id );
 		update_post_meta( $post_id, '_reci_submission_first_name', $first_name );
@@ -696,7 +840,6 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 		if ( $cv_attachment_id > 0 ) {
 			update_post_meta( $post_id, '_reci_collaborator_cv_attachment_id', $cv_attachment_id );
 		}
-		update_user_meta( $user_id, '_reci_collaborator_status', 'pending' );
 
 		// Mirror the shared profile fields onto the user so /submit/ and the
 		// dashboard profile editor can pre-fill from a single source of truth.
@@ -715,14 +858,23 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 				'reci_social_handles'       => $social_handles,
 				'reci_affiliation_term'     => $affiliation_term,
 				'reci_expertise_terms'      => $expertise_terms,
+				'reci_membership_objective' => $membership_objective,
 			]
 		);
 
-		if ( function_exists( 'reci_send_staff_submission_notification' ) ) {
-			reci_send_staff_submission_notification( (int) $post_id );
+		// A new application, or one coming back after a rejection, is news. Tidying
+		// a pending one is not, and staff should not get an email per keystroke.
+		if ( 0 === $application_id || $was_rejected ) {
+			reci_send_staff_application_notification( (int) $post_id );
 		}
 
-		$success_key = is_user_logged_in() ? 'pending' : 'pending_with_account';
+		if ( $was_rejected ) {
+			$success_key = 'resubmitted';
+		} elseif ( $application_id > 0 ) {
+			$success_key = 'updated';
+		} else {
+			$success_key = is_user_logged_in() ? 'pending' : 'pending_with_account';
+		}
 		wp_safe_redirect( add_query_arg( 'application_success', $success_key, $target_url ) );
 		exit;
 	}
@@ -784,100 +936,256 @@ if ( ! function_exists( 'reci_set_collaborator_profile_status' ) ) {
 	}
 }
 
+if ( ! function_exists( 'reci_send_staff_application_notification' ) ) {
+	/**
+	 * Tell staff a collaborator application is waiting.
+	 *
+	 * This used to call reci_send_staff_submission_notification(), which is
+	 * written for content: it announced "New content submission: <name>" and
+	 * offered to review a piece of work that does not exist. An application is
+	 * a different thing being asked of a different judgement, so it says so.
+	 */
+	function reci_send_staff_application_notification( int $post_id ): void {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post ) {
+			return;
+		}
+
+		$name  = trim(
+			(string) get_post_meta( $post_id, '_reci_submission_first_name', true ) . ' ' .
+			(string) get_post_meta( $post_id, '_reci_submission_last_name', true )
+		) ?: get_the_title( $post );
+		$email = (string) get_post_meta( $post_id, '_reci_submission_email', true );
+		$org   = (string) get_post_meta( $post_id, '_reci_submission_organization', true );
+		$edit  = get_edit_post_link( $post_id, '' ) ?: admin_url( 'post.php?post=' . $post_id . '&action=edit' );
+
+		$rows = [ __( 'Applicant', 'reci-media-hub' ) => $name ];
+
+		if ( '' !== $email ) {
+			$rows[ __( 'Email', 'reci-media-hub' ) ] = $email;
+		}
+
+		if ( '' !== $org ) {
+			$rows[ __( 'Organization', 'reci-media-hub' ) ] = $org;
+		}
+
+		$rows[ __( 'Affiliation', 'reci-media-hub' ) ] = (string) get_post_meta( $post_id, '_reci_collaborator_affiliation_term', true ) ?: __( 'Not given', 'reci-media-hub' );
+
+		$blocks = [
+			[ 'type' => 'text', 'text' => __( 'Someone has asked to become a RECI Collaborator. Approving publishes their profile and opens content submission to them.', 'reci-media-hub' ) ],
+			[ 'type' => 'details', 'rows' => $rows ],
+			[ 'type' => 'button', 'label' => __( 'Review this application', 'reci-media-hub' ), 'url' => $edit ],
+		];
+
+		$subject = sprintf( __( 'New collaborator application: %s', 'reci-media-hub' ), $name );
+
+		foreach ( reci_get_staff_notification_recipients() as $user ) {
+			if ( ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					$subject,
+					__( 'New collaborator application', 'reci-media-hub' ),
+					$blocks,
+					$name
+				);
+			}
+
+			if ( ! empty( $user->ID ) && function_exists( 'reci_create_notification' ) ) {
+				reci_create_notification(
+					(int) $user->ID,
+					'staff_collaborator_application',
+					__( 'New collaborator application', 'reci-media-hub' ),
+					sprintf( __( '%s has applied to become a collaborator.', 'reci-media-hub' ), $name ),
+					$edit,
+					$post_id
+				);
+			}
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_wants_application_status_email' ) ) {
+	/**
+	 * Whether to email this applicant about an approve/reject decision.
+	 *
+	 * This was gated on the preference being exactly '1', which only the
+	 * dashboard settings screen ever writes -- and an applicant has no reason
+	 * to visit it before applying. So the meta was empty for everyone and
+	 * neither decision email had ever been sent.
+	 *
+	 * The outcome of someone's own application is transactional, not marketing:
+	 * it sends unless they have explicitly turned it off.
+	 */
+	function reci_wants_application_status_email( int $user_id ): bool {
+		return '0' !== (string) get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true );
+	}
+}
+
 if ( ! function_exists( 'reci_sync_collaborator_application_status' ) ) {
 	function reci_sync_collaborator_application_status( string $new_status, string $old_status, WP_Post $post ): void {
 		if ( reci_get_collaborator_application_post_type() !== $post->post_type || $new_status === $old_status ) {
 			return;
 		}
 
+		reci_flush_collaborator_application_cache();
+
 		$user_id = absint( get_post_meta( $post->ID, '_reci_collaborator_user_id', true ) );
 		if ( $user_id <= 0 ) {
 			return;
 		}
 
-		if ( 'publish' === $new_status ) {
-			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
-			update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
+		$decision = reci_collaborator_decision_for_transition( $new_status, $old_status );
 
-			// Approval is a promotion: Member -> Collaborator. Anyone already
-			// higher up the ladder keeps their level, so approving an Editor's
-			// application never demotes them.
-			$approved_user = get_user_by( 'id', $user_id );
-			if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
-				$approved_user->set_role( 'contributor' );
-			}
-			if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
-				reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
-			}
-			if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
-				reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
-			}
-
-			// Re-approving after a rejection has to put the profile back, or the
-			// account would be a collaborator with no public page.
-			reci_set_collaborator_profile_status( $user_id, 'publish' );
-			if ( function_exists( 'reci_create_notification' ) ) {
-				reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
-			}
-			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
-				$user = get_user_by( 'id', $user_id );
-				if ( $user && ! empty( $user->user_email ) ) {
-					reci_send_email(
-						(string) $user->user_email,
-						__( 'Your collaborator application was approved', 'reci-media-hub' ),
-						__( 'You are now a RECI Collaborator', 'reci-media-hub' ),
-						[
-							[ 'type' => 'text', 'text' => sprintf( __( 'Congratulations %s — your collaborator application has been approved.', 'reci-media-hub' ), $user->display_name ) ],
-							[ 'type' => 'text', 'text' => __( 'Your public collaborator profile is live, and content submission is now open to you.', 'reci-media-hub' ) ],
-							[ 'type' => 'button', 'label' => __( 'Submit your first contribution', 'reci-media-hub' ), 'url' => home_url( '/submit/' ) ],
-							[ 'type' => 'note', 'text' => __( 'Keep your profile current from your dashboard — it is what readers see beside your work.', 'reci-media-hub' ) ],
-						],
-						__( 'Your collaborator application has been approved.', 'reci-media-hub' )
-					);
-				}
-			}
+		if ( 'approved' === $decision ) {
+			reci_approve_collaborator_application( $post, $user_id );
 			return;
 		}
 
-		if ( 'trash' !== $new_status ) {
-			update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
-			update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
+		if ( 'rejected' === $decision ) {
+			reci_reject_collaborator_application( $post, $user_id );
+		}
+	}
+}
 
-			// Approval promotes, so rejection revokes. Only an account sitting at
-			// Collaborator is demoted: anyone deliberately raised above that was
-			// promoted by a human decision this one should not undo.
-			$rejected_user = get_user_by( 'id', $user_id );
-			if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
-				$rejected_user->set_role( 'subscriber' );
-			}
+if ( ! function_exists( 'reci_collaborator_decision_for_transition' ) ) {
+	/**
+	 * Read a verdict out of a status change -- or decline to.
+	 *
+	 * WordPress statuses are the trigger here, not the vocabulary. Keeping the
+	 * translation in one small function is the point: every status that is not
+	 * listed means "no decision was made", so a bulk edit, a Quick Edit or some
+	 * future status cannot be mistaken for an approval or a refusal. Reading a
+	 * verdict out of "not publish, not trash" is exactly how 'pending' came to
+	 * mean rejection.
+	 *
+	 * @return string 'approved', 'rejected', or '' for no decision.
+	 */
+	function reci_collaborator_decision_for_transition( string $new_status, string $old_status ): string {
+		if ( 'publish' === $new_status ) {
+			return 'approved';
+		}
 
-			// Take the public profile down with the access. Draft, not deleted, so
-			// re-approving restores it rather than rebuilding it.
-			reci_set_collaborator_profile_status( $user_id, 'draft' );
-			if ( function_exists( 'reci_create_notification' ) ) {
-				reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
+		// Only from a state a live application can actually be in, so creating
+		// one as a draft is not a refusal.
+		if ( 'draft' === $new_status && in_array( $old_status, [ 'publish', 'pending' ], true ) ) {
+			return 'rejected';
+		}
+
+		return '';
+	}
+}
+
+if ( ! function_exists( 'reci_approve_collaborator_application' ) ) {
+	/**
+	 * Everything approval means: promote, sync the profile, publish it, tell them.
+	 */
+	function reci_approve_collaborator_application( WP_Post $post, int $user_id ): void {
+		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
+
+		// Approval is a promotion: Member -> Collaborator. Anyone already
+		// higher up the ladder keeps their level, so approving an Editor's
+		// application never demotes them.
+		$approved_user = get_user_by( 'id', $user_id );
+		if ( $approved_user instanceof WP_User && ! user_can( $user_id, 'edit_posts' ) ) {
+			$approved_user->set_role( 'contributor' );
+		}
+		if ( function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
+			reci_sync_collaborator_profile_from_application( (int) $post->ID, $user_id );
+		}
+		if ( function_exists( 'reci_media_hub_create_author_profile_from_submission' ) ) {
+			reci_media_hub_create_author_profile_from_submission( (int) $post->ID );
+		}
+
+		// Re-approving after a rejection has to put the profile back, or the
+		// account would be a collaborator with no public page.
+		reci_set_collaborator_profile_status( $user_id, 'publish' );
+		if ( function_exists( 'reci_create_notification' ) ) {
+			reci_create_notification( $user_id, 'collaborator_application_approved', __( 'Collaborator application approved', 'reci-media-hub' ), __( 'Your collaborator application has been approved. You can now submit content.', 'reci-media-hub' ), home_url( '/submit/' ), (int) $post->ID );
+		}
+		if ( reci_wants_application_status_email( $user_id ) ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( $user && ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					__( 'Your collaborator application was approved', 'reci-media-hub' ),
+					__( 'You are now a RECI Collaborator', 'reci-media-hub' ),
+					[
+						[ 'type' => 'text', 'text' => sprintf( __( 'Congratulations %s — your collaborator application has been approved.', 'reci-media-hub' ), $user->display_name ) ],
+						[ 'type' => 'text', 'text' => __( 'Your public collaborator profile is live, and content submission is now open to you.', 'reci-media-hub' ) ],
+						[ 'type' => 'button', 'label' => __( 'Submit your first contribution', 'reci-media-hub' ), 'url' => home_url( '/submit/' ) ],
+						[ 'type' => 'note', 'text' => __( 'Keep your profile current from your dashboard — it is what readers see beside your work.', 'reci-media-hub' ) ],
+					],
+					__( 'Your collaborator application has been approved.', 'reci-media-hub' )
+				);
 			}
-			if ( '1' === get_user_meta( $user_id, 'reci_notify_collaborator_application_status', true ) ) {
-				$user = get_user_by( 'id', $user_id );
-				if ( $user && ! empty( $user->user_email ) ) {
-					reci_send_email(
-						(string) $user->user_email,
-						__( 'Your collaborator application was updated', 'reci-media-hub' ),
-						__( 'An update on your application', 'reci-media-hub' ),
-						[
-							[ 'type' => 'text', 'text' => sprintf( __( 'Hello %s, thank you for applying to contribute to RECI.', 'reci-media-hub' ), $user->display_name ) ],
-							[ 'type' => 'text', 'text' => __( 'Your application was not approved at this time. This is not a closed door — you are welcome to update your details and apply again.', 'reci-media-hub' ) ],
-							[ 'type' => 'button', 'label' => __( 'Update your details', 'reci-media-hub' ), 'url' => home_url( '/dashboard/profile/' ) ],
-						],
-						__( 'An update on your RECI collaborator application.', 'reci-media-hub' )
-					);
-				}
+		}
+	}
+}
+
+if ( ! function_exists( 'reci_reject_collaborator_application' ) ) {
+	/**
+	 * Everything rejection means: revoke, unpublish the profile, tell them.
+	 */
+	function reci_reject_collaborator_application( WP_Post $post, int $user_id ): void {
+		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
+
+		// Approval promotes, so rejection revokes. Only an account sitting at
+		// Collaborator is demoted: anyone deliberately raised above that was
+		// promoted by a human decision this one should not undo.
+		$rejected_user = get_user_by( 'id', $user_id );
+		if ( $rejected_user instanceof WP_User && [ 'contributor' ] === array_values( $rejected_user->roles ) ) {
+			$rejected_user->set_role( 'subscriber' );
+		}
+
+		// Take the public profile down with the access. Draft, not deleted, so
+		// re-approving restores it rather than rebuilding it.
+		reci_set_collaborator_profile_status( $user_id, 'draft' );
+		if ( function_exists( 'reci_create_notification' ) ) {
+			reci_create_notification( $user_id, 'collaborator_application_rejected', __( 'Collaborator application updated', 'reci-media-hub' ), __( 'Your collaborator application was not approved at this time.', 'reci-media-hub' ), reci_get_collaborator_page_url(), (int) $post->ID );
+		}
+		if ( reci_wants_application_status_email( $user_id ) ) {
+			$user = get_user_by( 'id', $user_id );
+			if ( $user && ! empty( $user->user_email ) ) {
+				reci_send_email(
+					(string) $user->user_email,
+					__( 'Your collaborator application was updated', 'reci-media-hub' ),
+					__( 'An update on your application', 'reci-media-hub' ),
+					[
+						[ 'type' => 'text', 'text' => sprintf( __( 'Hello %s, thank you for applying to contribute to RECI.', 'reci-media-hub' ), $user->display_name ) ],
+						[ 'type' => 'text', 'text' => __( 'Your application was not approved at this time. This is not a closed door — you are welcome to update your details and apply again.', 'reci-media-hub' ) ],
+						[ 'type' => 'button', 'label' => __( 'Update your details', 'reci-media-hub' ), 'url' => home_url( '/dashboard/profile/' ) ],
+					],
+					__( 'An update on your RECI collaborator application.', 'reci-media-hub' )
+				);
 			}
 		}
 	}
 }
 
 add_action( 'transition_post_status', 'reci_sync_collaborator_application_status', 10, 3 );
+
+if ( ! function_exists( 'reci_forget_deleted_collaborator_application' ) ) {
+	/**
+	 * Forget a deleted application immediately.
+	 *
+	 * Status is read from the application on ordinary page loads and cached per
+	 * request, so a deletion has to clear that cache or the rest of the request
+	 * keeps answering from the row that has just gone.
+	 */
+	function reci_forget_deleted_collaborator_application( int $post_id ): void {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post || reci_get_collaborator_application_post_type() !== $post->post_type ) {
+			return;
+		}
+
+		reci_flush_collaborator_application_cache();
+	}
+}
+
+add_action( 'before_delete_post', 'reci_forget_deleted_collaborator_application' );
+add_action( 'trashed_post', 'reci_forget_deleted_collaborator_application' );
 
 if ( ! function_exists( 'reci_sync_collaborator_profile_from_application' ) ) {
 	/**
@@ -1133,41 +1441,115 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 		$organization = (string) get_post_meta( $post->ID, '_reci_submission_organization', true );
 		$role         = (string) get_post_meta( $post->ID, '_reci_submission_role', true );
 		$website      = (string) get_post_meta( $post->ID, '_reci_submission_website', true );
+		$bio          = (string) get_post_meta( $post->ID, '_reci_submission_bio', true );
 		$affiliated_with_pitt = (string) get_post_meta( $post->ID, '_reci_collaborator_affiliated_with_pitt', true );
 		$pitt_affiliation     = (string) get_post_meta( $post->ID, '_reci_collaborator_pitt_affiliation', true );
 		$department           = (string) get_post_meta( $post->ID, '_reci_collaborator_department', true );
 		$social_handles       = (string) get_post_meta( $post->ID, '_reci_collaborator_social_handles', true );
 		$membership_objective = (string) get_post_meta( $post->ID, '_reci_collaborator_membership_objective', true );
+		$affiliation_term     = (string) get_post_meta( $post->ID, '_reci_collaborator_affiliation_term', true );
+		$expertise_terms      = reci_collaborator_application_expertise( (int) $post->ID );
 		$profile_image_id     = absint( get_post_meta( $post->ID, '_reci_collaborator_profile_image_id', true ) );
 		$cv_attachment_id     = absint( get_post_meta( $post->ID, '_reci_collaborator_cv_attachment_id', true ) );
 
-		echo '<div class="reci-meta-grid">';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Application Status', 'reci-media-hub' ) . '</strong><span>' . esc_html( ucfirst( $status ?: 'pending' ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Linked Member Account', 'reci-media-hub' ) . '</strong><span>' . esc_html( $user instanceof WP_User ? $user->display_name . ' (#' . $user->ID . ')' : __( 'Not linked', 'reci-media-hub' ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Full Name', 'reci-media-hub' ) . '</strong><span>' . esc_html( trim( $first_name . ' ' . $last_name ) ?: get_the_title( $post ) ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Email', 'reci-media-hub' ) . '</strong><span>' . esc_html( $email ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Organization', 'reci-media-hub' ) . '</strong><span>' . esc_html( $organization ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Affiliated with Pitt', 'reci-media-hub' ) . '</strong><span>' . esc_html( $affiliated_with_pitt ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Pitt Affiliation', 'reci-media-hub' ) . '</strong><span>' . esc_html( $pitt_affiliation ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Department', 'reci-media-hub' ) . '</strong><span>' . esc_html( $department ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Role / Title', 'reci-media-hub' ) . '</strong><span>' . esc_html( $role ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Website', 'reci-media-hub' ) . '</strong><span>';
-		if ( '' !== $website ) {
-			echo '<a href="' . esc_url( $website ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $website ) . '</a>';
-		} else {
-			echo '—';
-		}
-		echo '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Social Handles', 'reci-media-hub' ) . '</strong><span>' . esc_html( $social_handles ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Main Objective for Membership', 'reci-media-hub' ) . '</strong><span>' . esc_html( $membership_objective ?: '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'Profile Picture', 'reci-media-hub' ) . '</strong><span>' . esc_html( $profile_image_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
-		echo '<div class="reci-meta-row"><strong>' . esc_html__( 'CV Upload', 'reci-media-hub' ) . '</strong><span>' . esc_html( $cv_attachment_id > 0 ? __( 'Uploaded', 'reci-media-hub' ) : '—' ) . '</span></div>';
+		$full_name = trim( $first_name . ' ' . $last_name ) ?: get_the_title( $post );
+		?>
+		<style>
+			.reci-app-review { margin-top: 4px; }
+			.reci-app-review__head { display: flex; gap: 18px; align-items: flex-start; padding-bottom: 18px; border-bottom: 1px solid #dcdcde; }
+			.reci-app-review__photo img { display: block; width: 96px; height: 96px; object-fit: cover; border-radius: 6px; border: 1px solid #dcdcde; }
+			.reci-app-review__photo--empty { width: 96px; height: 96px; border-radius: 6px; border: 1px dashed #c3c4c7; display: flex; align-items: center; justify-content: center; color: #8c8f94; font-size: 11px; text-align: center; line-height: 1.3; padding: 6px; box-sizing: border-box; }
+			.reci-app-review__name { margin: 0 0 6px; font-size: 18px; line-height: 1.3; }
+			.reci-app-review__pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+			.reci-app-review__pill--pending { background: #fcf3d8; color: #7a5b00; }
+			.reci-app-review__pill--approved { background: #e3f2e1; color: #1c5c2e; }
+			.reci-app-review__pill--rejected { background: #fbeaea; color: #8a2424; }
+			/* Label column, value column. Long prose wraps in the value column
+			   rather than breaking the alignment of everything above it. */
+			.reci-app-review__rows { display: grid; grid-template-columns: 220px minmax(0, 1fr); }
+			.reci-app-review__rows > dt,
+			.reci-app-review__rows > dd { padding: 11px 0; border-bottom: 1px solid #f0f0f1; margin: 0; }
+			.reci-app-review__rows > dt { font-weight: 600; color: #50575e; padding-right: 20px; }
+			.reci-app-review__rows > dd { color: #1d2327; word-wrap: break-word; overflow-wrap: anywhere; }
+			.reci-app-review__rows > dd p { margin: 0 0 8px; }
+			.reci-app-review__rows > dd p:last-child { margin-bottom: 0; }
+			.reci-app-review__empty { color: #8c8f94; }
+			.reci-app-review__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+			.reci-app-review__chip { background: #f0f0f1; border-radius: 3px; padding: 3px 9px; font-size: 12px; }
+			.reci-app-review__actions { padding-top: 18px; }
+			@media screen and (max-width: 782px) {
+				.reci-app-review__rows { grid-template-columns: minmax(0, 1fr); }
+				.reci-app-review__rows > dt { padding-bottom: 0; border-bottom: 0; }
+				.reci-app-review__rows > dd { padding-top: 4px; }
+			}
+		</style>
+
+		<div class="reci-app-review">
+			<div class="reci-app-review__head">
+				<div class="reci-app-review__photo">
+					<?php
+					if ( $profile_image_id > 0 && wp_get_attachment_image( $profile_image_id, [ 96, 96 ] ) ) {
+						$full = wp_get_attachment_image_url( $profile_image_id, 'full' );
+						printf(
+							'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+							esc_url( (string) $full ),
+							wp_get_attachment_image( $profile_image_id, [ 96, 96 ] )
+						);
+					} else {
+						echo '<div class="reci-app-review__photo--empty">' . esc_html__( 'No photo', 'reci-media-hub' ) . '</div>';
+					}
+					?>
+				</div>
+				<div>
+					<h2 class="reci-app-review__name"><?php echo esc_html( $full_name ); ?></h2>
+					<?php
+					$state = 'publish' === $post->post_status ? 'approved' : ( 'draft' === $post->post_status ? 'rejected' : 'pending' );
+					printf(
+						'<span class="reci-app-review__pill reci-app-review__pill--%s">%s</span>',
+						esc_attr( $state ),
+						esc_html( ucfirst( $status ?: $state ) )
+					);
+					?>
+					<p style="margin:8px 0 0;color:#50575e;">
+						<?php
+						echo $user instanceof WP_User
+							? esc_html( sprintf( __( 'Linked account: %1$s (#%2$d)', 'reci-media-hub' ), $user->display_name, $user->ID ) )
+							: esc_html__( 'No linked member account', 'reci-media-hub' );
+						?>
+					</p>
+				</div>
+			</div>
+
+			<dl class="reci-app-review__rows">
+				<?php
+				reci_app_review_row( __( 'Email', 'reci-media-hub' ), $email ? sprintf( '<a href="mailto:%1$s">%1$s</a>', esc_attr( $email ) ) : '', true );
+				reci_app_review_row( __( 'Personal Bio', 'reci-media-hub' ), $bio ? wpautop( esc_html( $bio ) ) : '', true );
+				reci_app_review_row( __( 'Subject Areas', 'reci-media-hub' ), reci_app_review_chips( $expertise_terms ), true );
+				reci_app_review_row( __( 'Affiliation', 'reci-media-hub' ), $affiliation_term );
+				reci_app_review_row( __( 'Affiliated with Pitt', 'reci-media-hub' ), $affiliated_with_pitt );
+				reci_app_review_row( __( 'Pitt Affiliation', 'reci-media-hub' ), $pitt_affiliation );
+				reci_app_review_row( __( 'Organization', 'reci-media-hub' ), $organization );
+				reci_app_review_row( __( 'Department', 'reci-media-hub' ), $department );
+				reci_app_review_row( __( 'Role / Title', 'reci-media-hub' ), $role );
+				reci_app_review_row(
+					__( 'Website', 'reci-media-hub' ),
+					$website ? sprintf( '<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>', esc_url( $website ), esc_html( $website ) ) : '',
+					true
+				);
+				reci_app_review_row( __( 'Social Handles', 'reci-media-hub' ), $social_handles );
+				reci_app_review_row( __( 'Main Objective for Membership', 'reci-media-hub' ), $membership_objective ? wpautop( esc_html( $membership_objective ) ) : '', true );
+				reci_app_review_row( __( 'CV Upload', 'reci-media-hub' ), reci_app_review_attachment_link( $cv_attachment_id ), true );
+				?>
+			</dl>
+
+			<div class="reci-app-review__actions">
+		<?php
 		// Keeps the original Review Actions presentation — a description above a
 		// row of primary and secondary buttons. What changed is the wiring: the
 		// old pair posted to action=reci_collaborator_decision, for which no
 		// handler was ever registered, so neither button did anything. These use
 		// the approve and reject endpoints, and each only appears when it applies.
-		echo '<div class="reci-meta-row reci-meta-row--full"><strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
+		echo '<strong>' . esc_html__( 'Review Actions', 'reci-media-hub' ) . '</strong>';
 
 		if ( current_user_can( 'reci_approve_collaborators' ) ) {
 			if ( 'publish' === $post->post_status ) {
@@ -1199,10 +1581,101 @@ if ( ! function_exists( 'reci_render_collaborator_application_metabox' ) ) {
 
 			echo '</div>';
 		}
+		?>
+			</div>
+		</div>
+		<?php
+	}
+}
 
-		echo '</div>';
+if ( ! function_exists( 'reci_app_review_row' ) ) {
+	/**
+	 * One label/value pair in the review list.
+	 *
+	 * @param string $value  Already-escaped markup when $is_html, plain text otherwise.
+	 */
+	function reci_app_review_row( string $label, string $value, bool $is_html = false ): void {
+		$value = trim( $value );
 
-		echo '</div>';
+		printf( '<dt>%s</dt>', esc_html( $label ) );
+
+		if ( '' === $value ) {
+			printf( '<dd><span class="reci-app-review__empty">%s</span></dd>', esc_html__( 'Not provided', 'reci-media-hub' ) );
+			return;
+		}
+
+		printf( '<dd>%s</dd>', $is_html ? wp_kses_post( $value ) : esc_html( $value ) );
+	}
+}
+
+if ( ! function_exists( 'reci_collaborator_application_expertise' ) ) {
+	/**
+	 * Subject areas as submitted.
+	 *
+	 * The application stores them as a JSON list on the post rather than as
+	 * taxonomy terms — terms are only created once the application is approved.
+	 *
+	 * @return array<int,string>
+	 */
+	function reci_collaborator_application_expertise( int $post_id ): array {
+		$raw = get_post_meta( $post_id, '_reci_collaborator_expertise_terms', true );
+
+		if ( is_array( $raw ) ) {
+			return array_values( array_filter( array_map( 'strval', $raw ) ) );
+		}
+
+		$raw = trim( (string) $raw );
+
+		if ( '' === $raw ) {
+			return [];
+		}
+
+		$decoded = json_decode( $raw, true );
+
+		if ( is_array( $decoded ) ) {
+			return array_values( array_filter( array_map( 'strval', $decoded ) ) );
+		}
+
+		// Older records stored a comma-separated string.
+		return array_values( array_filter( array_map( 'trim', explode( ',', $raw ) ) ) );
+	}
+}
+
+if ( ! function_exists( 'reci_app_review_chips' ) ) {
+	/**
+	 * @param array<int,string> $items
+	 */
+	function reci_app_review_chips( array $items ): string {
+		if ( empty( $items ) ) {
+			return '';
+		}
+
+		$chips = '';
+		foreach ( $items as $item ) {
+			$chips .= '<span class="reci-app-review__chip">' . esc_html( $item ) . '</span>';
+		}
+
+		return '<div class="reci-app-review__chips">' . $chips . '</div>';
+	}
+}
+
+if ( ! function_exists( 'reci_app_review_attachment_link' ) ) {
+	function reci_app_review_attachment_link( int $attachment_id ): string {
+		if ( $attachment_id <= 0 ) {
+			return '';
+		}
+
+		$url = wp_get_attachment_url( $attachment_id );
+
+		if ( ! $url ) {
+			return '';
+		}
+
+		return sprintf(
+			'<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>',
+			esc_url( $url ),
+			esc_html( basename( (string) wp_parse_url( $url, PHP_URL_PATH ) ) )
+		);
 	}
 }
 

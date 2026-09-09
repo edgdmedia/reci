@@ -117,7 +117,7 @@ $sign_in_url = function_exists( 'reci_get_auth_page_url' )
 
 		<fieldset class="space-y-5">
 			<legend class="text-xs font-semibold uppercase tracking-[0.14em] text-zinc-500"><?php esc_html_e( 'Your application', 'reci-media-hub' ); ?></legend>
-			<?php reci_render_collaborator_fields( reci_collaborator_application_only_field_definitions() ); ?>
+			<?php reci_render_collaborator_fields( reci_collaborator_application_only_field_definitions(), $current_values ); ?>
 		</fieldset>
 
 		<button type="submit" class="btn btn-primary btn-md"><?php echo esc_html( $submit_label ); ?></button>

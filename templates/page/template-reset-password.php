@@ -11,6 +11,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+// Check the key before drawing a form the user cannot submit. Keys expire after
+// 24 hours, so a dead link is the common case, not the rare one -- finding out
+// after typing a password twice is the wrong place to learn it.
+$reset_user    = function_exists( 'reci_validate_reset_request' ) ? reci_validate_reset_request() : null;
+$reset_blocked = is_wp_error( $reset_user );
+$error_code    = sanitize_text_field( wp_unslash( $_GET['error'] ?? '' ) );
+
 get_header();
 ?>
 
@@ -41,7 +48,11 @@ get_header();
 						<?php echo esc_html__( 'Create New Password', 'reci-media-hub' ); ?>
 					</h1>
 					<p class="text-lg font-normal text-neutral-600">
-						<?php echo esc_html__( "Your new password must be different from previous used passwords.", 'reci-media-hub' ); ?>
+						<?php
+						echo $reset_blocked
+							? esc_html__( 'This link can no longer be used.', 'reci-media-hub' )
+							: esc_html__( 'Your new password must be different from previous used passwords.', 'reci-media-hub' );
+						?>
 					</p>
 				</div>
 
@@ -50,27 +61,39 @@ get_header();
 			<!-- Form -->
 			<div class="flex flex-col gap-10">
 
-				<?php
-				$error_code = sanitize_text_field( $_GET['error'] ?? '' );
-				if ( $error_code ) : ?>
+				<?php if ( $reset_blocked ) : ?>
 					<div class="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700" role="alert">
-						<?php if ( 'expiredkey' === $error_code || 'invalidkey' === $error_code ) : ?>
-							<?php esc_html_e( 'Your password reset link is invalid or has expired. Please request a new one.', 'reci-media-hub' ); ?>
+						<?php esc_html_e( 'Your password reset link is invalid, expired, or has already been used. Reset links are only valid for 24 hours.', 'reci-media-hub' ); ?>
+					</div>
+
+					<a href="<?php echo esc_url( reci_get_auth_page_url( 'forgot-password' ) ?: wp_lostpassword_url() ); ?>" class="btn btn-secondary btn-md btn-block">
+						<?php echo esc_html__( 'Request a new link', 'reci-media-hub' ); ?>
+					</a>
+
+					<p class="text-sm text-center text-neutral-600">
+						<a href="<?php echo esc_url( reci_get_auth_page_url( 'sign-in' ) ?: wp_login_url() ); ?>" class="underline underline-offset-2 hover:text-neutral-800">
+							<?php echo esc_html__( 'Back to sign in', 'reci-media-hub' ); ?>
+						</a>
+					</p>
+				<?php else : ?>
+
+					<?php if ( $error_code ) : ?>
+					<div class="px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700" role="alert">
+						<?php if ( 'mismatch' === $error_code ) : ?>
+							<?php esc_html_e( 'Those two passwords did not match. Please try again.', 'reci-media-hub' ); ?>
 						<?php else : ?>
 							<?php esc_html_e( 'An error occurred while trying to reset your password. Please try again.', 'reci-media-hub' ); ?>
 						<?php endif; ?>
 					</div>
-				<?php endif; ?>
+					<?php endif; ?>
 
-				<form
+					<form
 					method="post"
 					action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
 					class="flex flex-col gap-5"
 				>
 					<input type="hidden" name="action" value="reci_reset_password" />
 					<?php wp_nonce_field( 'reci_reset_password', 'reci_reset_nonce' ); ?>
-					<input type="hidden" id="user_login" name="rp_login" value="<?php echo esc_attr( wp_unslash( $_GET['login'] ?? '' ) ); ?>" autocomplete="off" />
-					<input type="hidden" name="rp_key" value="<?php echo esc_attr( wp_unslash( $_GET['key'] ?? '' ) ); ?>" />
 
 					<!-- Password -->
 					<div class="flex flex-col gap-2">
@@ -143,6 +166,7 @@ get_header();
 					</button>
 
 				</form><!-- /form -->
+				<?php endif; ?>
 
 			</div><!-- /form area -->
 

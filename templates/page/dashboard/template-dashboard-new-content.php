@@ -13,9 +13,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Level 2 submits through /submit/ for review; this route is for people who
-// publish their own work.
-if ( ! current_user_can( 'publish_posts' ) ) {
+// Anyone who can write content can start a piece here. Level 2 hands the draft
+// over for review; level 3 and above publish their own.
+if ( ! current_user_can( 'edit_posts' ) ) {
 	wp_safe_redirect( home_url( '/submit/' ) );
 	exit;
 }

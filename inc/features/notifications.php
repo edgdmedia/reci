@@ -312,7 +312,6 @@ function reci_maybe_notify_submitter_about_approval( string $new_status, string 
 	if ( '' !== (string) get_post_meta( $post->ID, '_reci_notified_approved', true ) ) {
 		return;
 	}
-	update_post_meta( $post->ID, '_reci_notified_approved', current_time( 'mysql' ) );
 
 	if ( ! function_exists( 'reci_media_hub_submission_supported_post_types' ) ) {
 		return;
@@ -322,6 +321,11 @@ function reci_maybe_notify_submitter_about_approval( string $new_status, string 
 	if ( ! in_array( $post->post_type, $allowed_types, true ) ) {
 		return;
 	}
+
+	// Stamped only once this is known to be a post we notify about. It used to
+	// be written before the type check, so publishing anything at all -- a
+	// page, a collaborator application -- left the flag behind.
+	update_post_meta( $post->ID, '_reci_notified_approved', current_time( 'mysql' ) );
 
 	reci_notify_submitter_about_approval( (int) $post->ID );
 }

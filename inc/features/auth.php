@@ -107,6 +107,86 @@ add_filter( 'lostpassword_redirect', function ( string $url ): string {
 	return $url;
 } );
 
+// ── Password-reset key handoff ───────────────────────────────────────────────
+
+/**
+ * Core moves the reset key out of the URL and into a short-lived cookie, so it
+ * stays out of the address bar, browser history and any Referer header. Our
+ * login_init redirect fires before core reaches that code, so the handoff is
+ * repeated here.
+ *
+ * The cookie is scoped to the whole site rather than the reset page, because
+ * the form posts to admin-post.php and would not otherwise send it.
+ */
+function reci_reset_cookie_name(): string {
+	return 'wp-resetpass-' . COOKIEHASH;
+}
+
+function reci_stash_reset_key( string $login, string $key ): void {
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		reci_reset_cookie_name(),
+		$login . ':' . $key,
+		0, // Session cookie — it dies with the browser.
+		COOKIEPATH ? COOKIEPATH : '/',
+		COOKIE_DOMAIN,
+		is_ssl(),
+		true // httponly: no script has business reading this.
+	);
+}
+
+function reci_clear_reset_cookie(): void {
+	if ( headers_sent() ) {
+		return;
+	}
+
+	setcookie(
+		reci_reset_cookie_name(),
+		' ',
+		time() - YEAR_IN_SECONDS,
+		COOKIEPATH ? COOKIEPATH : '/',
+		COOKIE_DOMAIN,
+		is_ssl(),
+		true
+	);
+}
+
+/**
+ * @return array{0:string,1:string} login and key, both empty when absent.
+ */
+function reci_read_reset_credentials(): array {
+	$raw = (string) ( $_COOKIE[ reci_reset_cookie_name() ] ?? '' );
+
+	if ( ! str_contains( $raw, ':' ) ) {
+		return [ '', '' ];
+	}
+
+	[ $login, $key ] = explode( ':', wp_unslash( $raw ), 2 );
+
+	return [ (string) $login, (string) $key ];
+}
+
+/**
+ * Whoever the stashed key belongs to, or why it cannot be used.
+ *
+ * @return WP_User|WP_Error
+ */
+function reci_validate_reset_request() {
+	[ $login, $key ] = reci_read_reset_credentials();
+
+	if ( '' === $login || '' === $key ) {
+		return new WP_Error(
+			'invalidkey',
+			__( 'This password reset link is missing or has already been used.', 'reci-media-hub' )
+		);
+	}
+
+	return check_password_reset_key( $key, $login );
+}
+
 // ── Redirect wp-login.php display requests ────────────────────────────────────
 
 /**
@@ -146,10 +226,13 @@ add_action( 'login_init', function (): void {
 	}
 
 	if ( in_array( $action, [ 'rp', 'resetpass' ], true ) ) {
-		$custom = add_query_arg( [
-			'key'   => rawurlencode( wp_unslash( $_GET['key'] ?? '' ) ),
-			'login' => rawurlencode( wp_unslash( $_GET['login'] ?? '' ) ),
-		], $custom );
+		$key   = (string) wp_unslash( $_GET['key'] ?? '' );
+		$login = (string) wp_unslash( $_GET['login'] ?? '' );
+
+		// Into a cookie, not the query string — see reci_stash_reset_key().
+		if ( '' !== $key && '' !== $login ) {
+			reci_stash_reset_key( $login, $key );
+		}
 	}
 
 	wp_safe_redirect( $custom, 302 );
@@ -463,22 +546,18 @@ add_action( 'admin_post_nopriv_reci_reset_password', 'reci_handle_reset_password
 add_action( 'admin_post_reci_reset_password',        'reci_handle_reset_password' );
 
 function reci_handle_reset_password(): void {
-	$login = wp_unslash( $_POST['rp_login'] ?? '' );
-	$key   = wp_unslash( $_POST['rp_key'] ?? '' );
-	
-	$reset_url = reci_get_auth_page_url( 'reset-password' );
-	if ( ! $reset_url ) {
-		$reset_url = wp_login_url();
-	}
-	$reset_url = add_query_arg( [ 'login' => rawurlencode( $login ), 'key' => rawurlencode( $key ) ], $reset_url );
+	// The key rides in the cookie now, so it never enters the page or the URL.
+	$reset_url = reci_get_auth_page_url( 'reset-password' ) ?: wp_login_url();
 
 	if ( empty( $_POST['reci_reset_nonce'] ) || ! wp_verify_nonce( $_POST['reci_reset_nonce'], 'reci_reset_password' ) ) {
 		wp_safe_redirect( add_query_arg( 'error', 'invalidkey', $reset_url ) );
 		exit;
 	}
 
-	$user = check_password_reset_key( $key, $login );
+	$user = reci_validate_reset_request();
 	if ( is_wp_error( $user ) ) {
+		// A spent or expired key is worth clearing, so the next view says so.
+		reci_clear_reset_cookie();
 		wp_safe_redirect( add_query_arg( 'error', 'expiredkey', $reset_url ) );
 		exit;
 	}
@@ -492,6 +571,7 @@ function reci_handle_reset_password(): void {
 	}
 
 	reset_password( $user, $pass1 );
+	reci_clear_reset_cookie();
 
 	$sign_in = reci_get_auth_page_url( 'sign-in' ) ?: wp_login_url();
 	wp_safe_redirect( add_query_arg( 'resetpass', 'complete', $sign_in ) );
