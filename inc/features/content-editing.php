@@ -2,7 +2,7 @@
 /**
  * Front-end editing of a collaborator's own submissions.
  *
- * Collaborators are Subscribers carrying `_reci_collaborator_status = approved`;
+ * Collaborators are Contributors (level 2) and above, identified by role;
  * they hold no `edit_posts` capability and are redirected out of wp-admin. So
  * ownership is checked explicitly here rather than delegated to `current_user_can`,
  * and no capability is granted — wp-admin stays closed by construction.

@@ -120,10 +120,7 @@ if ( ! function_exists( 'reci_get_collaborator_status' ) ) {
 			}
 		}
 
-		// Accounts predating the application post type keep whatever they had.
-		$legacy = (string) get_user_meta( $user_id, '_reci_collaborator_status', true );
-
-		return in_array( $legacy, [ 'approved', 'pending', 'rejected' ], true ) ? $legacy : 'member';
+		return 'member';
 	}
 }
 
@@ -843,7 +840,6 @@ if ( ! function_exists( 'reci_handle_collaborator_application' ) ) {
 		if ( $cv_attachment_id > 0 ) {
 			update_post_meta( $post_id, '_reci_collaborator_cv_attachment_id', $cv_attachment_id );
 		}
-		update_user_meta( $user_id, '_reci_collaborator_status', 'pending' );
 
 		// Mirror the shared profile fields onto the user so /submit/ and the
 		// dashboard profile editor can pre-fill from a single source of truth.
@@ -1086,7 +1082,6 @@ if ( ! function_exists( 'reci_approve_collaborator_application' ) ) {
 	 */
 	function reci_approve_collaborator_application( WP_Post $post, int $user_id ): void {
 		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'approved' );
-		update_user_meta( $user_id, '_reci_collaborator_status', 'approved' );
 
 		// Approval is a promotion: Member -> Collaborator. Anyone already
 		// higher up the ladder keeps their level, so approving an Editor's
@@ -1134,7 +1129,6 @@ if ( ! function_exists( 'reci_reject_collaborator_application' ) ) {
 	 */
 	function reci_reject_collaborator_application( WP_Post $post, int $user_id ): void {
 		update_post_meta( $post->ID, '_reci_collaborator_application_status', 'rejected' );
-		update_user_meta( $user_id, '_reci_collaborator_status', 'rejected' );
 
 		// Approval promotes, so rejection revokes. Only an account sitting at
 		// Collaborator is demoted: anyone deliberately raised above that was
@@ -1173,17 +1167,11 @@ add_action( 'transition_post_status', 'reci_sync_collaborator_application_status
 
 if ( ! function_exists( 'reci_forget_deleted_collaborator_application' ) ) {
 	/**
-	 * Retract the copy when the application itself goes away.
+	 * Forget a deleted application immediately.
 	 *
-	 * _reci_collaborator_status on the user mirrors the application's verdict.
-	 * Deleting or trashing the application left that copy behind, and since it
-	 * is the fallback reci_get_collaborator_status() consults when no
-	 * application is found, the applicant kept reading as 'pending' forever --
-	 * the submit page still telling them they were under review with nothing
-	 * left to review.
-	 *
-	 * Roles are deliberately untouched: access is granted by role, and removing
-	 * a record is not the same act as revoking someone's access.
+	 * Status is read from the application on ordinary page loads and cached per
+	 * request, so a deletion has to clear that cache or the rest of the request
+	 * keeps answering from the row that has just gone.
 	 */
 	function reci_forget_deleted_collaborator_application( int $post_id ): void {
 		$post = get_post( $post_id );
@@ -1192,33 +1180,6 @@ if ( ! function_exists( 'reci_forget_deleted_collaborator_application' ) ) {
 			return;
 		}
 
-		reci_flush_collaborator_application_cache();
-
-		$user_id = absint( get_post_meta( $post_id, '_reci_collaborator_user_id', true ) );
-
-		if ( $user_id <= 0 ) {
-			return;
-		}
-
-		// Another application may still stand for this user; only the last one
-		// leaving clears the copy.
-		$others = get_posts(
-			[
-				'post_type'      => reci_get_collaborator_application_post_type(),
-				'post_status'    => [ 'pending', 'draft', 'publish', 'private' ],
-				'posts_per_page' => 1,
-				'fields'         => 'ids',
-				'exclude'        => [ $post_id ],
-				'meta_key'       => '_reci_collaborator_user_id',
-				'meta_value'     => $user_id,
-			]
-		);
-
-		if ( ! empty( $others ) ) {
-			return;
-		}
-
-		delete_user_meta( $user_id, '_reci_collaborator_status' );
 		reci_flush_collaborator_application_cache();
 	}
 }

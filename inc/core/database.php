@@ -13,7 +13,7 @@ function reci_media_hub_create_custom_tables() {
 	global $wpdb;
 	
 	$installed_ver = get_option( 'reci_db_version' );
-	$current_ver   = '1.4.0';
+	$current_ver   = '1.5.0';
 
 	if ( $installed_ver !== $current_ver ) {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -103,6 +103,35 @@ function reci_media_hub_create_custom_tables() {
 		if ( version_compare( $installed_ver, '1.2.0', '<' ) ) {
 			// Update page template paths to reflect the new nested directory structure
 			$wpdb->query( "UPDATE {$wpdb->postmeta} SET meta_value = REPLACE(meta_value, 'page-templates/', 'templates/page/') WHERE meta_key = '_wp_page_template' AND meta_value LIKE 'page-templates/%'" );
+		}
+
+		if ( version_compare( $installed_ver, '1.5.0', '<' ) ) {
+			// The collaborator verdict now lives only on the application post.
+			// Before dropping the user-meta copy, honour any approval that
+			// existed nowhere else: an account approved before roles carried
+			// access would otherwise silently lose it.
+			$stranded = $wpdb->get_col(
+				"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '_reci_collaborator_status' AND meta_value = 'approved'"
+			);
+
+			foreach ( $stranded as $stranded_id ) {
+				$stranded_id = (int) $stranded_id;
+
+				if ( user_can( $stranded_id, 'edit_posts' ) ) {
+					continue; // Already carries access by role.
+				}
+
+				$stranded_user = get_user_by( 'id', $stranded_id );
+
+				if ( $stranded_user instanceof WP_User ) {
+					$stranded_user->set_role( 'contributor' );
+				}
+			}
+
+			// delete_metadata() with $delete_all clears the object cache too; a
+			// raw DELETE would leave stale values readable for the rest of the
+			// request.
+			delete_metadata( 'user', 0, '_reci_collaborator_status', '', true );
 		}
 
 		update_option( 'reci_db_version', $current_ver );
