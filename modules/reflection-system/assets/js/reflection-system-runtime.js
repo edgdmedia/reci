@@ -333,35 +333,36 @@
       document.body.style.overflow = 'hidden';
     }
 
-    document.querySelectorAll('[data-lightbox-image]').forEach((trigger) => {
-      trigger.addEventListener('click', () => {
+    // Delegated handlers (on document) so they keep working after the builder
+    // preview swaps out a chapter's DOM via the "update-chapter" message.
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-lightbox-image]');
+      if (trigger) {
         openPlainImage(
           trigger.getAttribute('data-lightbox-src') || '',
           trigger.getAttribute('data-lightbox-alt') || '',
           trigger.getAttribute('data-lightbox-caption') || ''
         );
-      });
-    });
-
-    document.querySelectorAll('.panel-image').forEach((panel) => {
-      panel.addEventListener('click', () => {
-        let notes = [];
-        try {
-          const parsed = JSON.parse(panel.dataset.annotations || '[]');
-          if (Array.isArray(parsed)) notes = parsed;
-        } catch (error) {
-          notes = [];
-        }
-        image.src = panel.getAttribute('src') || '';
-        image.alt = panel.getAttribute('alt') || '';
-        image.dataset.annotations = JSON.stringify(notes);
-        if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
-        if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
-        lightbox.classList.remove('lightbox--plain');
-        renderAnnotation(notes, 0);
-        lightbox.classList.add('active');
-        document.body.style.overflow = 'hidden';
-      });
+        return;
+      }
+      const panel = event.target.closest('.panel-image');
+      if (!panel) return;
+      let notes = [];
+      try {
+        const parsed = JSON.parse(panel.dataset.annotations || '[]');
+        if (Array.isArray(parsed)) notes = parsed;
+      } catch (error) {
+        notes = [];
+      }
+      image.src = panel.getAttribute('src') || '';
+      image.alt = panel.getAttribute('alt') || '';
+      image.dataset.annotations = JSON.stringify(notes);
+      if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
+      if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
+      lightbox.classList.remove('lightbox--plain');
+      renderAnnotation(notes, 0);
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
     });
 
     lightbox.addEventListener('click', (event) => {
