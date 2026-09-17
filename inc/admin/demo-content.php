@@ -3117,16 +3117,11 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 					'include_in_menu' => '0',
 					'eyebrow'  => 'About',
 					'title'    => 'Credits, Acknowledgements & Sources',
-					'intro'    => [],
+					'intro'    => [
+						[ 'text' => 'Thanks to the following individuals for their support in the development of this project:' ],
+						[ 'text' => 'Gretchen Baker, Jenise Brown, Marie Corrado, Amy Covell-Murthy, Sarah Crawford, Sydney Dominick, Christopher Fleisher, Kristina Gaugler, Laurie Giarratani, Ron Idoko, Morgan Riggenbach, Keirstin Rotharmel, Ellen Sanin, Rachel Thomas-Beckel, Breann Thompson, Annick Vuissoz, Amy Whipple, Ginger White, Gina Winstead.' ],
+					],
 					'sections' => [
-						[
-							'title'      => 'Acknowledgments',
-							'paragraphs' => [
-								[ 'text' => 'Thanks to the following individuals for their support in the development of this project:' ],
-								[ 'text' => 'Gretchen Baker, Jenise Brown, Marie Corrado, Amy Covell-Murthy, Sarah Crawford, Sydney Dominick, Christopher Fleisher, Kristina Gaugler, Laurie Giarratani, Ron Idoko, Morgan Riggenbach, Keirstin Rotharmel, Ellen Sanin, Rachel Thomas-Beckel, Breann Thompson, Annick Vuissoz, Amy Whipple, Ginger White, Gina Winstead.' ],
-							],
-							'links'      => [],
-						],
 						[
 							'title'      => 'Sources consulted and recommended',
 							'paragraphs' => [
