@@ -1521,14 +1521,14 @@ function reci_install_demo_content( array $only_types = [] ): void {
 				'topics'   => [ 'Education', 'Systemic Racism' ],
 				'focus'    => [ 'Curriculum / Training' ],
 				'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
-				'image'    => 'site/reflections/we-humans/students-1959.webp',
+				'image'    => 'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.jpg',
 				'meta'     => [],
 			], $topics, $locations, $imgs );
 
 			$wh = get_page_by_path( 'reci-demo-we-humans', OBJECT, 'reci_reflection' );
 			if ( $wh ) {
 				$wh_files = [
-					'students-1959.webp', 'are-you-ethnocentric.webp', 'ethnocentric.webp', 'teacher-1959.webp',
+					'We Humans - Students hearing the curriculum, 1959.jpg', 'are-you-ethnocentric.webp', 'ethnocentric.webp', 'teacher-1959.webp',
 					'courier-1956.webp', 'sf-library-1959.webp', 'indianapolis-1.webp', 'indianapolis-2.webp',
 					'panel-1a.webp', 'panel-1b.webp', 'panel-2a.webp', 'panel-2b.webp',
 					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp', 'at-70.webp',
@@ -2706,7 +2706,7 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 					'body'                 => 'In the years following World War II, global shock over the Holocaust, growing demands to end race-based discrimination, and shifting ideas in science created a charged and consequential environment for social change.' . "\n\n" . 'This digital exhibit shares one story of how civic, labor, and education leaders in Pittsburgh responded to that moment.',
 					'caption'              => 'Students hearing the "We Humans" curriculum, Monongahela High School, 1959. Photograph by Michel Chalufour. Courtesy of Carnegie Museum of Natural History, Library & Archives.',
 					'use_background_image' => '1',
-					'background_image'     => $im( 'students-1959.webp' ),
+					'background_image'     => $im( 'We Humans - Students hearing the curriculum, 1959.jpg' ),
 					'overlay_rgb'          => '47,50,52',
 					'overlay_opacity'      => 0.62,
 					'actions'         => [
@@ -2729,7 +2729,7 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 					'title'           => 'What feels familiar and unfamiliar about this story?',
 					'body'            => '"We Humans" was an exhibit on race and racism developed by two curators of anthropology employed at the Carnegie Museum (now Carnegie Museum of Natural History), James Swauger and Don Dragoo. Through punchy rhetoric informed by current science, Swauger and Dragoo encouraged workers, students, and citizens to question their assumptions about race and to value the lives and contributions of all people. The exhibit debuted in downtown Pittsburgh in 1955 and later reached a national audience through portable versions and publications. The exhibit was a collaborative effort, jointly planned and sponsored by the museum, the labor union the United Steelworkers of America, Mayor David L. Lawrence\'s Civic Unity Council, and Pittsburgh Public Schools.' . "\n\n" . '"We Humans" demonstrates the extent to which a version of anti-racism was being made an urgent public priority across the United States in the 1950s, but also shows the pitfalls of the institutional and scientific tactics employed in such efforts at this time. As you learn more about the story of "We Humans," ask yourself what its ambitions and shortcomings might have to teach people today.',
 					'note'            => 'Please note that this exhibit includes racial terminology and imagery that are outdated and offensive.',
-					'image'           => $im( 'students-1959.webp' ),
+					'image'           => $im( 'We Humans - Students hearing the curriculum, 1959.jpg' ),
 					'media_side'      => 'right',
 					'actions'         => [
 						[ 'label' => 'Origins', 'href' => 'wh-origins' ],
