@@ -24,14 +24,18 @@ $args = wp_parse_args($args ?? [], [
 		<div class="reci-stage-body">
 			<div class="reci-stage-panels">
 				<div class="rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6 lg:sticky lg:top-4 z-10">
-					<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
-					<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl"><?php echo esc_html($args['title']); ?></h2>
-					<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($args['intro']); ?></p>
-					<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
-					<div class="mt-6 flex flex-wrap gap-4">
-						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
+					<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+						<div class="lg:max-w-[64rem]">
+							<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
+							<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl"><?php echo esc_html($args['title']); ?></h2>
+							<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($args['intro']); ?></p>
+						</div>
+						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
+						<div class="flex flex-wrap gap-4 lg:shrink-0">
+							<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
+						</div>
+						<?php endif; ?>
 					</div>
-					<?php endif; ?>
 				</div>
 				<div class="reci-panel-scroll">
 					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
