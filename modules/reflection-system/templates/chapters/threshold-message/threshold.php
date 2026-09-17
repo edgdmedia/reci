@@ -29,7 +29,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 		<div class="relative z-10 max-w-[800px]">
 			<h2 class="font-['Oswald'] text-4xl uppercase tracking-[0.25em] transition-[color] duration-[2000ms] sm:text-5xl lg:text-[3rem]" style="color: var(--reflection-heading);"><?php echo esc_html($args['title']); ?></h2>
 			<?php if (! empty($args['body'])) : ?>
-				<p class="mt-6 text-lg leading-8 opacity-80" style="color: var(--reflection-text);"><?php echo esc_html($args['body']); ?></p>
+				<p class="mt-6 text-lg leading-8 opacity-80" style="color: var(--reflection-text);"><?php echo reci_reflection_format_text($args['body']); ?></p>
 			<?php endif; ?>
 			<?php if ($transition_mode === 'button') : ?>
 			<button type="button" class="mt-8 border px-10 py-4 font-['Oswald'] text-sm uppercase tracking-[0.14em] transition-colors" style="border-color: var(--reflection-border); color: var(--reflection-text); background-color: transparent;" onmouseover="this.style.backgroundColor='var(--reflection-heading)'; this.style.color='var(--reflection-bg)';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='var(--reflection-text)';" data-stage-target="<?php echo esc_attr($continue_target); ?>"><?php echo esc_html($button_text); ?></button>

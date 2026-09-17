@@ -11,6 +11,52 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+if (! function_exists('reci_reflection_format_text')) {
+	/**
+	 * Render reflection rich-text content.
+	 *
+	 * Builder text boxes are contentEditable, so their values carry HTML for
+	 * line breaks (<br>, <div>, <p>) and emphasis (<b>/<strong>, <i>/<em>).
+	 * Legacy values are plain text; preserve their line breaks via nl2br.
+	 *
+	 * @param mixed $text
+	 * @return string
+	 */
+	function reci_reflection_format_text($text): string {
+		$text = (string) $text;
+		if ($text === '') {
+			return '';
+		}
+
+		if (strpos($text, '<') === false) {
+			return nl2br(esc_html($text));
+		}
+
+		// ContentEditable (Chrome) wraps new lines in block elements (<div>/<p>).
+		// Those break out of the surrounding <p> in the templates and lose their
+		// styling, so flatten them into inline <br> line breaks.
+		$text = preg_replace('#<(?:div|p)[^>]*>#i', '<br>', $text);
+		$text = preg_replace('#</(?:div|p)>#i', '', $text);
+		$text = preg_replace('#(<br\s*/?>){3,}#i', '<br><br>', $text);
+		$text = preg_replace('#^(<br\s*/?>)+#i', '', $text);
+		$text = preg_replace('#(<br\s*/?>)+$#i', '', $text);
+
+		$allowed = array(
+			'b'      => array(),
+			'strong' => array(),
+			'i'      => array(),
+			'em'     => array(),
+			'br'     => array(),
+			'span'   => array(
+				'class'      => array(),
+				'data-shift' => array(),
+			),
+		);
+
+		return wp_kses($text, $allowed);
+	}
+}
+
 if (! class_exists('RECI_Reflection_System_Render_Service')) {
 	class RECI_Reflection_System_Render_Service {
 		/**

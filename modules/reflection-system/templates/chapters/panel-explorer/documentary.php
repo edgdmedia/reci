@@ -23,26 +23,39 @@ $args = wp_parse_args($args ?? [], [
 	<div class="reci-stage-shell">
 		<div class="reci-stage-body">
 			<div class="reci-stage-panels">
-				<div class="flex flex-row justify-between rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6 lg:sticky  lg:h-fit">
-					<div>
-					<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
-					<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl"><?php echo esc_html($args['title']); ?></h2>
-					<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($args['intro']); ?></p>
-					</div>
-					<div class="mt-8 flex flex-wrap gap-4">
+				<div class="rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6 lg:sticky lg:top-4 z-10">
+					<div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+						<div class="lg:max-w-[64rem]">
+							<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
+							<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl"><?php echo esc_html($args['title']); ?></h2>
+							<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($args['intro']); ?></p>
+						</div>
 						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
-						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
+						<div class="flex flex-wrap gap-4 lg:shrink-0">
+							<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
+						</div>
 						<?php endif; ?>
 					</div>
 				</div>
 				<div class="reci-panel-scroll">
 					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 						<?php foreach ((array) $args['items'] as $item) : ?>
+							<?php
+							$panel_annotations = array_map(
+								static function ( $annotation ) {
+									if ( is_array( $annotation ) ) {
+										$annotation['body'] = reci_reflection_format_text( (string) ( $annotation['body'] ?? '' ) );
+									}
+									return $annotation;
+								},
+								(array) ( $item['annotations'] ?? [] )
+							);
+							?>
 							<article class="overflow-hidden rounded-[20px] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-surface)]">
-								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($item['annotations'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
+								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($panel_annotations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
 								<div class="p-4">
 									<h3 class="mb-1 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($item['title']); ?></h3>
-									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo esc_html($item['description']); ?></p>
+									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($item['description']); ?></p>
 								</div>
 							</article>
 						<?php endforeach; ?>

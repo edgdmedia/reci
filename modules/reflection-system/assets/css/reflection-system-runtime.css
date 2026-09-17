@@ -179,3 +179,16 @@ h1, h2, h3, h4, h5, h6, .reci-reflection-heading {
 		padding: 28px;
 	}
 }
+
+/* On mobile, float the next-section (Continue) button to the bottom so it is
+   always reachable; on larger screens it keeps its inline position. */
+@media (max-width: 1023px) {
+	.reci-continue {
+		position: fixed;
+		right: 1.25rem;
+		bottom: 1.25rem;
+		z-index: 75;
+		margin: 0 !important;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+	}
+}

@@ -28,20 +28,19 @@ $args = wp_parse_args($args ?? [], [
 					<div class="font-['Oswald'] text-sm uppercase tracking-[0.14em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 				<?php endif; ?>
 				<h2 class="mt-4 max-w-[16ch] font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4.5rem]"><?php echo esc_html($args['title']); ?></h2>
-				<p class="mt-5 max-w-[44rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9"><?php echo esc_html($args['intro']); ?></p>
+				<p class="mt-5 max-w-[44rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 				<?php if ($args['cards']) : ?>
 					<div class="mt-8 grid w-full gap-4 md:grid-cols-2">
 						<?php foreach ((array) $args['cards'] as $card) : ?>
 							<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5 text-left">
 								<h3 class="mb-3 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3>
-								<p class="text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($card['body']); ?></p>
+								<p class="text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($card['body']); ?></p>
 							</article>
 						<?php endforeach; ?>
 					</div>
 				<?php endif; ?>
 				<div class="mt-8 w-full max-w-[42rem] rounded-[24px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-6 text-left">
-					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent" for="reflectionResponse"><?php echo esc_html($args['prompt'] ?: 'Your reflection'); ?></label>
-					<div id="responseGate" class="mb-4 hidden rounded-[18px] bg-[var(--reflection-card-strong)] px-4 py-4 text-sm reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
+					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent" for="reflectionResponse"><?php echo reci_reflection_format_text($args['prompt'] ?: 'Your reflection'); ?></label>
 					<div id="responseFormShell">
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
 						<div class="mt-4 flex flex-wrap gap-4">

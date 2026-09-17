@@ -31,7 +31,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 					<div class="relative z-10 max-w-[640px] px-6 text-center">
 						<h2 class="font-['Playfair_Display'] text-4xl leading-tight text-white sm:text-5xl"><?php echo esc_html($item['title'] ?? ''); ?></h2>
 						<?php if (! empty($item['body'])) : ?>
-							<p class="mt-5 text-lg leading-8 text-white/85"><?php echo esc_html($item['body']); ?></p>
+							<p class="mt-5 text-lg leading-8 text-white/85"><?php echo reci_reflection_format_text($item['body']); ?></p>
 						<?php endif; ?>
 						
 						<div class="mt-12 flex items-center justify-center gap-6">

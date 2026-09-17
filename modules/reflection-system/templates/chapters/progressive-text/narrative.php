@@ -28,7 +28,7 @@ $args = wp_parse_args($args ?? [], [
 			<?php foreach ((array) $args['paragraphs'] as $paragraph) : 
 				$text = is_array($paragraph) ? ($paragraph['text'] ?? implode(' ', $paragraph)) : (string) $paragraph;
 			?>
-				<p class="reci-progressive-paragraph mb-5 hidden translate-y-5 opacity-0 transition"><?php echo esc_html($text); ?></p>
+				<p class="reci-progressive-paragraph mb-5 hidden translate-y-5 opacity-0 transition"><?php echo reci_reflection_format_text($text); ?></p>
 			<?php endforeach; ?>
 		</div>
 		<div class="mt-10 text-center flex flex-col items-center">

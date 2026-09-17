@@ -20,7 +20,7 @@ $args = wp_parse_args($args ?? [], [
 <section class="reci-stage" id="<?php echo esc_attr($args['id']); ?>" data-stage="<?php echo esc_attr($args['id']); ?>" data-reflection-id="<?php echo esc_attr(get_the_ID()); ?>" data-prompt="<?php echo esc_attr($args['prompt'] ?: $args['title']); ?>">
 	<div class="flex min-h-screen w-full flex-col items-center justify-center bg-[#0a0a0a] px-5 py-16 text-center text-white">
 		<div class="reci-reflection-form flex flex-col items-center justify-center w-full">
-			<h2 class="max-w-[820px] font-['Playfair_Display'] text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"><?php echo esc_html($args['prompt'] ?: $args['title']); ?></h2>
+			<h2 class="max-w-[820px] font-['Playfair_Display'] text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"><?php echo reci_reflection_format_text($args['prompt'] ?: $args['title']); ?></h2>
 			<textarea class="reflect-input reci-reflection-prompt__input mt-8 h-[150px] w-full max-w-[600px] rounded-none border border-white/20 bg-[#222] px-5 py-4 text-base text-white outline-none" placeholder="Share your thoughts..."></textarea>
 			<?php if ( ! is_user_logged_in() ) : ?>
 				<p class="mt-4 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>

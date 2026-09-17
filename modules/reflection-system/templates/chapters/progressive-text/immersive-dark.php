@@ -38,7 +38,7 @@ $args = wp_parse_args($args ?? [], [
 				<?php foreach ((array) $args['paragraphs'] as $paragraph) : 
 					$text = is_array($paragraph) ? ($paragraph['text'] ?? implode(' ', $paragraph)) : (string) $paragraph;
 				?>
-					<p class="reci-progressive-paragraph hidden opacity-0 translate-y-5 transition-all duration-1000 ease-in-out mb-6 text-xl text-white/40 leading-relaxed text-center [&.progressive-latest]:text-3xl [&.progressive-latest]:lg:text-4xl [&.progressive-latest]:text-white [&.progressive-latest]:leading-[1.4]"><?php echo esc_html($text); ?></p>
+					<p class="reci-progressive-paragraph hidden opacity-0 translate-y-5 transition-all duration-1000 ease-in-out mb-6 text-xl text-white/40 leading-relaxed text-center [&.progressive-latest]:text-3xl [&.progressive-latest]:lg:text-4xl [&.progressive-latest]:text-white [&.progressive-latest]:leading-[1.4]"><?php echo reci_reflection_format_text($text); ?></p>
 				<?php endforeach; ?>
 			</div>
 		</div>

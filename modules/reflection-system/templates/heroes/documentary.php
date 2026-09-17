@@ -53,10 +53,10 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 				<div class="max-w-[68rem] text-xl leading-8 reci-reflection-text [text-shadow:0_4px_18px_rgba(0,0,0,0.72)] sm:text-2xl"><?php echo esc_html($args['subtitle']); ?></div>
 			<?php endif; ?>
 			<?php if ($args['body']) : ?>
-				<p class="max-w-[68rem] text-lg leading-8 reci-reflection-text [text-shadow:0_4px_16px_rgba(0,0,0,0.72)]"><?php echo esc_html($args['body']); ?></p>
+				<p class="max-w-[68rem] text-lg leading-8 reci-reflection-text [text-shadow:0_4px_16px_rgba(0,0,0,0.72)]"><?php echo reci_reflection_format_text($args['body']); ?></p>
 			<?php endif; ?>
 			<?php if (!empty($args['caption'])) : ?>
-				<p class="max-w-[58rem] text-sm leading-7 reci-reflection-soft-text [text-shadow:0_3px_12px_rgba(0,0,0,0.72)]"><?php echo esc_html($args['caption']); ?></p>
+				<p class="max-w-[58rem] text-sm leading-7 reci-reflection-soft-text [text-shadow:0_3px_12px_rgba(0,0,0,0.72)]"><?php echo reci_reflection_format_text($args['caption']); ?></p>
 			<?php endif; ?>
 			<?php if (! empty($args['actions']) && ($args['transition_mode'] ?? 'button') === 'button') : ?>
 				<div class="mt-2 flex flex-wrap gap-4">

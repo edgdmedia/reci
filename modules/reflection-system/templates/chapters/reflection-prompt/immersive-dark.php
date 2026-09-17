@@ -18,7 +18,7 @@ $args = wp_parse_args($args ?? [], [
 ?>
 <section class="reci-stage chapter-reflection" id="<?php echo esc_attr($args['id']); ?>" data-reflection-id="<?php echo esc_attr(get_the_ID()); ?>" data-prompt="<?php echo esc_attr($args['prompt']); ?>">
 	<div class="reci-reflection-form flex flex-col items-center justify-center w-full max-w-[800px] mx-auto text-center">
-		<h2 class="reflect-prompt"><?php echo esc_html($args['prompt']); ?></h2>
+		<h2 class="reflect-prompt"><?php echo reci_reflection_format_text($args['prompt']); ?></h2>
 		<textarea class="reflect-input reci-reflection-prompt__input" placeholder="Share your thoughts..."></textarea>
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<p class="mt-4 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>

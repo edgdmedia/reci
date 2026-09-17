@@ -65,7 +65,7 @@ $justify_class = $v_align === 'top' ? '!justify-start' : ($v_align === 'bottom' 
 					$dynamic_style = "text-align: {$h_align}; font-size: clamp(1.5rem, 3.2vw, 2.4rem); line-height: 1.5;";
 				}
 			?>
-			<blockquote class="quote-text" style="<?php echo esc_attr($dynamic_style); ?>"><?php echo esc_html($quote); ?></blockquote>
+			<blockquote class="quote-text" style="<?php echo esc_attr($dynamic_style); ?>"><?php echo reci_reflection_format_text($quote); ?></blockquote>
 			<?php if ($args['attribution'] !== '') : ?>
 				<cite class="quote-attribution">&mdash; <?php echo esc_html($args['attribution']); ?></cite>
 			<?php endif; ?>

@@ -51,7 +51,7 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 					<h1 class="mt-4 font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-[4rem]"><?php echo esc_html($args['title']); ?></h1>
 				<?php endif; ?>
 				<?php if ($args['body']) : ?>
-					<p class="mx-auto mt-5 max-w-[600px] text-[1.2rem] text-[var(--reflection-body)] leading-normal"><?php echo esc_html($args['body']); ?></p>
+					<p class="mx-auto mt-5 max-w-[600px] text-[1.2rem] text-[var(--reflection-body)] leading-normal"><?php echo reci_reflection_format_text($args['body']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['actions']) : ?>
 					<div class="mt-8 flex flex-wrap gap-4 <?php echo esc_attr(str_replace('items-', 'justify-', $args['align_h_class'])); ?>">

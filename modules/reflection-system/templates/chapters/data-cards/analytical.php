@@ -41,7 +41,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 	<div class="mx-auto w-full max-w-[1240px] px-5 sm:px-6 lg:px-12 xl:px-16">
 		<div class="text-center">
 			<h1 class="font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-6xl"><?php echo esc_html($args['title']); ?></h1>
-			<p class="mx-auto mt-5 max-w-[600px] text-xl leading-8 reci-reflection-muted"><?php echo esc_html($args['intro']); ?></p>
+			<p class="mx-auto mt-5 max-w-[600px] text-xl leading-8 reci-reflection-muted"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 		</div>
 		<div class="mt-10 grid gap-[2px] bg-black/10 p-[2px] md:grid-cols-2" id="rdDataGrid">
 			<?php foreach ((array) $args['cards'] as $index => $card) : ?>
@@ -59,7 +59,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 					</div>
 					<div class="mt-5 font-mono text-sm uppercase tracking-[0.08em] text-[var(--reflection-muted)] group-[.active]:text-[var(--reflection-accent)]"><?php echo esc_html($card['eyebrow'] ?? ''); ?></div>
 					<div class="mt-3 flex items-baseline gap-3 text-5xl font-bold text-[var(--reflection-heading)]"><span><?php echo esc_html($card['stat'] ?? ''); ?></span><span class="text-base font-normal text-[var(--reflection-muted)]"><?php echo esc_html($card['unit'] ?? ''); ?></span></div>
-					<p class="mt-4 text-base leading-7 text-[var(--reflection-body)]"><?php echo esc_html($card['summary'] ?? ''); ?></p>
+					<p class="mt-4 text-base leading-7 text-[var(--reflection-body)]"><?php echo reci_reflection_format_text($card['summary'] ?? ''); ?></p>
 					<div class="rd-card-detail mt-5 hidden group-[.active]:block border-t border-[var(--reflection-heading)]/20 pt-5 text-sm leading-7 text-[var(--reflection-body)]">
 						<?php if (! empty($card['toggle'])) : ?>
 							<div class="mb-4 flex gap-3 font-mono text-xs uppercase tracking-[0.08em]">
@@ -67,7 +67,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 							</div>
 						<?php endif; ?>
 						<div class="rd-view-problem">
-							<p><?php echo esc_html($card['detail'] ?? ''); ?></p>
+							<p><?php echo reci_reflection_format_text($card['detail'] ?? ''); ?></p>
 							<?php if (! empty($card['bars'])) : ?>
 								<div class="mt-5 grid gap-3">
 									<?php foreach ($card['bars'] as $bar) : ?>
@@ -84,7 +84,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 						</div>
 						<?php if (! empty($card['solution'])) : ?><div class="rd-view-solution hidden">
 								<h4 class="mb-2 font-semibold reci-reflection-accent">Path Forward</h4>
-								<p><?php echo esc_html($card['solution']); ?></p>
+								<p><?php echo reci_reflection_format_text($card['solution']); ?></p>
 							</div><?php endif; ?>
 					</div>
 				</article>
@@ -92,7 +92,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 		</div>
 		<div class="mt-12 text-center">
 			<?php if (!empty($args['footer_text'])) : ?>
-				<p class="mb-5 text-base reci-reflection-muted"><?php echo esc_html($args['footer_text']); ?></p>
+				<p class="mb-5 text-base reci-reflection-muted"><?php echo reci_reflection_format_text($args['footer_text']); ?></p>
 			<?php endif; ?>
 			<?php if ($transition_mode === 'button' && (!empty($args['continue_label']) || !empty($continue_target))) : ?>
 				<?php 

@@ -19,7 +19,7 @@ $quote = is_array($args['quote'] ?? '') ? implode("\n\n", $args['quote']) : (str
 ?>
 <section class="reci-stage chapter-quote chapter-quote--default" id="<?php echo esc_attr($args['id']); ?>">
 	<div class="quote-inner">
-		<blockquote class="quote-text"><?php echo esc_html($quote); ?></blockquote>
+		<blockquote class="quote-text"><?php echo reci_reflection_format_text($quote); ?></blockquote>
 		<?php if ($args['attribution'] !== '') : ?>
 			<cite class="quote-attribution">&mdash; <?php echo esc_html($args['attribution']); ?></cite>
 		<?php endif; ?>

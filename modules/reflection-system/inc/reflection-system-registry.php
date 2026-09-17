@@ -485,7 +485,7 @@ if (! function_exists('reci_reflection_system_registry')) {
 				'fields' => reci_reflection_system_with_transition_fields([
 					'id' => ['type' => 'text', 'label' => 'Section ID'],
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
-					'items' => ['type' => 'repeater', 'label' => 'Timeline items', 'required' => true, 'itemFields' => ['date' => ['type' => 'text', 'label' => 'Date / Year'], 'title' => ['type' => 'text', 'label' => 'Title'], 'body' => ['type' => 'textarea', 'label' => 'Body'], 'media' => ['type' => 'repeater', 'label' => 'Media', 'itemFields' => ['src' => ['type' => 'media', 'label' => 'Image'], 'alt' => ['type' => 'text', 'label' => 'Alt text'], 'caption' => ['type' => 'textarea', 'label' => 'Caption']]], 'link' => ['type' => 'repeater', 'label' => 'Link', 'itemFields' => ['label' => ['type' => 'text', 'label' => 'Label'], 'href' => ['type' => 'text', 'label' => 'URL']]]]],
+					'items' => ['type' => 'repeater', 'label' => 'Timeline items', 'required' => true, 'itemFields' => ['date' => ['type' => 'text', 'label' => 'Date / Year'], 'title' => ['type' => 'text', 'label' => 'Title'], 'body' => ['type' => 'textarea', 'label' => 'Body'], 'media' => ['type' => 'repeater', 'label' => 'Media', 'itemFields' => ['src' => ['type' => 'media', 'label' => 'Image'], 'alt' => ['type' => 'text', 'label' => 'Alt text'], 'caption' => ['type' => 'textarea', 'label' => 'Caption'], 'object_fit' => ['type' => 'select', 'label' => 'Image fit', 'options' => ['contain' => 'Contain', 'cover' => 'Cover']]]], 'link' => ['type' => 'repeater', 'label' => 'Link', 'itemFields' => ['label' => ['type' => 'text', 'label' => 'Label'], 'href' => ['type' => 'text', 'label' => 'URL']]]]],
 					'continue_label' => ['type' => 'text', 'label' => 'Continue label'],
 					'continue_target' => ['type' => 'chapter-target', 'label' => 'Continue target'],
 				]),
@@ -503,7 +503,7 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
 					'intro' => ['type' => 'textarea', 'label' => 'Intro'],
-					'items' => ['type' => 'repeater', 'label' => 'Panels', 'required' => true, 'itemFields' => ['title' => ['type' => 'text', 'label' => 'Title'], 'src' => ['type' => 'media', 'label' => 'Image'], 'alt' => ['type' => 'text', 'label' => 'Alt text'], 'description' => ['type' => 'textarea', 'label' => 'Description']]],
+					'items' => ['type' => 'repeater', 'label' => 'Panels', 'required' => true, 'itemFields' => ['title' => ['type' => 'text', 'label' => 'Title'], 'src' => ['type' => 'media', 'label' => 'Image'], 'alt' => ['type' => 'text', 'label' => 'Alt text'], 'description' => ['type' => 'textarea', 'label' => 'Description'], 'annotations' => ['type' => 'repeater', 'label' => 'Annotations (hotspots)', 'itemFields' => ['x' => ['type' => 'text', 'label' => 'X position (%)'], 'y' => ['type' => 'text', 'label' => 'Y position (%)'], 'title' => ['type' => 'text', 'label' => 'Title'], 'body' => ['type' => 'textarea', 'label' => 'Body']]]]],
 					'continue_label' => ['type' => 'text', 'label' => 'Continue label'],
 					'continue_target' => ['type' => 'chapter-target', 'label' => 'Continue target'],
 				]),

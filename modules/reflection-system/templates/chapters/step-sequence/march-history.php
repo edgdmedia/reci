@@ -23,7 +23,7 @@ $args = wp_parse_args($args ?? [], [
 	</div>
 	<article class="history-card" data-march-card>
 		<h3 class="font-['Oswald'] text-2xl uppercase reci-reflection-accent"><?php echo esc_html($args['title']); ?></h3>
-		<p class="mt-4 text-base leading-8"><?php echo esc_html($args['body']); ?></p>
+		<p class="mt-4 text-base leading-8"><?php echo reci_reflection_format_text($args['body']); ?></p>
 		<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
 		<button type="button" class="mt-6 inline-flex items-center justify-center bg-[var(--reflection-accent)] px-6 py-3 font-['Oswald'] text-sm uppercase tracking-[0.12em] text-white" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['button_label']); ?></button>
 		<?php endif; ?>
