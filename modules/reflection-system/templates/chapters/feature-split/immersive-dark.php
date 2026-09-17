@@ -32,7 +32,7 @@ $media_first = ($args['media_side'] ?? 'left') !== 'right';
 				<div class="overflow-hidden border border-white/20 bg-black/40 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative">
 					<img class="block h-[320px] w-full object-cover sm:h-[420px] lg:h-[60vh] opacity-80" src="<?php echo esc_url($args['image']); ?>" alt="<?php echo esc_attr($args['image_alt']); ?>">
 					<div class="absolute inset-0 bg-black/20 mix-blend-multiply pointer-events-none"></div>
-					<?php if ($args['caption']) : ?><div class="absolute bottom-0 w-full bg-black/80 px-5 py-4 text-xs tracking-wider text-white/70 uppercase font-['Oswald']"><?php echo esc_html($args['caption']); ?></div><?php endif; ?>
+					<?php if ($args['caption']) : ?><div class="absolute bottom-0 w-full bg-black/80 px-5 py-4 text-xs tracking-wider text-white/70 uppercase font-['Oswald']"><?php echo reci_reflection_format_text($args['caption']); ?></div><?php endif; ?>
 				</div>
 			<?php endif; ?>
 			
@@ -46,7 +46,7 @@ $media_first = ($args['media_side'] ?? 'left') !== 'right';
 				
 				<?php if ($args['note']) : ?>
 					<div class="mt-8 border-l-2 border-[var(--reflection-accent)] pl-6 py-2 text-base italic text-white/70">
-						<?php echo esc_html($args['note']); ?>
+						<?php echo reci_reflection_format_text($args['note']); ?>
 					</div>
 				<?php endif; ?>
 				
@@ -63,7 +63,7 @@ $media_first = ($args['media_side'] ?? 'left') !== 'right';
 				<div class="overflow-hidden border border-white/20 bg-black/40 shadow-[0_24px_60px_rgba(0,0,0,0.5)] relative">
 					<img class="block h-[320px] w-full object-cover sm:h-[420px] lg:h-[60vh] opacity-80" src="<?php echo esc_url($args['image']); ?>" alt="<?php echo esc_attr($args['image_alt']); ?>">
 					<div class="absolute inset-0 bg-black/20 mix-blend-multiply pointer-events-none"></div>
-					<?php if ($args['caption']) : ?><div class="absolute bottom-0 w-full bg-black/80 px-5 py-4 text-xs tracking-wider text-white/70 uppercase font-['Oswald']"><?php echo esc_html($args['caption']); ?></div><?php endif; ?>
+					<?php if ($args['caption']) : ?><div class="absolute bottom-0 w-full bg-black/80 px-5 py-4 text-xs tracking-wider text-white/70 uppercase font-['Oswald']"><?php echo reci_reflection_format_text($args['caption']); ?></div><?php endif; ?>
 				</div>
 			<?php endif; ?>
 		</div>

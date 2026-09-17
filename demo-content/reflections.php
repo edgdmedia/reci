@@ -124,6 +124,7 @@ return [
 				'site/reflections/we-humans/panel-4b.webp',
 				'site/reflections/we-humans/about.webp',
 				'site/reflections/we-humans/at-70.webp',
+				'site/reflections/we-humans/roosevelt-1956.webp',
 			],
 		],
 	],

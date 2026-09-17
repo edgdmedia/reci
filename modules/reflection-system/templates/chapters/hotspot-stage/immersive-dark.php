@@ -36,7 +36,7 @@ $transition_mode = (string) ($args['transition_mode'] ?? 'button');
 			$title = is_array($hotspot['title'] ?? '') ? implode(' ', $hotspot['title']) : (string) ($hotspot['title'] ?? '');
 			$body = is_array($hotspot['body'] ?? '') ? implode("\n\n", $hotspot['body']) : (string) ($hotspot['body'] ?? '');
 		?>
-			<div class="hotspot" style="top: <?php echo esc_attr($top); ?>; left: <?php echo esc_attr($left); ?>;" data-detail-key="<?php echo esc_attr($key); ?>" data-title="<?php echo esc_attr($title); ?>" data-text="<?php echo esc_attr($body); ?>">
+			<div class="hotspot" style="top: <?php echo esc_attr($top); ?>; left: <?php echo esc_attr($left); ?>;" data-detail-key="<?php echo esc_attr($key); ?>" data-title="<?php echo esc_attr($title); ?>" data-text="<?php echo esc_attr(reci_reflection_format_text($body)); ?>">
 				<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 					<circle cx="12" cy="12" r="10" />
 					<line x1="12" y1="8" x2="12" y2="16" />

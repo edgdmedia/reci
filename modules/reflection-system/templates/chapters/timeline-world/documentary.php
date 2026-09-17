@@ -41,24 +41,24 @@ $args = wp_parse_args($args ?? [], [
 								<span class="absolute -left-[2.2rem] top-3 h-4 w-4 rounded-full border-4 border-[var(--reflection-hotspot-ring)] bg-[var(--reflection-accent)]"></span>
 								<?php if (!empty($item['date'])) : ?><div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent mb-2 font-bold"><?php echo esc_html($item['date']); ?></div><?php endif; ?>
 								<h3 class="font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text"><?php echo esc_html($item['title'] ?? ''); ?></h3>
-								<p class="mt-4 text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($item['body'] ?? ''); ?></p>
+								<p class="mt-4 text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($item['body'] ?? ''); ?></p>
 								<?php if (! empty($item['media'])) : ?>
 									<div class="mt-5 grid gap-4 <?php echo count($item['media']) > 1 ? 'lg:grid-cols-2' : ''; ?>">
 										<?php foreach ($item['media'] as $media) : ?>
 											<figure class="overflow-hidden rounded-[18px] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)]">
 												<button type="button" class="group relative block w-full cursor-zoom-in text-left" data-lightbox-image data-lightbox-src="<?php echo esc_url($media['src']); ?>" data-lightbox-alt="<?php echo esc_attr($media['alt']); ?>" data-lightbox-caption="<?php echo esc_attr($media['caption']); ?>" aria-label="<?php echo esc_attr(sprintf('Enlarge image: %s', $media['caption'])); ?>">
-													<img class="block max-h-[380px] w-full object-contain" src="<?php echo esc_url($media['src']); ?>" alt="<?php echo esc_attr($media['alt']); ?>">
+													<img class="block max-h-[380px] w-full object-<?php echo esc_attr($media['object_fit'] ?? 'contain'); ?>" src="<?php echo esc_url($media['src']); ?>" alt="<?php echo esc_attr($media['alt']); ?>">
 													<span class="pointer-events-none absolute right-3 top-3 z-[1] flex h-10 w-10 items-center justify-center rounded-full bg-[var(--reflection-overlay)] text-[var(--reflection-text)] opacity-80 shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition group-hover:scale-105 group-hover:opacity-100" aria-hidden="true">
 														<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
 													</span>
 												</button>
-												<figcaption class="px-4 pb-4 pt-3 text-sm reci-reflection-muted"><?php echo esc_html($media['caption']); ?></figcaption>
+												<figcaption class="px-4 pb-4 pt-3 text-sm reci-reflection-muted"><?php echo reci_reflection_format_text($media['caption']); ?></figcaption>
 											</figure>
 										<?php endforeach; ?>
 									</div>
 								<?php endif; ?>
 								<?php if (! empty($item['link'])) : ?>
-									<p class="mt-4"><a class="font-semibold reci-reflection-accent no-underline hover:underline" href="<?php echo esc_url($item['link']['href']); ?>" target="_blank" rel="noopener"><?php echo esc_html($item['link']['label']); ?></a></p>
+									<p class="mt-4"><a class="font-semibold reci-reflection-accent no-underline hover:underline" href="<?php echo esc_url($item['link']['href']); ?>" target="_blank" rel="noopener"><?php echo reci_reflection_format_text($item['link']['label']); ?></a></p>
 								<?php endif; ?>
 							</article>
 						<?php endforeach; ?>

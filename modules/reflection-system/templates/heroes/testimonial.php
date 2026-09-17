@@ -55,10 +55,10 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 					<p class="mt-5 max-w-[34rem] text-lg italic leading-8 reci-reflection-soft-text sm:text-xl"><?php echo esc_html($args['subtitle']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['body']) : ?>
-					<p class="mt-5 text-base leading-8 reci-reflection-text sm:text-lg sm:leading-9"><?php echo esc_html($args['body']); ?></p>
+					<p class="mt-5 text-base leading-8 reci-reflection-text sm:text-lg sm:leading-9"><?php echo reci_reflection_format_text($args['body']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['caption']) : ?>
-					<p class="mt-6 text-sm uppercase tracking-[0.08em] reci-reflection-muted"><?php echo esc_html($args['caption']); ?></p>
+					<p class="mt-6 text-sm uppercase tracking-[0.08em] reci-reflection-muted"><?php echo reci_reflection_format_text($args['caption']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['actions']) : ?>
 					<div class="mt-8 flex flex-wrap gap-4">

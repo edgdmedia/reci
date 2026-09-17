@@ -52,6 +52,22 @@ if (! defined('ABSPATH')) {
 		border-color: var(--reflection-accent) !important;
 		background: rgba(167, 199, 150, 0.18) !important;
 	}
+	#lightbox {
+		background: var(--reflection-overlay, rgba(10, 14, 10, 0.74));
+		backdrop-filter: blur(3px);
+	}
+	#lightbox .lightbox-grid {
+		background: var(--reflection-surface-alt, var(--reflection-surface, #ffffff));
+		border-color: var(--reflection-accent, rgba(0, 0, 0, 0.45));
+	}
+	#lightboxClose {
+		background: var(--reflection-accent, #5E7048);
+		color: var(--reflection-accent-contrast, #ffffff);
+		border: none;
+	}
+	#lightboxClose:hover {
+		background: var(--reflection-heading, #3F4446);
+	}
 </style>
 <div class="lightbox fixed inset-0 z-[80] hidden place-items-center bg-[color:var(--reflection-overlay)] p-4 sm:p-6" id="lightbox" aria-hidden="true">
 	<div class="lightbox-grid relative w-full max-w-[1500px] overflow-hidden rounded-3xl border border-[color:var(--reflection-border)] bg-[var(--reflection-surface-alt)] lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,420px)]">

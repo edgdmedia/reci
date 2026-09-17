@@ -54,7 +54,7 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 					<p class="mt-6 max-w-[38rem] text-xl leading-8 reci-reflection-soft-text sm:text-2xl sm:leading-10"><?php echo esc_html($args['subtitle']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['body']) : ?>
-					<p class="mt-5 max-w-[42rem] text-base leading-8 reci-reflection-muted sm:text-lg sm:leading-9"><?php echo esc_html($args['body']); ?></p>
+					<p class="mt-5 max-w-[42rem] text-base leading-8 reci-reflection-muted sm:text-lg sm:leading-9"><?php echo reci_reflection_format_text($args['body']); ?></p>
 				<?php endif; ?>
 				<?php if ($args['actions']) : ?>
 					<div class="mt-8 flex flex-wrap gap-4">
@@ -70,7 +70,7 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 					</div>
 				<?php endif; ?>
 				<?php if ($args['caption']) : ?>
-					<p class="mt-10 max-w-[46rem] border-l border-[color:var(--reflection-border)] pl-4 text-sm leading-7 reci-reflection-muted"><?php echo esc_html($args['caption']); ?></p>
+					<p class="mt-10 max-w-[46rem] border-l border-[color:var(--reflection-border)] pl-4 text-sm leading-7 reci-reflection-muted"><?php echo reci_reflection_format_text($args['caption']); ?></p>
 				<?php endif; ?>
 			</div>
 		</div>

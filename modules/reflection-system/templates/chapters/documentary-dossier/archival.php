@@ -28,7 +28,7 @@ $args = wp_parse_args($args ?? [], [
 						<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 						<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4.25rem]"><?php echo esc_html($args['title']); ?></h2>
 						<?php foreach ((array) $args['intro'] as $paragraph) : ?>
-							<p class="mt-4 max-w-[42rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9"><?php echo esc_html($paragraph); ?></p>
+							<p class="mt-4 max-w-[42rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9"><?php echo reci_reflection_format_text($paragraph); ?></p>
 						<?php endforeach; ?>
 					</div>
 					<div class="mt-6 flex flex-wrap gap-4">
@@ -43,7 +43,7 @@ $args = wp_parse_args($args ?? [], [
 							<article class="rounded-[1.75rem] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-panel)] p-5">
 								<h3 class="mb-3 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text"><?php echo esc_html($section['title'] ?? ''); ?></h3>
 								<?php foreach ((array) ($section['paragraphs'] ?? []) as $paragraph) : ?>
-									<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo esc_html($paragraph); ?></p>
+									<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo reci_reflection_format_text($paragraph); ?></p>
 								<?php endforeach; ?>
 								<?php if (! empty($section['links'])) : ?>
 									<div class="mt-4 grid gap-3">

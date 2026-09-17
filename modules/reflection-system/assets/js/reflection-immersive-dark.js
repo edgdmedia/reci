@@ -69,7 +69,7 @@
   function showDetail(triggerEl) {
     if (!detailPanel || !dTitle || !dText || !triggerEl) return;
     dTitle.innerText = triggerEl.getAttribute('data-title') || 'Title';
-    dText.innerText = triggerEl.getAttribute('data-text') || 'Text';
+    dText.innerHTML = triggerEl.getAttribute('data-text') || 'Text';
     detailPanel.classList.add('visible');
     exploreContinue?.classList.add('visible');
   }

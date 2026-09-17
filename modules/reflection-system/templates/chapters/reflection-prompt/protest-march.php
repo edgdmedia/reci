@@ -29,7 +29,7 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 <section class="reci-stage flex flex-col items-center justify-center bg-[#111] p-8 text-white <?php echo esc_attr($args['section_class'] ?? ''); ?>" id="<?php echo esc_attr($args['id']); ?>" data-reflection-id="<?php echo esc_attr(get_the_ID()); ?>" data-prompt="<?php echo esc_attr($args['prompt']); ?>"<?php echo $section_attributes; ?>>
 	<div class="reci-reflection-form w-full max-w-[840px] border border-[rgba(255,255,255,0.12)] bg-gradient-to-b from-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] p-[clamp(2rem,4vw,3.25rem)] text-center shadow-[0_24px_60px_rgba(0,0,0,0.2)]">
 		<h2 class="mb-[1.75rem] font-['Oswald'] text-[clamp(2.8rem,5vw,4.2rem)] uppercase tracking-[0.04em] reci-reflection-accent">Your Reflection</h2>
-		<p class="mx-auto mb-[2rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.6rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]"><?php echo esc_html($args['prompt']); ?></p>
+		<p class="mx-auto mb-[2rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.6rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]"><?php echo reci_reflection_format_text($args['prompt']); ?></p>
 		<textarea class="reflect-input reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-['Merriweather'] text-white" placeholder="Share your thoughts..."></textarea>
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<p class="mb-6 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>

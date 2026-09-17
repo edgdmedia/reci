@@ -27,7 +27,7 @@ $args = wp_parse_args($args ?? [], [
 					<div>
 					<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 					<h2 class="mt-3 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl"><?php echo esc_html($args['title']); ?></h2>
-					<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($args['intro']); ?></p>
+					<p class="mt-5 text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 					</div>
 					<div class="mt-8 flex flex-wrap gap-4">
 						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
@@ -42,7 +42,7 @@ $args = wp_parse_args($args ?? [], [
 								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($item['annotations'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
 								<div class="p-4">
 									<h3 class="mb-1 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($item['title']); ?></h3>
-									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo esc_html($item['description']); ?></p>
+									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($item['description']); ?></p>
 								</div>
 							</article>
 						<?php endforeach; ?>

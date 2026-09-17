@@ -1533,6 +1533,7 @@ function reci_install_demo_content( array $only_types = [] ): void {
 					'panel-1a.webp', 'panel-1b.webp', 'panel-2a.webp', 'panel-2b.webp',
 					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp', 'at-70.webp',
 					'comments-from-teachers.pdf', 'swauger-museum-as-teacher.pdf',
+					'roosevelt-1956.webp',
 				];
 				$wh_img = [];
 				foreach ( $wh_files as $file ) {
@@ -2702,7 +2703,7 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 					'eyebrow'              => 'A Digital Exhibit',
 					'title'                => '"We Humans"',
 					'subtitle'             => 'Educating Pittsburgh on Race in the 1950s',
-					'body'                 => 'In the years following World War II, global shock over the Holocaust, growing demands to end race-based discrimination, and shifting ideas in science created a charged and consequential environment for social change. This digital exhibit shares one story of how civic, labor, and education leaders in Pittsburgh responded to that moment.',
+					'body'                 => 'In the years following World War II, global shock over the Holocaust, growing demands to end race-based discrimination, and shifting ideas in science created a charged and consequential environment for social change.' . "\n\n" . 'This digital exhibit shares one story of how civic, labor, and education leaders in Pittsburgh responded to that moment.',
 					'caption'              => 'Students hearing the "We Humans" curriculum, Monongahela High School, 1959. Photograph by Michel Chalufour. Courtesy of Carnegie Museum of Natural History, Library & Archives.',
 					'use_background_image' => '1',
 					'background_image'     => $im( 'students-1959.webp' ),
@@ -2768,7 +2769,7 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'paragraphs' => [
 								[ 'text' => 'In December 1949, a group of academics (mostly anthropologists) gathered in Paris to draft the first UNESCO Statement on Race of 1950, aiming to eliminate racial prejudice through knowledge. Ideas about race in anthropology were slowly shifting away from harmful comparisons between groups, even as many scholars still relied on now-discredited techniques like skull measuring to categorize people. The UNESCO Statement, and later "We Humans," reflect this moment of transition.' ],
 								[ 'text' => 'The UNESCO Statement called racism out as a dangerous social myth not supported by science. It defined "races" as groups of humans who through geographic isolation and natural selection came to show distinct, but variable, physical traits. Nevertheless, it still named three main racial groups as known to science (none of which are recognized as accurate today): Caucasoid, Mongoloid, and Negroid.' ],
-								[ 'text' => 'The UNESCO Statement thus combined messages about human equality that were progressive, and actually controversial at the time, alongside ideas that are now considered out of date and offensive. A few years later, "We Humans" repeated these same tensions.' ],
+								[ 'text' => 'The UNESCO Statement thus combined messages about human equality that were progressive, and actually controversial at the time, alongside ideas that are now considered out of date and offensive. A few years later, "We Humans" reprised these same tensions.' ],
 							],
 							'links'      => [
 								[ 'label' => 'Read the 2019 AABA statement on race that shows how ideas in anthropology have changed', 'href' => 'https://onlinelibrary.wiley.com/doi/10.1002/ajpa.23882' ],
@@ -2798,7 +2799,7 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'date'  => 'February 1955',
 							'title' => 'On view downtown',
 							'body'  => '"We Humans" goes on view in the City-County Building in downtown Pittsburgh. Four display cases arrived on a staggered schedule to keep visitors returning.',
-							'link'  => [ [ 'label' => 'See the first case (Teenie Harris, Pittsburgh Courier)', 'href' => 'https://collection.carnegieart.org/objects/2708a0a3-4fac-432f-9239-7613c333c102' ] ],
+							'link'  => [ [ 'label' => 'Photograph by Charles "Teenie" Harris for <em>The Pittsburgh Courier</em>', 'href' => 'https://collection.carnegieart.org/objects/2708a0a3-4fac-432f-9239-7613c333c102' ] ],
 						],
 						[
 							'date'  => 'July 1955',
@@ -2820,11 +2821,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'date'  => 'March 1956',
 							'title' => 'Eleanor Roosevelt praises it',
 							'body'  => 'First Lady Eleanor Roosevelt received a copy of the booklet from Swauger and praised it in her column "My Day," writing that "North and South alike must learn to evaluate human beings as such." Her column drew further interest.',
+							'media' => [ [ 'src' => $im( 'roosevelt-1956.webp' ), 'alt' => 'Letter from Eleanor Roosevelt to James Swauger', 'caption' => 'Letter from Eleanor Roosevelt to James Swauger, March 1956.' ] ],
 						],
 						[
 							'date'  => 'June 1956',
 							'title' => 'In the Courier',
-							'body'  => 'Ric Roberts wrote about the exhibit and its school tour in The Pittsburgh Courier. Its message — that humans differed by "type" but were fundamentally united and equal — resonated.',
+							'body'  => 'Ric Roberts wrote about the exhibit and its school tour in <em>The Pittsburgh Courier</em>. Its message — that humans differed by "type" but were fundamentally united and equal — resonated.',
 							'media' => [ [ 'src' => $im( 'courier-1956.webp' ), 'alt' => 'Pittsburgh Courier article', 'caption' => 'Ric Roberts, "Treasure Trove: School, Churchmen Agree \'Race\' is Mythical," The Pittsburgh Courier, June 2, 1956. From newspapers.com.' ] ],
 						],
 						[
@@ -2848,8 +2850,8 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'title' => 'The Indiana Centennial',
 							'body'  => '"We Humans" is displayed at the Indiana Centennial in Indianapolis.',
 							'media' => [
-								[ 'src' => $im( 'indianapolis-1.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963. Courtesy of the University of Pittsburgh Library System\'s Archives & Special Collections (Francis C. Shane Papers, 1942-1969, AIS.1996.03).' ],
-								[ 'src' => $im( 'indianapolis-2.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.' ],
+								[ 'src' => $im( 'indianapolis-1.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963. Courtesy of the University of Pittsburgh Library System\'s Archives & Special Collections (Francis C. Shane Papers, 1942-1969, AIS.1996.03).', 'object_fit' => 'cover' ],
+								[ 'src' => $im( 'indianapolis-2.webp' ), 'alt' => 'We Humans on view in Indianapolis', 'caption' => '"We Humans" on view in Indianapolis, 1963.', 'object_fit' => 'cover' ],
 							],
 						],
 						[
@@ -2866,12 +2868,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 						[
 							'date'  => 'October 2014',
 							'title' => 'Finding the Words',
-							'body'  => 'When Carnegie Museum of Natural History hosts the acclaimed traveling exhibit RACE: Are We So Different? staff organized a small display on "We Humans" titled "Finding the Words: Pittsburgh and the Early Civil Rights Movement," striking a largely celebratory tone and emphasizing the positive intentions and unexpected reach of "We Humans" in its moment.',
+							'body'  => 'When Carnegie Museum of Natural History hosts the acclaimed traveling exhibit <em>RACE: Are We So Different?</em> staff organized a small display on "We Humans" titled "Finding the Words: Pittsburgh and the Early Civil Rights Movement," striking a largely celebratory tone and emphasizing the positive intentions and unexpected reach of "We Humans" in its moment.',
 						],
 						[
 							'date'  => 'September 2025',
 							'title' => '"We Humans" at 70',
-							'body'  => 'The exhibit "We Humans" at 70: Educating Pittsburgh on Race in the 1950s, organized by Deirdre Madeleine Smith (with Lindsey Kenny, then a University of Pittsburgh student and intern), opens at the Hyland Gallery at Hillman Library on the University of Pittsburgh campus. It shared the story of "We Humans" through original archival records and critical, reparative interpretation.',
+							'body'  => 'The exhibit <em>"We Humans" at 70: Educating Pittsburgh on Race in the 1950s</em>, organized by Deirdre Madeleine Smith (with Lindsey Kenny, then a University of Pittsburgh student and intern), opens at the Hyland Gallery at Hillman Library on the University of Pittsburgh campus. It shared the story of "We Humans" through original archival records and critical, reparative interpretation.',
 							'media' => [ [ 'src' => $im( 'at-70.webp' ), 'alt' => 'We Humans at 70 exhibit in Hyland Gallery', 'caption' => '"We Humans" at 70: Educating Pittsburgh on Race in the 1950s. Hyland Gallery at Hillman Library, University of Pittsburgh. September 2025–July 2026. Photograph by Deirdre Madeleine Smith.' ] ],
 						],
 					],

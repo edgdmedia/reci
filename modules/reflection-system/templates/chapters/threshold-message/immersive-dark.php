@@ -50,7 +50,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 	<div class="threshold-content">
 		<h2 class="thresh-text"><?php echo esc_html($title); ?></h2>
 		<?php if (! empty($args['body'])) : ?>
-			<p class="mt-6 max-w-[620px] mx-auto text-lg leading-8 reci-reflection-text opacity-80"><?php echo esc_html($args['body']); ?></p>
+			<p class="mt-6 max-w-[620px] mx-auto text-lg leading-8 reci-reflection-text opacity-80"><?php echo reci_reflection_format_text($args['body']); ?></p>
 		<?php endif; ?>
 		<br>
 		<?php if ($button_text !== '' && $continue_target !== '' && $transition_mode === 'button') : ?>

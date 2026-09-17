@@ -59,11 +59,11 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 		<?php endif; ?>
 		
 		<?php if ($args['body']) : ?>
-			<p class="mt-5 text-base leading-8 reci-reflection-text sm:text-lg sm:leading-9 max-w-[42rem] mx-auto"><?php echo esc_html($args['body']); ?></p>
+			<p class="mt-5 text-base leading-8 reci-reflection-text sm:text-lg sm:leading-9 max-w-[42rem] mx-auto"><?php echo reci_reflection_format_text($args['body']); ?></p>
 		<?php endif; ?>
 		
 		<?php if ($args['caption']) : ?>
-			<p class="mt-6 text-sm uppercase tracking-[0.08em] reci-reflection-muted"><?php echo esc_html($args['caption']); ?></p>
+			<p class="mt-6 text-sm uppercase tracking-[0.08em] reci-reflection-muted"><?php echo reci_reflection_format_text($args['caption']); ?></p>
 		<?php endif; ?>
 		
 		<?php if (! empty($args['actions']) && ($args['transition_mode'] ?? 'button') === 'button') : ?>

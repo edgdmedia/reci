@@ -58,7 +58,7 @@ $args = wp_parse_args($args ?? [], [
 				?>
 				<a class="block rounded-[20px] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-surface)] px-5 py-5 no-underline transition hover:bg-[var(--reflection-card)]" href="<?php echo esc_url($item['href'] ?? '#'); ?>"<?php echo $item_attributes; ?>>
 					<strong class="mb-1 block font-['Oswald'] text-sm uppercase tracking-[0.08em] reci-reflection-accent"><?php echo esc_html($item['title']); ?></strong>
-					<span class="text-sm leading-7 reci-reflection-soft-text"><?php echo esc_html($item['description']); ?></span>
+					<span class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($item['description']); ?></span>
 				</a>
 			<?php endforeach; ?>
 		</div>

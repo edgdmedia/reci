@@ -28,17 +28,17 @@ $args = wp_parse_args($args ?? [], [
 					<div class="reci-scroll-panel !justify-start">
 						<div class="font-['Oswald'] text-xs uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 						<h2 class="mt-3 font-['Playfair_Display'] text-3xl font-semibold leading-tight reci-reflection-text sm:text-4xl"><?php echo esc_html($args['title']); ?></h2>
-						<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo esc_html($args['intro']); ?></p>
+						<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 						<div class="mt-6 grid gap-4 md:grid-cols-2">
 							<?php foreach ((array) $args['cards'] as $card) : ?>
-								<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5"><h3 class="mb-2 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3><p class="text-sm leading-7 reci-reflection-soft-text"><?php echo esc_html($card['body']); ?></p></article>
+								<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5"><h3 class="mb-2 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3><p class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($card['body']); ?></p></article>
 							<?php endforeach; ?>
 						</div>
 					</div>
 				</div>
 				<div class="reci-scroll-panel !justify-start rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
 					<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Save your reflection</h3>
-					<p class="text-sm leading-7 reci-reflection-soft-text">Prompt: <?php echo esc_html($args['prompt']); ?></p>
+					<p class="text-sm leading-7 reci-reflection-soft-text">Prompt: <?php echo reci_reflection_format_text($args['prompt']); ?></p>
 					<div id="responseGate" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
 					<div id="responseFormShell" class="mt-4">
 						<label class="mb-2 block font-['Oswald'] text-xs uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>

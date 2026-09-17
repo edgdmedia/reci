@@ -15,7 +15,7 @@ $args = wp_parse_args($args ?? [], [
 	<div class="crowd-content">
 		<div class="crowd-body">
 			<div class="crowd-kicker">Crowd Memory</div>
-			<div class="crowd-text"><?php echo esc_html($args['text']); ?></div>
+			<div class="crowd-text"><?php echo reci_reflection_format_text($args['text']); ?></div>
 		</div>
 		<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
 		<button type="button" class="start-btn crowd-cta" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['button_label']); ?></button>
