@@ -1532,7 +1532,6 @@ function reci_install_demo_content( array $only_types = [] ): void {
 					'courier-1956.webp', 'sf-library-1959.webp', 'indianapolis-1.webp', 'indianapolis-2.webp',
 					'panel-1a.webp', 'panel-1b.webp', 'panel-2a.webp', 'panel-2b.webp',
 					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp', 'at-70.webp',
-					'panel-2a-portable.webp',
 					'comments-from-teachers.pdf', 'swauger-museum-as-teacher.pdf',
 					'roosevelt-1956.webp',
 				];
