@@ -203,7 +203,6 @@ function reci_demo_expected_group_paths( string $group ): array {
 
 function reci_demo_group_status_map(): array {
 	$types    = reci_demo_content_types();
-	$registry = reci_demo_get_asset_registry();
 	$slugs    = get_option( 'reci_demo_slugs', [] );
 	$job      = reci_demo_get_job();
 	$queue    = is_array( $job['queue'] ?? null ) ? $job['queue'] : [];
@@ -218,7 +217,7 @@ function reci_demo_group_status_map(): array {
 			$paths = reci_demo_expected_group_paths( $group );
 			$expected = count( $paths );
 			foreach ( $paths as $path ) {
-				if ( ! empty( $registry[ $path ]['attachment_id'] ) ) {
+				if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
 					$imported++;
 				}
 			}
@@ -580,9 +579,36 @@ function reci_demo_get_registered_asset( string $path ): array {
 	return is_array( $entry ) ? $entry : [];
 }
 
+/**
+ * The attachment a registry entry points at, if it is still there.
+ *
+ * The registry records what was imported, not what survives. Deleting the media
+ * library left 157 of 158 entries pointing at attachments that no longer exist,
+ * and because both the status screen and the importer trusted the recorded id,
+ * every group still read "completed" and a re-import skipped every file. A dead
+ * entry is dropped so the next run imports it again.
+ */
+function reci_demo_registered_attachment_id( string $path ): int {
+	$entry = reci_demo_get_registered_asset( $path );
+	$id    = (int) ( $entry['attachment_id'] ?? 0 );
+
+	if ( $id <= 0 ) {
+		return 0;
+	}
+
+	if ( 'attachment' === get_post_type( $id ) ) {
+		return $id;
+	}
+
+	$registry = reci_demo_get_asset_registry();
+	unset( $registry[ $path ] );
+	reci_demo_set_asset_registry( $registry );
+
+	return 0;
+}
+
 function reci_demo_import_image_asset( string $path ): array {
-	$existing = reci_demo_get_registered_asset( $path );
-	if ( ! empty( $existing['attachment_id'] ) ) {
+	if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
 		return reci_demo_result_entry( 'skipped', $path, 'Image already imported.', [ 'path' => $path ] );
 	}
 
@@ -615,8 +641,7 @@ function reci_demo_import_remote_image_asset( array $asset ): array {
 		return reci_demo_result_entry( 'failed', 'Remote image', 'Remote image asset is missing a path or URL.' );
 	}
 
-	$existing = reci_demo_get_registered_asset( $path );
-	if ( ! empty( $existing['attachment_id'] ) ) {
+	if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
 		return reci_demo_result_entry( 'skipped', $path, 'Remote image already imported.', [ 'path' => $path ] );
 	}
 
