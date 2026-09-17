@@ -291,7 +291,7 @@
       return;
     }
     if (annotationTitle) annotationTitle.textContent = note.title;
-    if (annotationBody) annotationBody.textContent = note.body;
+    if (annotationBody) annotationBody.innerHTML = note.body;
     if (annotationList) {
       annotationList.innerHTML = notes.map((item, index) => `
         <button type="button" class="annotation-chip w-full rounded-[14px] border px-4 py-3 text-left text-sm transition ${index === annotationIndex ? 'active' : ''}" style="border-color:${index === annotationIndex ? 'var(--reflection-accent)' : 'var(--reflection-border)'}; background:${index === annotationIndex ? 'rgba(167, 199, 150, 0.28)' : 'rgba(255,255,255,0.12)'}; color:var(--reflection-text);" data-annotation-index="${index}">
@@ -406,20 +406,21 @@
 
     const isLoggedIn = Boolean(config.isLoggedIn || Number(config.currentUserId || 0) > 0);
 
+    // Writing is always enabled; the auth modal gates submission.
     if (gate) {
-      gate.style.display = isLoggedIn ? 'none' : 'block';
+      gate.style.display = 'none';
     }
 
     if (formShell) {
-      formShell.style.opacity = isLoggedIn ? '1' : '0.6';
+      formShell.style.opacity = '1';
     }
 
     if (responseInput) {
-      responseInput.disabled = !isLoggedIn;
+      responseInput.disabled = false;
     }
 
     if (saveButton) {
-      saveButton.disabled = !isLoggedIn;
+      saveButton.disabled = false;
     }
 
     function escapeHtml(value) {
@@ -432,7 +433,7 @@
     }
 
     async function loadResponses() {
-      if (!isLoggedIn || !config.restUrl || !config.reflectionId) {
+      if (!(window.reciIsLoggedIn || isLoggedIn) || !config.restUrl || !config.reflectionId) {
         responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">Log in to save and review your reflections.</div>';
         return;
       }
@@ -440,7 +441,7 @@
       url.searchParams.set('reflection_id', config.reflectionId);
       const res = await fetch(url.toString(), {
         credentials: 'same-origin',
-        headers: { 'X-WP-Nonce': config.nonce }
+        headers: { 'X-WP-Nonce': (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce }
       });
       const data = await res.json();
       const items = Array.isArray(data.items) ? data.items : [];
@@ -458,22 +459,31 @@
     }
 
     saveButton?.addEventListener('click', async () => {
-      if (!isLoggedIn) {
-        if (status) {
-          status.textContent = 'Log in to save your reflection.';
-          status.style.display = 'block';
-        }
-        return;
-      }
-
       const response = (responseInput?.value || '').trim();
-      if (!response || !config.restUrl) {
+      if (!response) {
         if (status) {
           status.textContent = 'Write a response before saving.';
           status.style.display = 'block';
         }
         return;
       }
+
+      // Writing is allowed without an account; submitting requires one.
+      const loggedInNow = Boolean(window.reciIsLoggedIn || isLoggedIn);
+      if (!loggedInNow && window.reciShowAuthModal) {
+        const authed = await window.reciShowAuthModal();
+        if (!authed) return;
+      }
+
+      const nonce = (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce;
+      if (!config.restUrl || !nonce) {
+        if (status) {
+          status.textContent = 'Unable to save right now.';
+          status.style.display = 'block';
+        }
+        return;
+      }
+
       saveButton.disabled = true;
       if (status) {
         status.textContent = 'Saving...';
@@ -485,7 +495,7 @@
           credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
-            'X-WP-Nonce': config.nonce,
+            'X-WP-Nonce': nonce,
           },
           body: JSON.stringify({
             reflection_id: config.reflectionId,

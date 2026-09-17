@@ -39,7 +39,6 @@ $args = wp_parse_args($args ?? [], [
 				<div class="reci-scroll-panel !justify-start rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
 					<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Save your reflection</h3>
 					<p class="text-sm leading-7 reci-reflection-soft-text">Prompt: <?php echo reci_reflection_format_text($args['prompt']); ?></p>
-					<div id="responseGate" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
 					<div id="responseFormShell" class="mt-4">
 						<label class="mb-2 block font-['Oswald'] text-xs uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 text-sm reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>

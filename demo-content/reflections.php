@@ -103,10 +103,10 @@ return [
 			'category' => 'Systemic Racism',
 			'topics'   => [ 'Education', 'Systemic Racism' ],
 			'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
-			'featured' => 'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.jpg',
+			'featured' => 'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.webp',
 			'post_date' => '2025-01-28 19:49:11',
 			'assets'   => [
-				'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.jpg',
+				'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.webp',
 				'site/reflections/we-humans/are-you-ethnocentric.webp',
 				'site/reflections/we-humans/ethnocentric.webp',
 				'site/reflections/we-humans/teacher-1959.webp',

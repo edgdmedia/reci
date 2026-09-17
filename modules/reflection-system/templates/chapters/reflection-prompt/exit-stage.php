@@ -41,7 +41,6 @@ $args = wp_parse_args($args ?? [], [
 				<?php endif; ?>
 				<div class="mt-8 w-full max-w-[42rem] rounded-[24px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-6 text-left">
 					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent" for="reflectionResponse"><?php echo reci_reflection_format_text($args['prompt'] ?: 'Your reflection'); ?></label>
-					<div id="responseGate" class="mb-4 hidden rounded-[18px] bg-[var(--reflection-card-strong)] px-4 py-4 text-sm reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
 					<div id="responseFormShell">
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
 						<div class="mt-4 flex flex-wrap gap-4">

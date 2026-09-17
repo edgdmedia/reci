@@ -40,8 +40,19 @@ $args = wp_parse_args($args ?? [], [
 				<div class="reci-panel-scroll">
 					<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 						<?php foreach ((array) $args['items'] as $item) : ?>
+							<?php
+							$panel_annotations = array_map(
+								static function ( $annotation ) {
+									if ( is_array( $annotation ) ) {
+										$annotation['body'] = reci_reflection_format_text( (string) ( $annotation['body'] ?? '' ) );
+									}
+									return $annotation;
+								},
+								(array) ( $item['annotations'] ?? [] )
+							);
+							?>
 							<article class="overflow-hidden rounded-[20px] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-surface)]">
-								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($item['annotations'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
+								<img class="panel-image block max-h-[480px] w-full cursor-zoom-in object-contain" src="<?php echo esc_url($item['src']); ?>" alt="<?php echo esc_attr($item['alt']); ?>" data-annotations="<?php echo esc_attr(wp_json_encode($panel_annotations, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>">
 								<div class="p-4">
 									<h3 class="mb-1 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($item['title']); ?></h3>
 									<p class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($item['description']); ?></p>

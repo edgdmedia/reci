@@ -19,7 +19,7 @@ $placeholder_avatar       = 'https://placehold.co/60x60';
 $today_background_image   = 'https://placehold.co/1440x750';
 $icons_url                = get_template_directory_uri() . '/assets/icons/';
 $reflection_background_images = [
-	get_template_directory_uri() . '/demo-content/images/site/reflections/we-humans/' . rawurlencode( 'We Humans - Students hearing the curriculum, 1959.jpg' ),
+	get_template_directory_uri() . '/demo-content/images/site/reflections/we-humans/' . rawurlencode( 'We Humans - Students hearing the curriculum, 1959.webp' ),
 ];
 
 $get_post_image = static function (int $post_id, string $size = 'large', string $fallback = ''): string {
@@ -250,7 +250,7 @@ if (! empty($reflection_posts)) {
 	}
 	if (empty($reflection_background_images)) {
 		$reflection_background_images = [
-			get_template_directory_uri() . '/demo-content/images/site/reflections/we-humans/' . rawurlencode( 'We Humans - Students hearing the curriculum, 1959.jpg' ),
+			get_template_directory_uri() . '/demo-content/images/site/reflections/we-humans/' . rawurlencode( 'We Humans - Students hearing the curriculum, 1959.webp' ),
 		];
 	}
 }
