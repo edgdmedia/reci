@@ -307,6 +307,27 @@
     }
   }
 
+  function parsePanelAnnotations(panel) {
+    if (panel?.dataset?.annotationsJson) {
+      try {
+        const binary = atob(panel.dataset.annotationsJson);
+        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+        const decoded = new TextDecoder().decode(bytes);
+        const parsed = JSON.parse(decoded);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    try {
+      const parsed = JSON.parse(panel?.dataset?.annotations || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
   function initLightbox() {
     const lightbox = byId('lightbox');
     const image = byId('lightboxImage');
@@ -348,13 +369,7 @@
       }
       const panel = event.target.closest('.panel-image');
       if (!panel) return;
-      let notes = [];
-      try {
-        const parsed = JSON.parse(panel.dataset.annotations || '[]');
-        if (Array.isArray(parsed)) notes = parsed;
-      } catch (error) {
-        notes = [];
-      }
+      const notes = parsePanelAnnotations(panel);
       image.src = panel.getAttribute('src') || '';
       image.alt = panel.getAttribute('alt') || '';
       image.dataset.annotations = JSON.stringify(notes);
@@ -519,11 +534,20 @@
     loadResponses();
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  let booted = false;
+  function boot() {
+    if (booted) return;
+    booted = true;
     initStageFlow();
     initMenuOverlay();
     initTimelineWorld();
     initLightbox();
     initResponses();
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
 })();
