@@ -992,7 +992,7 @@ function reci_demo_import_reflection_item( array $item ): array {
 	if ( '' === $slug ) {
 		return reci_demo_result_entry( 'failed', 'Reflection', 'Missing reflection slug.' );
 	}
-	if ( get_page_by_path( $slug, OBJECT, 'reci_reflection' ) ) {
+	if ( get_page_by_path( $slug, OBJECT, 'reci_reflection' ) && 'we-humans' !== (string) ( $item['kind'] ?? '' ) ) {
 		return reci_demo_result_entry( 'skipped', $title, 'Reflection already exists.', [ 'slug' => $slug ] );
 	}
 
