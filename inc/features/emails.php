@@ -105,7 +105,7 @@ if ( ! function_exists( 'reci_email_render' ) ) {
 		$logo_width = 'reci-logo' === $logo_size ? 180 : 150;
 		$logo_url   = $logo_id > 0 ? (string) wp_get_attachment_image_url( $logo_id, $logo_size ) : '';
 		if ( '' === $logo_url ) {
-			$logo_url = get_template_directory_uri() . '/assets/images/reci-collab.png';
+	$logo_url = get_template_directory_uri() . '/assets/images/reci-collab.png';
 		}
 
 		$wordmark = '<img class="reci-logo" src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $site ) . '" width="' . $logo_width . '" style="display:block;width:' . $logo_width . 'px;max-width:60%;height:auto;border:0;outline:none;text-decoration:none;font-family:\'Arial Narrow\',Arial,sans-serif;font-size:20px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:' . $c['navy'] . ';" />';

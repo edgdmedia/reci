@@ -49,7 +49,7 @@ $collage_size_classes = [
 $shared_fallback_image = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('large', 'https://placehold.co/387x300') : 'https://placehold.co/387x300';
 $fallback_avatar       = function_exists('reci_get_fallback_thumbnail_url') ? reci_get_fallback_thumbnail_url('thumbnail', 'https://placehold.co/60x60') : 'https://placehold.co/60x60';
 
-$connect_image = trailingslashit(get_template_directory_uri()) . 'assets/images/connect-now3.png';
+$connect_image = trailingslashit(get_template_directory_uri()) . 'demo-content/images/site/theme/connect-now3.png';
 
 $community_post = get_posts(
 	[

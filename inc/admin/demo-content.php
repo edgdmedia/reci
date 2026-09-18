@@ -38,9 +38,167 @@ add_action( 'admin_menu', function (): void {
 	);
 });
 
+if ( ! function_exists( 'reci_demo_taxonomy_groups' ) ) {
+	function reci_demo_tag_terms(): array {
+		$datasets = [ 'articles', 'events', 'podcasts', 'videos', 'courses', 'assessments', 'reflections' ];
+		$tags = [];
+		$collect = static function ( $value ) use ( &$collect, &$tags ): void {
+			if ( is_array( $value ) ) {
+				if ( isset( $value['tags'] ) && is_array( $value['tags'] ) ) {
+					foreach ( $value['tags'] as $tag ) {
+						if ( is_string( $tag ) && '' !== trim( $tag ) ) {
+							$tags[] = trim( $tag );
+						}
+					}
+				}
+
+				foreach ( $value as $child ) {
+					$collect( $child );
+				}
+			}
+		};
+
+		foreach ( $datasets as $dataset ) {
+			if ( function_exists( 'reci_demo_load_php_dataset' ) ) {
+				$collect( reci_demo_load_php_dataset( $dataset ) );
+			}
+		}
+
+		return array_values( array_unique( $tags ) );
+	}
+
+	function reci_demo_collaborator_taxonomy_terms( string $field ): array {
+		$terms = [];
+		$profiles = function_exists( 'reci_collaborator_import_dataset' ) ? reci_collaborator_import_dataset() : [];
+
+		foreach ( $profiles as $profile ) {
+			foreach ( (array) ( $profile[ $field ] ?? [] ) as $term ) {
+				if ( is_string( $term ) && '' !== trim( $term ) ) {
+					$terms[] = trim( $term );
+				}
+			}
+		}
+
+		return array_values( array_unique( $terms ) );
+	}
+
+	function reci_demo_taxonomy_groups(): array {
+		$sphere_names = function_exists( 'reci_media_hub_default_spheres' )
+			? array_values( array_filter( array_map( static fn( $sphere ) => (string) ( $sphere['name'] ?? '' ), reci_media_hub_default_spheres() ) ) )
+			: [
+				'Recognizing Racial Oppression',
+				'Examining Racial Identities',
+				'Embracing Racial Diversity',
+				'Building Racial Empathy',
+				'Acknowledging Racial Trauma',
+				'Gauging Racial Inequities',
+			];
+		$sphere_names[] = 'Fostering Racial Literacy';
+
+		$sdg_names = function_exists( 'reci_media_hub_default_sdgs' )
+			? array_values( array_filter( array_map( static fn( $sdg ) => (string) ( $sdg['name'] ?? '' ), reci_media_hub_default_sdgs() ) ) )
+			: [
+				'No Poverty', 'Zero Hunger', 'Good Health and Well-being', 'Quality Education',
+				'Gender Equality', 'Clean Water and Sanitation', 'Affordable and Clean Energy',
+				'Decent Work and Economic Growth', 'Industry, Innovation and Infrastructure',
+				'Reduced Inequalities', 'Sustainable Cities and Communities',
+				'Responsible Consumption and Production', 'Climate Action', 'Life Below Water',
+				'Life on Land', 'Peace, Justice and Strong Institutions', 'Partnerships for the Goals',
+			];
+		$affiliation_names = function_exists( 'reci_media_hub_default_collaborator_affiliation_terms' )
+			? reci_media_hub_default_collaborator_affiliation_terms()
+			: [ 'Alumni', 'Community Partner', 'Consultant', 'Faculty', 'Researcher', 'Staff', 'Student' ];
+		$expertise_names = function_exists( 'reci_media_hub_default_expertise_terms' )
+			? reci_media_hub_default_expertise_terms()
+			: [ 'Behavioral Health', 'Community Development', 'Economics', 'Education', 'Family', 'Law', 'Mental Health', 'Public Health', 'Race Relations', 'Racial Equity' ];
+		$audience_names = function_exists( 'reci_media_hub_default_target_audience_terms' )
+			? reci_media_hub_default_target_audience_terms()
+			: [ 'Educators / Academics', 'Community Organizers', 'Policy Makers', 'Organizational Leaders', 'Students', 'General Public' ];
+		$affiliation_names = array_values( array_unique( array_merge( $affiliation_names, reci_demo_collaborator_taxonomy_terms( 'affiliation' ) ) ) );
+		$expertise_names = array_values( array_unique( array_merge( $expertise_names, reci_demo_collaborator_taxonomy_terms( 'practice_focus' ) ) ) );
+
+		return [
+			'reci_demo_taxonomy_topics' => [
+				'label'    => 'Topics',
+				'taxonomy' => 'reci_topic',
+				'terms'    => [
+					'Systemic Racism', 'Intersectionality', 'Cultural Identity', 'Workplace Equity',
+					'Community Action', 'Education', 'Health Disparities', 'Criminal Justice',
+					'Indigenous Rights', 'Technology & Equity', 'Public Service', 'Rural Equity',
+					'Health Determinants', 'Inclusion', 'Access', 'Economic Stability',
+					'Cultural Competence',
+				],
+			],
+			'reci_demo_taxonomy_categories' => [
+				'label'    => 'Categories',
+				'taxonomy' => 'category',
+				'terms'    => [
+					'Systemic Racism', 'Intersectionality', 'Cultural Identity', 'Workplace Equity',
+					'Community Action', 'Education', 'Health Disparities', 'Criminal Justice',
+					'Indigenous Rights', 'Technology & Equity', 'Public Service', 'Rural Equity',
+					'Health Determinants', 'Inclusion', 'Cultural Competence', 'Access',
+					'Economic Stability',
+				],
+			],
+			'reci_demo_taxonomy_locations' => [
+				'label'    => 'Locations',
+				'taxonomy' => 'reci_location',
+				'terms'    => [ 'Pittsburgh', 'Allegheny County', 'Pennsylvania', 'National' ],
+			],
+			'reci_demo_taxonomy_spheres' => [
+				'label'    => 'RECI Spheres',
+				'taxonomy' => 'reci_sphere',
+				'terms'    => array_values( array_unique( $sphere_names ) ),
+			],
+			'reci_demo_taxonomy_practice_focus' => [
+				'label'    => 'Practice Focus',
+				'taxonomy' => 'reci_practice_focus',
+				'terms'    => [ 'Framework / Model', 'Community-Based Approach', 'Policy / Legislation', 'Curriculum / Training', 'Practice / Intervention', 'Research / Evaluation', 'Organizational Strategy', 'Other' ],
+			],
+			'reci_demo_taxonomy_affiliations' => [
+				'label'    => 'Affiliations',
+				'taxonomy' => 'reci_affiliation',
+				'terms'    => $affiliation_names,
+			],
+			'reci_demo_taxonomy_expertise' => [
+				'label'    => 'Subject Areas',
+				'taxonomy' => 'reci_expertise',
+				'terms'    => $expertise_names,
+			],
+			'reci_demo_taxonomy_target_audience' => [
+				'label'    => 'Target Audience',
+				'taxonomy' => 'reci_target_audience',
+				'terms'    => $audience_names,
+			],
+			'reci_demo_taxonomy_tags' => [
+				'label'    => 'Tags',
+				'taxonomy' => 'post_tag',
+				'terms'    => reci_demo_tag_terms(),
+			],
+			'reci_demo_taxonomy_shows' => [
+				'label'    => 'Shows',
+				'taxonomy' => 'reci_show',
+				'terms'    => [ 'Healing Overflow with Dr Toy' ],
+			],
+			'reci_demo_taxonomy_sdgs' => [
+				'label'    => 'SDGs',
+				'taxonomy' => 'sdgs',
+				'terms'    => $sdg_names,
+			],
+		];
+	}
+}
+
 if ( ! function_exists( 'reci_demo_content_types' ) ) {
 	function reci_demo_content_types(): array {
 		$image_groups = function_exists( 'reci_demo_image_groups' ) ? reci_demo_image_groups() : [];
+		$taxonomy_groups = [];
+		foreach ( reci_demo_taxonomy_groups() as $key => $group ) {
+			$taxonomy_groups[ $key ] = [
+				'label' => (string) $group['label'],
+				'count' => count( (array) $group['terms'] ),
+			];
+		}
 		return [
 			'reci_demo_images_reflections' => [ 'label' => 'Reflection Images', 'count' => count( $image_groups['reci_demo_images_reflections'] ?? [] ) ],
 			'reci_demo_images_articles'    => [ 'label' => 'Article Images',    'count' => count( $image_groups['reci_demo_images_articles'] ?? [] ) ],
@@ -51,7 +209,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_demo_images_quizzes'     => [ 'label' => 'Quiz Images',       'count' => count( $image_groups['reci_demo_images_quizzes'] ?? [] ) ],
 			'reci_demo_images_partners'    => [ 'label' => 'Partner Images',    'count' => count( $image_groups['reci_demo_images_partners'] ?? [] ) ],
 			'reci_demo_images_misc'        => [ 'label' => 'Shared / Misc Images', 'count' => count( $image_groups['reci_demo_images_misc'] ?? [] ) ],
-			'reci_demo_taxonomies'         => [ 'label' => 'Taxonomies (Spheres, SDGs, Topics, Locations)', 'count' => 6 + 17 + 8 + 4 ],
+		] + $taxonomy_groups + [
 			'post'   => [ 'label' => 'Articles',     'count' => 15 ],
 			'reci_podcast'   => [ 'label' => 'Podcasts',     'count' => 3 ],
 			'reci_video'     => [ 'label' => 'Videos',       'count' => 6 ],
@@ -221,8 +379,8 @@ function reci_demo_group_status_map(): array {
 					$imported++;
 				}
 			}
-		} elseif ( 'reci_demo_taxonomies' === $group ) {
-			$imported = get_option( 'reci_demo_taxonomies_seeded', false ) ? $expected : 0;
+		} elseif ( 'reci_demo_taxonomies' === $group || isset( reci_demo_taxonomy_groups()[ $group ] ) ) {
+			$imported = reci_demo_imported_taxonomy_count( $group );
 		} elseif ( reci_demo_group_uses_demo_posts( $group ) ) {
 			$imported = reci_demo_imported_post_count_for_group( $group );
 		} else {
@@ -431,7 +589,67 @@ function reci_demo_reflection_queue_items(): array {
 	return array_values( (array) ( $dataset['items'] ?? [] ) );
 }
 
+function reci_demo_seed_taxonomy_group( string $group_key ): void {
+	$groups = reci_demo_taxonomy_groups();
+	$selected_groups = 'reci_demo_taxonomies' === $group_key ? $groups : array_intersect_key( $groups, [ $group_key => true ] );
+
+	foreach ( $selected_groups as $key => $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		$terms    = (array) ( $group['terms'] ?? [] );
+
+		if ( 'reci_demo_taxonomy_spheres' === $key ) {
+			delete_option( 'reci_media_hub_spheres_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_spheres' ) ) {
+				reci_media_hub_seed_default_spheres();
+			}
+		} elseif ( 'reci_demo_taxonomy_sdgs' === $key ) {
+			delete_option( 'reci_media_hub_sdgs_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_sdgs' ) ) {
+				reci_media_hub_seed_default_sdgs();
+			}
+			if ( function_exists( 'reci_media_hub_backfill_sdg_descriptions' ) ) {
+				reci_media_hub_backfill_sdg_descriptions();
+			}
+		} elseif ( 'reci_demo_taxonomy_shows' === $key ) {
+			delete_option( 'reci_media_hub_shows_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_shows' ) ) {
+				reci_media_hub_seed_default_shows();
+			}
+		}
+
+		if ( '' !== $taxonomy && ! empty( $terms ) ) {
+			reci_demo_ensure_terms( $taxonomy, $terms );
+		}
+
+		update_option( 'reci_demo_taxonomies_seeded', 1, false );
+		update_option( 'reci_demo_taxonomy_seeded_' . sanitize_key( $key ), 1, false );
+	}
+}
+
+function reci_demo_imported_taxonomy_count( string $group_key ): int {
+	$groups = reci_demo_taxonomy_groups();
+	$selected_groups = 'reci_demo_taxonomies' === $group_key ? $groups : array_intersect_key( $groups, [ $group_key => true ] );
+	$total = 0;
+
+	foreach ( $selected_groups as $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+			continue;
+		}
+
+		foreach ( (array) ( $group['terms'] ?? [] ) as $term_name ) {
+			if ( term_exists( (string) $term_name, $taxonomy ) ) {
+				++$total;
+			}
+		}
+	}
+
+	return $total;
+}
+
 function reci_demo_bootstrap_taxonomies(): array {
+	reci_demo_seed_taxonomy_group( 'reci_demo_taxonomies' );
+
 	$topics = reci_demo_ensure_terms( 'reci_topic', [
 		'Systemic Racism',
 		'Intersectionality',
@@ -467,17 +685,6 @@ function reci_demo_bootstrap_taxonomies(): array {
 	reci_demo_ensure_terms( 'reci_sphere', [ 'Recognizing Racial Oppression', 'Gauging Racial Inequities', 'Embracing Racial Diversity', 'Building Racial Empathy' ] );
 	reci_demo_ensure_terms( 'reci_practice_focus', [ 'Framework / Model', 'Community-Based Approach', 'Policy / Legislation', 'Curriculum / Training', 'Practice / Intervention', 'Research / Evaluation', 'Organizational Strategy', 'Other' ] );
 	reci_demo_ensure_terms( 'reci_show', [ 'Healing Overflow with Dr Toy' ] );
-	if ( function_exists( 'reci_media_hub_seed_default_spheres' ) ) {
-		reci_media_hub_seed_default_spheres();
-	}
-	if ( function_exists( 'reci_media_hub_seed_default_sdgs' ) ) {
-		reci_media_hub_seed_default_sdgs();
-	}
-	if ( function_exists( 'reci_media_hub_backfill_sdg_descriptions' ) ) {
-		reci_media_hub_backfill_sdg_descriptions();
-	}
-	reci_media_hub_seed_default_shows();
-
 	return [ 'topics' => $topics, 'locations' => $locations ];
 }
 
@@ -501,9 +708,8 @@ function reci_demo_build_import_queue( array $selected ): array {
 			continue;
 		}
 
-		if ( 'reci_demo_taxonomies' === $group ) {
-			reci_demo_bootstrap_taxonomies();
-			update_option( 'reci_demo_taxonomies_seeded', 1, false );
+		if ( 'reci_demo_taxonomies' === $group || isset( reci_demo_taxonomy_groups()[ $group ] ) ) {
+			reci_demo_seed_taxonomy_group( $group );
 			$queue[] = [ 'type' => 'skip', 'group' => $group, 'message' => 'Taxonomies seeded.' ];
 			continue;
 		}
@@ -1716,6 +1922,126 @@ function reci_install_demo_content( array $only_types = [] ): void {
 // Reset handler
 // ---------------------------------------------------------------------------
 
+function reci_demo_managed_post_types(): array {
+	return [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_quote',
+		'reci_assessment',
+		'reci_course',
+		'reci_testimonial',
+		'reci_glossary_term',
+		'reci_author',
+		'reci_team',
+		'reci_partner',
+		'page',
+	];
+}
+
+function reci_demo_delete_post_if_safe( WP_Post $post ): void {
+	$linked_user = 'reci_author' === $post->post_type
+		? absint( get_post_meta( $post->ID, '_reci_author_profile_user_id', true ) )
+		: 0;
+
+	if ( $linked_user > 0 ) {
+		return;
+	}
+
+	reci_demo_delete_post_attachments( $post );
+	wp_delete_post( $post->ID, true );
+}
+
+function reci_demo_delete_post_attachments( WP_Post $post ): void {
+	$attachment_ids = [];
+	$thumbnail_id = absint( get_post_thumbnail_id( $post->ID ) );
+	if ( $thumbnail_id > 0 ) {
+		$attachment_ids[] = $thumbnail_id;
+	}
+
+	$cv_id = 'reci_author' === $post->post_type ? absint( get_post_meta( $post->ID, '_reci_author_cv_id', true ) ) : 0;
+	if ( $cv_id > 0 ) {
+		$attachment_ids[] = $cv_id;
+	}
+
+	$children = get_children( [
+		'post_parent' => $post->ID,
+		'post_type'   => 'attachment',
+		'fields'      => 'ids',
+	] );
+
+	foreach ( (array) $children as $child_id ) {
+		$attachment_ids[] = (int) $child_id;
+	}
+
+	foreach ( array_unique( array_filter( $attachment_ids ) ) as $attachment_id ) {
+		wp_delete_attachment( (int) $attachment_id, true );
+	}
+}
+
+function reci_demo_reset_demo_marked_posts(): void {
+	$ids = get_posts( [
+		'post_type'              => reci_demo_managed_post_types(),
+		'post_status'            => [ 'publish', 'draft', 'pending', 'private', 'future' ],
+		'fields'                 => 'ids',
+		'posts_per_page'         => -1,
+		'no_found_rows'          => true,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+	] );
+
+	foreach ( $ids as $post_id ) {
+		$post = get_post( (int) $post_id );
+		if ( $post instanceof WP_Post ) {
+			reci_demo_delete_post_if_safe( $post );
+		}
+	}
+}
+
+function reci_demo_reset_demo_marked_attachments(): void {
+	$ids = get_posts( [
+		'post_type'              => 'attachment',
+		'post_status'            => 'inherit',
+		'fields'                 => 'ids',
+		'posts_per_page'         => -1,
+		'no_found_rows'          => true,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+	] );
+
+	foreach ( $ids as $attachment_id ) {
+		wp_delete_attachment( (int) $attachment_id, true );
+	}
+}
+
+function reci_demo_reset_taxonomy_terms(): void {
+	foreach ( reci_demo_taxonomy_groups() as $key => $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+			continue;
+		}
+
+		foreach ( (array) ( $group['terms'] ?? [] ) as $term_name ) {
+			$term = term_exists( (string) $term_name, $taxonomy );
+			$term_id = is_array( $term ) ? (int) ( $term['term_id'] ?? 0 ) : (int) $term;
+			if ( $term_id > 0 ) {
+				wp_delete_term( $term_id, $taxonomy );
+			}
+		}
+
+		delete_option( 'reci_demo_taxonomy_seeded_' . sanitize_key( $key ) );
+	}
+
+	delete_option( 'reci_media_hub_spheres_seeded' );
+	delete_option( 'reci_media_hub_sdgs_seeded' );
+	delete_option( 'reci_media_hub_shows_seeded' );
+	delete_option( 'reci_media_hub_taxonomy_terms_seeded' );
+}
+
 function reci_reset_demo_content(): void {
 	$slugs = get_option( 'reci_demo_slugs', [] );
 
@@ -1725,11 +2051,7 @@ function reci_reset_demo_content(): void {
 	} );
 
 	foreach ( $slugs as $slug ) {
-		$post = get_page_by_path( $slug, OBJECT, [
-			'post', 'reci_podcast', 'reci_video', 'reci_event',
-			'reci_reflection', 'reci_quote', 'reci_assessment', 'reci_course',
-			'reci_testimonial', 'reci_glossary_term', 'reci_author', 'reci_team', 'page',
-		] );
+		$post = get_page_by_path( $slug, OBJECT, reci_demo_managed_post_types() );
 		if ( ! $post && str_contains( $slug, '/' ) ) {
 			// Fallback 1: Try explicitly checking the page post type with the full slug.
 			$post = get_page_by_path( $slug, OBJECT, 'page' );
@@ -1739,20 +2061,12 @@ function reci_reset_demo_content(): void {
 			}
 		}
 		if ( $post ) {
-			// A collaborator profile that a real member has claimed is no longer demo
-			// content, whatever brought it in. Removing it would delete a live
-			// account's public identity.
-			$linked_user = 'reci_author' === $post->post_type
-				? absint( get_post_meta( $post->ID, '_reci_author_profile_user_id', true ) )
-				: 0;
-
-			if ( $linked_user > 0 ) {
-				continue;
-			}
-
-			wp_delete_post( $post->ID, true );
+			reci_demo_delete_post_if_safe( $post );
 		}
 	}
+
+	reci_demo_reset_demo_marked_posts();
+	reci_demo_reset_demo_marked_attachments();
 
 	$registry = reci_demo_get_asset_registry();
 	foreach ( $registry as $entry ) {
@@ -1765,6 +2079,7 @@ function reci_reset_demo_content(): void {
 	delete_option( 'reci_demo_installed' );
 	delete_option( 'reci_demo_slugs' );
 	delete_option( 'reci_demo_taxonomies_seeded' );
+	reci_demo_reset_taxonomy_terms();
 	delete_option( reci_demo_asset_registry_option_key() );
 	delete_option( reci_demo_job_option_key() );
 }
@@ -3711,19 +4026,8 @@ if ( ! function_exists( 'reci_demo_imported_count' ) ) {
 			return $count > 0 ? $count : min( count( $paths ), count( $registry ) );
 		}
 
-		if ( 'reci_demo_taxonomies' === $key ) {
-			$total = 0;
-
-			// The SDG taxonomy is registered as 'sdgs', not 'reci_sdg' like its
-			// siblings. Guessing the prefix undercounted this row by 17.
-			foreach ( [ 'reci_sphere', 'sdgs', 'reci_practice_focus', 'reci_location' ] as $taxonomy ) {
-				if ( taxonomy_exists( $taxonomy ) ) {
-					$terms = wp_count_terms( [ 'taxonomy' => $taxonomy, 'hide_empty' => false ] );
-					$total += is_wp_error( $terms ) ? 0 : (int) $terms;
-				}
-			}
-
-			return $total;
+		if ( 'reci_demo_taxonomies' === $key || isset( reci_demo_taxonomy_groups()[ $key ] ) ) {
+			return reci_demo_imported_taxonomy_count( $key );
 		}
 
 		$post_type = 'reci_page' === $key ? 'page' : $key;
@@ -3758,7 +4062,7 @@ function reci_demo_import_page_html(): void {
 
 	$tabs = [
 		'media'       => [ 'label' => 'Media',       'keys' => [ 'reci_demo_images_reflections', 'reci_demo_images_articles', 'reci_demo_images_events', 'reci_demo_images_courses', 'reci_demo_images_podcasts', 'reci_demo_images_videos', 'reci_demo_images_quizzes', 'reci_demo_images_partners', 'reci_demo_images_misc' ] ],
-		'taxonomies'  => [ 'label' => 'Taxonomies',  'keys' => [ 'reci_demo_taxonomies' ] ],
+		'taxonomies'  => [ 'label' => 'Taxonomies',  'keys' => array_keys( reci_demo_taxonomy_groups() ) ],
 		'content'     => [ 'label' => 'Content',     'keys' => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_reflection', 'reci_quote', 'reci_assessment', 'reci_course', 'reci_glossary_term' ] ],
 		'pages'       => [ 'label' => 'Pages',       'keys' => [ 'reci_team', 'reci_testimonial', 'reci_author', 'reci_partner', 'reci_page' ] ],
 	];
@@ -3776,20 +4080,21 @@ function reci_demo_import_page_html(): void {
 					— <?php echo (int) $count; ?> demo posts across all content types.
 				</p>
 			</div>
-			<div style="background:#fff; padding: 20px; border:1px solid #ccd0d4; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
-				<div>
-					<h3 style="margin-top:0;">Reset Demo Content</h3>
-					<p style="margin-bottom:0;">This will permanently delete all demo posts. This cannot be undone.</p>
-				</div>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( 'reci_demo_action' ); ?>
-					<input type="hidden" name="action" value="reci_reset_demo" />
-					<button type="submit" class="button button-secondary" onclick="return confirm('Remove all demo content? This cannot be undone.');">Reset Demo Content</button>
-				</form>
-			</div>
 		<?php else : ?>
 			<p>Select the content types to import below.</p>
 		<?php endif; ?>
+
+		<div style="background:#fff; padding: 20px; border:1px solid #ccd0d4; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+			<div>
+				<h3 style="margin-top:0;">Reset Demo Content</h3>
+				<p style="margin-bottom:0;">Deletes tracked demo posts and imported demo media, clears demo import progress, and keeps claimed collaborator profiles. This cannot be undone.</p>
+			</div>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<?php wp_nonce_field( 'reci_demo_action' ); ?>
+				<input type="hidden" name="action" value="reci_reset_demo" />
+				<button type="submit" class="button button-secondary" onclick="return confirm('Remove tracked demo posts and imported demo media? This cannot be undone.');">Reset Demo Content</button>
+			</form>
+		</div>
 
 		<h2 class="nav-tab-wrapper" style="margin-bottom: 16px;">
 			<template x-for="(tabData, tabKey) in <?php echo esc_attr( wp_json_encode( $tabs ) ); ?>" :key="tabKey">
