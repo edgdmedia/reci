@@ -8,6 +8,7 @@
     "build": "vite build && cd modules/reflection-system && vite build",
     "watch": "vite build --watch",
     "test": "vitest run",
+    "test:theme-assets": "node scripts/verify-theme-image-boundaries.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
     "tailwind:dev": "tailwindcss -i ./src/tailwind.css -o ./assets/css/tailwind.css --watch",

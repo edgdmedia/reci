@@ -684,6 +684,42 @@ if (! defined('REci_TAXONOMY_SEED_VERSION')) {
 // importer happened to create. Run it late on init, once per seed version.
 add_action('init', 'reci_media_hub_seed_default_taxonomy_terms', 20);
 
+if (! function_exists('reci_media_hub_default_hidden_admin_columns')) {
+	/**
+	 * Hide noisy taxonomy columns on content list tables by default.
+	 *
+	 * Columns remain available from Screen Options.
+	 *
+	 * @param array<int,string> $hidden Hidden column IDs.
+	 * @param WP_Screen         $screen Current admin screen.
+	 * @return array<int,string>
+	 */
+	function reci_media_hub_default_hidden_admin_columns(array $hidden, WP_Screen $screen): array {
+		if (! str_starts_with((string) $screen->id, 'edit-')) {
+			return $hidden;
+		}
+
+		$post_type = (string) ($screen->post_type ?? '');
+		$managed_post_types = array_merge(
+			function_exists('reci_media_hub_submission_taxonomy_post_types') ? reci_media_hub_submission_taxonomy_post_types() : [],
+			['post']
+		);
+
+		if (! in_array($post_type, $managed_post_types, true)) {
+			return $hidden;
+		}
+
+		return array_values(array_unique(array_merge($hidden, [
+			'tags',
+			'taxonomy-post_tag',
+			'taxonomy-reci_location',
+			'taxonomy-sdgs',
+			'taxonomy-reci_practice_focus',
+		])));
+	}
+}
+add_filter('default_hidden_columns', 'reci_media_hub_default_hidden_admin_columns', 10, 2);
+
 if (! function_exists('reci_media_hub_render_sphere_fields')) {
 	/**
 	 * Render custom RECI sphere fields.

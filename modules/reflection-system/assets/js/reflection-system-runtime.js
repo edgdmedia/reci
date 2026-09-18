@@ -281,7 +281,8 @@
       .replaceAll("'", '&#039;');
   }
 
-  function renderAnnotation(notes, annotationIndex = 0) {
+  function renderAnnotation(notes, annotationIndex = 0, targets = {}) {
+    const { annotationTitle, annotationBody, annotationList, hotspotLayer } = targets;
     const note = notes[annotationIndex];
     if (!note) {
       if (annotationTitle) annotationTitle.textContent = 'No annotation';
@@ -360,7 +361,7 @@
       if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
       if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
       lightbox.classList.remove('lightbox--plain');
-      renderAnnotation(notes, 0);
+      renderAnnotation(notes, 0, { annotationTitle, annotationBody, annotationList, hotspotLayer });
       lightbox.classList.add('active');
       document.body.style.overflow = 'hidden';
     });
@@ -375,7 +376,7 @@
         } catch (error) {
           notes = [];
         }
-        renderAnnotation(notes, Number(annotationTrigger.dataset.annotationIndex || 0));
+        renderAnnotation(notes, Number(annotationTrigger.dataset.annotationIndex || 0), { annotationTitle, annotationBody, annotationList, hotspotLayer });
       }
     });
 

@@ -158,6 +158,8 @@ if ( ! function_exists( 'reci_collaborator_import_sideload' ) ) {
 			return 0;
 		}
 
+		update_post_meta( (int) $attachment_id, '_reci_demo', '1' );
+
 		return (int) $attachment_id;
 	}
 }

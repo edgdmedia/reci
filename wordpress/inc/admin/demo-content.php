@@ -2848,20 +2848,21 @@ function reci_demo_import_page_html(): void {
 					— <?php echo (int) $count; ?> demo posts across all content types.
 				</p>
 			</div>
-			<div style="background:#fff; padding: 20px; border:1px solid #ccd0d4; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
-				<div>
-					<h3 style="margin-top:0;">Reset Demo Content</h3>
-					<p style="margin-bottom:0;">This will permanently delete all demo posts. This cannot be undone.</p>
-				</div>
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-					<?php wp_nonce_field( 'reci_demo_action' ); ?>
-					<input type="hidden" name="action" value="reci_reset_demo" />
-					<button type="submit" class="button button-secondary" onclick="return confirm('Remove all demo content? This cannot be undone.');">Reset Demo Content</button>
-				</form>
-			</div>
 		<?php else : ?>
 			<p>Select the content types to import below.</p>
 		<?php endif; ?>
+
+		<div style="background:#fff; padding: 20px; border:1px solid #ccd0d4; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+			<div>
+				<h3 style="margin-top:0;">Reset Demo Content</h3>
+				<p style="margin-bottom:0;">Deletes tracked demo posts and imported demo media, and clears demo import progress. This cannot be undone.</p>
+			</div>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<?php wp_nonce_field( 'reci_demo_action' ); ?>
+				<input type="hidden" name="action" value="reci_reset_demo" />
+				<button type="submit" class="button button-secondary" onclick="return confirm('Remove tracked demo posts and imported demo media? This cannot be undone.');">Reset Demo Content</button>
+			</form>
+		</div>
 
 		<h2 class="nav-tab-wrapper" style="margin-bottom: 16px;">
 			<template x-for="(tabData, tabKey) in <?php echo esc_attr( wp_json_encode( $tabs ) ); ?>" :key="tabKey">
