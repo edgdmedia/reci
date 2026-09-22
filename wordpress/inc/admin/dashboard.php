@@ -13,18 +13,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Rewrite rules
 // ---------------------------------------------------------------------------
 
+/**
+ * Dashboard sub-routes: slug => template file.
+ *
+ * These are served by rewrite rules, not by pages, so a slug here needs no
+ * corresponding WP page (and `feed` could not have one — it is a reserved slug).
+ */
+function reci_dashboard_route_map(): array {
+	return [
+		'feed'          => 'template-dashboard-feed.php',
+		'my-content'    => 'template-dashboard-my-content.php',
+		'submit'        => 'template-dashboard-submit.php',
+		'bookmarks'     => 'template-dashboard-bookmarks.php',
+		'notifications' => 'template-dashboard-notifications.php',
+		'journal'       => 'template-dashboard-journal.php',
+		'comments'      => 'template-dashboard-comments.php',
+		'profile'       => 'template-dashboard-profile.php',
+		'settings'      => 'template-dashboard-settings.php',
+	];
+}
+
 add_action( 'init', 'reci_dashboard_rewrite_rules' );
 function reci_dashboard_rewrite_rules(): void {
-	$pages = [
-		'my-content' => 'template-dashboard-my-content.php',
-		'submit'     => 'template-dashboard-submit.php',
-		'bookmarks'  => 'template-dashboard-bookmarks.php',
-		'notifications' => 'template-dashboard-notifications.php',
-		'journal'    => 'template-dashboard-journal.php',
-		'comments'   => 'template-dashboard-comments.php',
-		'profile'    => 'template-dashboard-profile.php',
-		'settings'   => 'template-dashboard-settings.php',
-	];
+	$pages = reci_dashboard_route_map();
 
 	foreach ( $pages as $slug => $template_file ) {
 		add_rewrite_rule(
@@ -33,6 +44,21 @@ function reci_dashboard_rewrite_rules(): void {
 			'top'
 		);
 	}
+	// Creating one: /dashboard/my-content/new/.
+	add_rewrite_rule(
+		'^dashboard/my-content/new/?$',
+		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-new-content.php',
+		'top'
+	);
+
+	// Editing one item: /dashboard/my-content/edit/<id>/. Registered after the
+	// plain routes so the longer pattern is matched first by the '/?$' anchors.
+	add_rewrite_rule(
+		'^dashboard/my-content/edit/([0-9]+)/?$',
+		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-edit-content.php&dashboard_post=$matches[1]',
+		'top'
+	);
+
 	add_rewrite_rule( '^dashboard/?$', 'index.php?pagename=dashboard', 'top' );
 }
 
@@ -40,6 +66,55 @@ add_filter( 'query_vars', 'reci_dashboard_query_vars' );
 function reci_dashboard_query_vars( array $vars ): array {
 	$vars[] = 'dashboard_page';
 	$vars[] = 'dashboard_template';
+	$vars[] = 'dashboard_post';
+	return $vars;
+}
+
+/**
+ * Flush rewrite rules when the dashboard routes change.
+ *
+ * Adding a route to reci_dashboard_rewrite_rules() is useless until the rules are
+ * regenerated, and a theme update does not do that on its own — a stale install
+ * silently loses the new route. Key a flush off the route list itself so any
+ * change to it heals on the next request.
+ */
+add_action( 'init', 'reci_dashboard_maybe_flush_rewrite_rules', 99 );
+function reci_dashboard_maybe_flush_rewrite_rules(): void {
+	// Version the signature as well as the route list: the edit route is not in
+	// the map, so without this a new rule outside the map would never flush.
+	$signature = md5( (string) wp_json_encode( [ 'routes' => array_keys( reci_dashboard_route_map() ), 'rules' => 3 ] ) );
+
+	if ( get_option( 'reci_dashboard_routes_version' ) === $signature ) {
+		return;
+	}
+
+	flush_rewrite_rules();
+	update_option( 'reci_dashboard_routes_version', $signature );
+}
+
+/**
+ * Reclaim `/dashboard/feed/` from WordPress's feed endpoint.
+ *
+ * `feed` is a reserved rewrite endpoint: /dashboard/feed/ also matches core's
+ * page-feed rule, (.?.+?)/(feed|rdf|rss|rss2|atom)/?$, which renders the page's
+ * comments feed as RSS instead of the dashboard. Our rule is registered at 'top'
+ * and wins whenever the rules are current, but this makes the route correct even
+ * on an install whose rules are stale or reordered by a plugin.
+ *
+ * Side effect: the dashboard page has no comments feed. It is a private utility
+ * page with comments closed, so there is nothing to syndicate.
+ */
+add_filter( 'request', 'reci_dashboard_reclaim_feed_route' );
+function reci_dashboard_reclaim_feed_route( array $vars ): array {
+	if ( empty( $vars['feed'] ) || 'dashboard' !== ( $vars['pagename'] ?? '' ) ) {
+		return $vars;
+	}
+
+	unset( $vars['feed'], $vars['withcomments'] );
+
+	$vars['dashboard_page']     = 'feed';
+	$vars['dashboard_template'] = 'template-dashboard-feed.php';
+
 	return $vars;
 }
 
@@ -80,13 +155,29 @@ function reci_dashboard_auth_check(): void {
 	}
 }
 
+/**
+ * `/submit/` is the single canonical submission route — the dashboard no longer
+ * runs a separate submit experience, so send the legacy route there.
+ */
+add_action( 'template_redirect', 'reci_dashboard_submit_redirect' );
+function reci_dashboard_submit_redirect(): void {
+	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
+		return;
+	}
+	if ( 'submit' !== get_query_var( 'dashboard_page' ) ) {
+		return;
+	}
+
+	wp_safe_redirect( home_url( '/submit/' ), 301 );
+	exit;
+}
+
 add_action( 'template_redirect', 'reci_dashboard_author_guard' );
 function reci_dashboard_author_guard(): void {
 	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
 		return;
 	}
-	$author_pages = [ 'my-content', 'submit' ];
-	if ( in_array( get_query_var( 'dashboard_page' ), $author_pages, true ) && ! current_user_can( 'edit_posts' ) ) {
+	if ( 'my-content' === get_query_var( 'dashboard_page' ) && ( ! function_exists( 'reci_user_is_collaborator' ) || ! reci_user_is_collaborator() ) ) {
 		global $wp_query;
 		$wp_query->set_404();
 		status_header( 404 );
@@ -122,12 +213,14 @@ function reci_get_user_personalization_preferences( int $user_id ): array {
 		'spheres'         => reci_get_user_followed_term_ids( $user_id, 'reci_followed_spheres' ),
 		'practice_focus'  => reci_get_user_followed_term_ids( $user_id, 'reci_followed_practice_focus' ),
 		'target_audience' => reci_get_user_followed_term_ids( $user_id, 'reci_followed_target_audience' ),
+		'collaborators'   => function_exists( 'reci_get_user_followed_collaborator_ids' ) ? reci_get_user_followed_collaborator_ids( $user_id ) : [],
 	];
 }
 
 function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): array {
 	$preferences = reci_get_user_personalization_preferences( $user_id );
 	$tax_query   = [ 'relation' => 'OR' ];
+	$post_ids    = [];
 
 	if ( ! empty( $preferences['topics'] ) ) {
 		$tax_query[] = [
@@ -161,17 +254,40 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
 		];
 	}
 
-	if ( count( $tax_query ) === 1 ) {
+	if ( count( $tax_query ) > 1 ) {
+		$taxonomy_posts = get_posts(
+			[
+				'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
+				'post_status'         => 'publish',
+				'posts_per_page'      => $limit,
+				'ignore_sticky_posts' => true,
+				'tax_query'           => $tax_query,
+				'fields'              => 'ids',
+			]
+		);
+		$post_ids = array_merge( $post_ids, array_map( 'absint', $taxonomy_posts ) );
+	}
+
+	if ( ! empty( $preferences['collaborators'] ) && function_exists( 'reci_media_hub_get_authored_content_ids' ) ) {
+		foreach ( $preferences['collaborators'] as $profile_id ) {
+			$post_ids = array_merge( $post_ids, reci_media_hub_get_authored_content_ids( (int) $profile_id, [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ] ) );
+		}
+	}
+
+	$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
+	if ( empty( $post_ids ) ) {
 		return [];
 	}
 
 	return get_posts(
 		[
-			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection' ],
+			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
 			'post_status'         => 'publish',
 			'posts_per_page'      => $limit,
 			'ignore_sticky_posts' => true,
-			'tax_query'           => $tax_query,
+			'post__in'            => $post_ids,
+			'orderby'             => 'date',
+			'order'               => 'DESC',
 		]
 	);
 }
@@ -256,7 +372,13 @@ function reci_ajax_toggle_bookmark(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_bookmarks', array_values( $bookmarks ) );
-	wp_send_json_success( [ 'bookmarked' => $bookmarked ] );
+	reci_bump_engagement_count( $post_id, 'bookmark', $bookmarked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'bookmarked' => $bookmarked,
+			'count'      => reci_get_bookmark_count( $post_id ),
+		]
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -284,7 +406,13 @@ function reci_ajax_toggle_like(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_likes', array_values( $likes ) );
-	wp_send_json_success( [ 'liked' => $liked ] );
+	reci_bump_engagement_count( $post_id, 'like', $liked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'liked' => $liked,
+			'count' => reci_get_like_count( $post_id ),
+		]
+	);
 }
 
 add_action( 'wp_ajax_reci_get_post_state', 'reci_ajax_get_post_state' );
@@ -351,7 +479,15 @@ function reci_ajax_modal_signup(): void {
 	if ( email_exists( $email ) ) {
 		wp_send_json_error( [ 'message' => 'An account with this email already exists.' ] );
 	}
-	if ( strlen( $password ) < 8 ) {
+	// Use the same rule as sign-up and the collaborator application; this check
+	// was a bare length test, so the modal was a way around the password policy.
+	if ( function_exists( 'reci_password_error_code' ) ) {
+		$password_error = reci_password_error_code( (string) $password );
+		if ( '' !== $password_error ) {
+			$messages = function_exists( 'reci_password_error_messages' ) ? reci_password_error_messages() : [];
+			wp_send_json_error( [ 'message' => $messages[ $password_error ] ?? 'Please choose a stronger password.' ] );
+		}
+	} elseif ( strlen( $password ) < 8 ) {
 		wp_send_json_error( [ 'message' => 'Password must be at least 8 characters.' ] );
 	}
 

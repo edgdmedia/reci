@@ -13,7 +13,7 @@ function reci_media_hub_create_custom_tables() {
 	global $wpdb;
 	
 	$installed_ver = get_option( 'reci_db_version' );
-	$current_ver   = '1.3.0';
+	$current_ver   = '1.6.0';
 
 	if ( $installed_ver !== $current_ver ) {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -29,10 +29,17 @@ function reci_media_hub_create_custom_tables() {
 			prompt text NOT NULL,
 			response longtext NOT NULL,
 			is_shared tinyint(1) NOT NULL DEFAULT 0,
+			status varchar(20) NOT NULL DEFAULT 'private',
+			is_anonymous tinyint(1) NOT NULL DEFAULT 0,
+			shared_at datetime NULL DEFAULT NULL,
+			comment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			flagged_terms text NOT NULL,
 			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 			PRIMARY KEY  (id),
 			KEY user_id (user_id),
-			KEY reflection_id (reflection_id)
+			KEY reflection_id (reflection_id),
+			KEY status (status),
+			KEY comment_id (comment_id)
 		) $charset_collate;";
 
 		// Assessment Submissions Table
@@ -72,9 +79,28 @@ function reci_media_hub_create_custom_tables() {
 			KEY related_post_id (related_post_id)
 		) $charset_collate;";
 
+		// Email Log Table
+		$table_email_log = $wpdb->prefix . 'reci_email_log';
+		$sql_email_log = "CREATE TABLE $table_email_log (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			recipient varchar(191) NOT NULL DEFAULT '',
+			subject text NOT NULL,
+			heading varchar(255) NOT NULL DEFAULT '',
+			transport varchar(50) NOT NULL DEFAULT '',
+			status varchar(20) NOT NULL DEFAULT '',
+			error text NOT NULL,
+			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+			PRIMARY KEY  (id),
+			KEY recipient (recipient),
+			KEY status (status),
+			KEY created_at (created_at)
+		) $charset_collate;";
+
 		dbDelta( $sql_journals );
 		dbDelta( $sql_assessments );
 		dbDelta( $sql_notifications );
+		dbDelta( $sql_email_log );
 
 		if ( version_compare( $installed_ver, '1.1.0', '<' ) ) {
 			// Migrate reci_article to standard post
@@ -84,6 +110,58 @@ function reci_media_hub_create_custom_tables() {
 		if ( version_compare( $installed_ver, '1.2.0', '<' ) ) {
 			// Update page template paths to reflect the new nested directory structure
 			$wpdb->query( "UPDATE {$wpdb->postmeta} SET meta_value = REPLACE(meta_value, 'page-templates/', 'templates/page/') WHERE meta_key = '_wp_page_template' AND meta_value LIKE 'page-templates/%'" );
+		}
+
+		if ( version_compare( $installed_ver, '1.5.0', '<' ) ) {
+			// The collaborator verdict now lives only on the application post.
+			// Before dropping the user-meta copy, honour any approval that
+			// existed nowhere else: an account approved before roles carried
+			// access would otherwise silently lose it.
+			$stranded = $wpdb->get_col(
+				"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = '_reci_collaborator_status' AND meta_value = 'approved'"
+			);
+
+			foreach ( $stranded as $stranded_id ) {
+				$stranded_id = (int) $stranded_id;
+
+				if ( user_can( $stranded_id, 'edit_posts' ) ) {
+					continue; // Already carries access by role.
+				}
+
+				$stranded_user = get_user_by( 'id', $stranded_id );
+
+				if ( $stranded_user instanceof WP_User ) {
+					$stranded_user->set_role( 'contributor' );
+				}
+			}
+
+			// delete_metadata() with $delete_all clears the object cache too; a
+			// raw DELETE would leave stale values readable for the rest of the
+			// request.
+			delete_metadata( 'user', 0, '_reci_collaborator_status', '', true );
+		}
+
+		if ( version_compare( (string) $installed_ver, '1.6.0', '<' ) ) {
+			// Entries already flagged shared were publicly visible before this
+			// version. Land them on 'approved' so the migration changes what
+			// the database records, not what anybody can see.
+			$wpdb->query(
+				"UPDATE {$table_journals}
+				    SET status = 'approved', shared_at = created_at
+				  WHERE is_shared = 1"
+			);
+
+			$wpdb->query(
+				"UPDATE {$table_journals}
+				    SET status = 'private'
+				  WHERE is_shared = 0"
+			);
+
+			// Counters have never been computed, so build them once from the
+			// per-user meta that has always been the source of truth.
+			if ( function_exists( 'reci_backfill_engagement_counts' ) ) {
+				reci_backfill_engagement_counts();
+			}
 		}
 
 		update_option( 'reci_db_version', $current_ver );

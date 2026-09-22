@@ -1,0 +1,117 @@
+<?php
+/**
+ * Reflection response block.
+ *
+ * @package reci-media-hub
+ */
+
+if (! defined('ABSPATH')) {
+	exit;
+}
+
+$args = wp_parse_args(
+	$args ?? [],
+	[
+		'id' => '',
+		'eyebrow' => '',
+		'title' => '',
+		'intro' => '',
+		'cards' => [],
+		'prompt' => '',
+	]
+);
+?>
+<section class="px-5 py-14 sm:px-6 lg:px-10 lg:py-24" id="<?php echo esc_attr($args['id']); ?>">
+	<div class="mx-auto w-full max-w-[1260px]">
+		<div class="grid gap-4">
+			<div class="font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
+			<h2 class="font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4rem]"><?php echo esc_html($args['title']); ?></h2>
+			<p class="max-w-[74rem] text-base leading-8 reci-reflection-soft-text sm:text-[1.05rem] sm:leading-9"><?php echo esc_html($args['intro']); ?></p>
+		</div>
+		<?php if (! empty($args['cards'])) : ?>
+			<div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+				<?php foreach ($args['cards'] as $card) : ?>
+					<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6"><h3 class="mb-3 font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3><p class="text-base leading-8 reci-reflection-soft-text"><?php echo esc_html($card['body']); ?></p></article>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+		<div class="mt-8 grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+			<div class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
+				<h3 class="mb-3 font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text">Save your reflection</h3>
+				<p class="max-w-[74rem] text-base leading-8 reci-reflection-soft-text">Prompt: <?php echo esc_html($args['prompt']); ?></p>
+				<div id="responseGate" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm reci-reflection-soft-text">You must be logged in to submit reflections. Once logged in, your responses will be attached to your account and shown here.</div>
+				<div id="responseFormShell" class="mt-4">
+					<label class="mb-2 block font-['Oswald'] text-sm uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
+					<textarea id="reflectionResponse" class="min-h-[220px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
+					<div class="mt-4 grid gap-3">
+						<label class="flex items-start gap-3 text-sm reci-reflection-soft-text">
+							<input type="checkbox" id="reflectionShare" class="mt-1" />
+							<span>
+								<?php esc_html_e( 'Share this reflection with others', 'reci-media-hub' ); ?>
+								<span class="block text-xs opacity-80"><?php esc_html_e( 'A moderator reads it before it appears. You can withdraw it at any time.', 'reci-media-hub' ); ?></span>
+							</span>
+						</label>
+						<label class="flex items-start gap-3 text-sm reci-reflection-soft-text" id="reflectionAnonWrap" hidden>
+							<input type="checkbox" id="reflectionAnonymous" class="mt-1" />
+							<span>
+								<?php esc_html_e( 'Share anonymously', 'reci-media-hub' ); ?>
+								<span class="block text-xs opacity-80"><?php esc_html_e( 'Your name is hidden from readers and from this reflection\'s author. Site administrators can still see it.', 'reci-media-hub' ); ?></span>
+							</span>
+						</label>
+					</div>
+					<div class="mt-4 flex flex-wrap gap-4">
+						<button class="inline-flex items-center justify-center rounded-full bg-[#d4a63f] px-6 py-4 font-['Oswald'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
+					</div>
+					<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm reci-reflection-soft-text"></div>
+				</div>
+			</div>
+			<div class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
+				<h3 class="mb-3 font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text">Your saved responses</h3>
+				<p class="max-w-[74rem] text-base leading-8 reci-reflection-soft-text">These responses are tied to your account and this reflection.</p>
+				<div id="responseList" class="mt-4 grid gap-4"></div>
+
+				<?php
+				$reci_reflection_id = get_the_ID();
+				$reci_shared_count  = function_exists( 'reci_get_shared_journal_count' )
+					? reci_get_shared_journal_count( (int) $reci_reflection_id )
+					: 0;
+				?>
+				<?php if ( $reci_shared_count > 0 ) : ?>
+					<button
+						type="button"
+						id="reci-open-shared-journals"
+						class="mt-6 inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-['Oswald'] text-sm uppercase tracking-[0.1em] reci-reflection-text"
+					>
+						<?php
+						printf(
+							/* translators: %d: number of shared reflections */
+							esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
+							(int) $reci_shared_count
+						);
+						?>
+					</button>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</section>
+
+<?php
+// The overlay is pooled per reflection, so it is emitted once however many
+// prompt chapters the reflection contains. A duplicate id would break the
+// close button on every copy after the first.
+static $reci_shared_overlay_rendered = false;
+
+if ( ! $reci_shared_overlay_rendered && ! empty( $reci_shared_count ) ) {
+	$reci_shared_overlay_rendered = true;
+
+	get_template_part(
+		'modules/reflection-system/templates/shared-journals-overlay',
+		null,
+		[
+			'reflection_id' => (int) $reci_reflection_id,
+			'count'         => (int) $reci_shared_count,
+		]
+	);
+}
+?>
