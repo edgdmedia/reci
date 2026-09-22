@@ -31,6 +31,8 @@ class Reci_Journals_List_Table extends WP_List_Table {
 			'prompt'        => __( 'Prompt', 'reci-media-hub' ),
 			'response'      => __( 'Response', 'reci-media-hub' ),
 			'created_at'    => __( 'Date', 'reci-media-hub' ),
+			'status'        => __( 'Status', 'reci-media-hub' ),
+			'flagged_terms' => __( 'Flagged', 'reci-media-hub' ),
 		];
 	}
 
@@ -73,6 +75,48 @@ class Reci_Journals_List_Table extends WP_List_Table {
 			return sprintf( '<a href="%s">%s</a>', esc_url( $edit_link ), esc_html( $title ) );
 		}
 		return esc_html( $title );
+	}
+
+	/**
+	 * Render the status column.
+	 */
+	public function column_status( $item ): string {
+		$labels = [
+			'private'  => __( 'Private', 'reci-media-hub' ),
+			'pending'  => __( 'Pending review', 'reci-media-hub' ),
+			'approved' => __( 'Published', 'reci-media-hub' ),
+			'rejected' => __( 'Not published', 'reci-media-hub' ),
+		];
+
+		$status = (string) ( $item->status ?? 'private' );
+		$label  = $labels[ $status ] ?? $status;
+
+		$anonymous = (int) ( $item->is_anonymous ?? 0 )
+			? ' <em>' . esc_html__( '(anonymous)', 'reci-media-hub' ) . '</em>'
+			: '';
+
+		return esc_html( $label ) . $anonymous;
+	}
+
+	/**
+	 * Render the flagged-term column, so a moderator sees why an entry
+	 * surfaced rather than having to guess.
+	 */
+	public function column_flagged_terms( $item ): string {
+		$terms = array_values( array_filter( explode( "\n", (string) ( $item->flagged_terms ?? '' ) ) ) );
+
+		if ( [] === $terms ) {
+			return '—';
+		}
+
+		$badges = array_map(
+			static function ( string $term ): string {
+				return '<span class="reci-flag-badge">' . esc_html( $term ) . '</span>';
+			},
+			$terms
+		);
+
+		return implode( ' ', $badges );
 	}
 
 	public function prepare_items() {
