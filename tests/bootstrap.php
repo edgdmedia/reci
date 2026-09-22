@@ -73,3 +73,21 @@ if ( ! function_exists( 'current_time' ) ) {
 		return gmdate( 'Y-m-d H:i:s' );
 	}
 }
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $data, int $options = 0, int $depth = 512 ) {
+		return json_encode( $data, $options, $depth );
+	}
+}
+
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( string $hook_name, $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( string $hook_name, $callback, int $priority = 10, int $accepted_args = 1 ): bool {
+		return true;
+	}
+}

@@ -40,6 +40,7 @@ $reci_media_hub_includes = [
 	'/inc/features/community-policy.php',
 	'/inc/features/journal-status.php',
 	'/inc/features/journal-identity.php',
+	'/inc/features/journal-sharing.php',
 	'/inc/features/remote-demo-content.php',
 	'/inc/features/theme-updates.php',
 	
