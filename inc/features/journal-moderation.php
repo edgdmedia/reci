@@ -237,7 +237,11 @@ function reci_handle_journal_reject(): void {
 	if ( reci_reject_journal( $journal_id ) ) {
 		$journal = reci_get_journal_row( $journal_id );
 		if ( $journal && (int) $journal['comment_id'] ) {
-			wp_set_comment_status( (int) $journal['comment_id'], 'spam' );
+			// Trash, never spam. A moderator declining to publish testimony is
+			// not reporting junk, and the distinction has teeth: Akismet hooks
+			// transitions to spam and submits the comment body to its own
+			// service, which would send a person's reflection off-site.
+			wp_set_comment_status( (int) $journal['comment_id'], 'trash' );
 		}
 	}
 

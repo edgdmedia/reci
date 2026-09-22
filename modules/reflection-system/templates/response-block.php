@@ -100,10 +100,11 @@ $args = wp_parse_args(
 // The overlay is pooled per reflection, so it is emitted once however many
 // prompt chapters the reflection contains. A duplicate id would break the
 // close button on every copy after the first.
-static $reci_shared_overlay_rendered = false;
-
-if ( ! $reci_shared_overlay_rendered && ! empty( $reci_shared_count ) ) {
-	$reci_shared_overlay_rendered = true;
+//
+// This must NOT be a `static`: at file scope `static` resets on every include,
+// so each prompt chapter would emit its own copy of the overlay.
+if ( empty( $GLOBALS['reci_shared_overlay_rendered'] ) && ! empty( $reci_shared_count ) ) {
+	$GLOBALS['reci_shared_overlay_rendered'] = true;
 
 	get_template_part(
 		'modules/reflection-system/templates/shared-journals-overlay',

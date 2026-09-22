@@ -174,6 +174,11 @@ function reci_unshare_journal( int $journal_id ): bool {
 		[ '%d' ]
 	);
 
+	// Without this the reflection keeps advertising a count that includes the
+	// entry just withdrawn, for as long as the transient lives. This is the
+	// take-down path, so a stale count here fails in the wrong direction.
+	reci_clear_shared_journal_count( (int) $journal['reflection_id'] );
+
 	return true;
 }
 
@@ -189,6 +194,12 @@ function reci_journal_handle_deleted_mirror( $comment_id ): void {
 
 	$table = $wpdb->prefix . 'reci_journals';
 
+	// Read the reflection before the update, so the cached count for it can be
+	// cleared afterwards.
+	$reflection_id = (int) $wpdb->get_var(
+		$wpdb->prepare( "SELECT reflection_id FROM {$table} WHERE comment_id = %d", (int) $comment_id )
+	);
+
 	$wpdb->update(
 		$table,
 		[
@@ -201,6 +212,10 @@ function reci_journal_handle_deleted_mirror( $comment_id ): void {
 		[ '%s', '%d', '%s', '%d' ],
 		[ '%d' ]
 	);
+
+	if ( $reflection_id ) {
+		reci_clear_shared_journal_count( $reflection_id );
+	}
 }
 
 /**
