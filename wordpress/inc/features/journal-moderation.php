@@ -190,3 +190,57 @@ function reci_journal_follow_comment_status( $new_status, $old_status, $comment 
 		reci_reject_journal( $journal_id );
 	}
 }
+
+/**
+ * Approve an entry from the journals list table.
+ *
+ * The mirror comment follows so both moderation surfaces report the same state.
+ */
+add_action( 'admin_post_reci_journal_approve', 'reci_handle_journal_approve' );
+function reci_handle_journal_approve(): void {
+	$journal_id = isset( $_GET['journal_id'] ) ? absint( wp_unslash( $_GET['journal_id'] ) ) : 0;
+
+	if ( ! current_user_can( 'reci_moderate_journals' )
+		|| ! $journal_id
+		|| ! isset( $_GET['_wpnonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'reci_journal_moderate_' . $journal_id )
+	) {
+		wp_die( esc_html__( 'You are not allowed to moderate journal entries.', 'reci-media-hub' ) );
+	}
+
+	if ( reci_approve_journal( $journal_id ) ) {
+		$journal = reci_get_journal_row( $journal_id );
+		if ( $journal && (int) $journal['comment_id'] ) {
+			wp_set_comment_status( (int) $journal['comment_id'], 'approve' );
+		}
+	}
+
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-journals&moderated=approved' ) );
+	exit;
+}
+
+/**
+ * Reject an entry from the journals list table.
+ */
+add_action( 'admin_post_reci_journal_reject', 'reci_handle_journal_reject' );
+function reci_handle_journal_reject(): void {
+	$journal_id = isset( $_GET['journal_id'] ) ? absint( wp_unslash( $_GET['journal_id'] ) ) : 0;
+
+	if ( ! current_user_can( 'reci_moderate_journals' )
+		|| ! $journal_id
+		|| ! isset( $_GET['_wpnonce'] )
+		|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'reci_journal_moderate_' . $journal_id )
+	) {
+		wp_die( esc_html__( 'You are not allowed to moderate journal entries.', 'reci-media-hub' ) );
+	}
+
+	if ( reci_reject_journal( $journal_id ) ) {
+		$journal = reci_get_journal_row( $journal_id );
+		if ( $journal && (int) $journal['comment_id'] ) {
+			wp_set_comment_status( (int) $journal['comment_id'], 'spam' );
+		}
+	}
+
+	wp_safe_redirect( admin_url( 'admin.php?page=reci-journals&moderated=rejected' ) );
+	exit;
+}
