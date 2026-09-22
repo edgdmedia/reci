@@ -8,6 +8,7 @@
     "build": "vite build && cd modules/reflection-system && vite build",
     "watch": "vite build --watch",
     "test": "vitest run",
+    "test:php": "php tests/run.php",
     "test:theme-assets": "node scripts/verify-theme-image-boundaries.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
