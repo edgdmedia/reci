@@ -202,3 +202,94 @@ function reci_journal_handle_deleted_mirror( $comment_id ): void {
 		[ '%d' ]
 	);
 }
+
+/**
+ * Shape one approved entry for the public reading surface.
+ *
+ * Pure. Note what is absent: no user id and no moderation metadata, for any
+ * caller at any capability. A moderator who needs identity uses the admin
+ * queue; this endpoint is what unauthenticated readers receive, and it should
+ * not vary by who is asking.
+ */
+function reci_shape_shared_journal( object $row, string $author_name ): array {
+	$is_anonymous = (bool) (int) $row->is_anonymous;
+
+	$identity = reci_journal_display_identity( $is_anonymous, false, $author_name );
+
+	return [
+		'id'           => (int) $row->id,
+		'author_name'  => $identity['name'],
+		'is_anonymous' => $is_anonymous,
+		'prompt'       => (string) $row->prompt,
+		'response'     => (string) $row->response,
+		'created_at'   => gmdate( 'Y-m-d\TH:i:sP', strtotime( (string) $row->created_at ) ),
+	];
+}
+
+add_action( 'rest_api_init', 'reci_register_shared_journal_routes' );
+function reci_register_shared_journal_routes(): void {
+	register_rest_route(
+		'reci/v1',
+		'/reflections/(?P<id>\d+)/shared-journals',
+		[
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => 'reci_get_shared_journals',
+			// Approved entries are published writing, readable by anyone who
+			// can read the reflection itself.
+			'permission_callback' => '__return_true',
+		]
+	);
+}
+
+/**
+ * List the approved shared entries for one reflection.
+ */
+function reci_get_shared_journals( WP_REST_Request $request ): WP_REST_Response {
+	global $wpdb;
+
+	$reflection_id = absint( (string) $request->get_param( 'id' ) );
+	$page          = max( 1, absint( (string) $request->get_param( 'page' ) ?: '1' ) );
+	$per_page      = min( 50, max( 1, absint( (string) $request->get_param( 'per_page' ) ?: '20' ) ) );
+	$offset        = ( $page - 1 ) * $per_page;
+
+	$table = $wpdb->prefix . 'reci_journals';
+
+	$total = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT COUNT(id) FROM {$table} WHERE reflection_id = %d AND status = 'approved'",
+			$reflection_id
+		)
+	);
+
+	$rows = $wpdb->get_results(
+		$wpdb->prepare(
+			"SELECT * FROM {$table}
+			  WHERE reflection_id = %d AND status = 'approved'
+			  ORDER BY shared_at DESC, id DESC
+			  LIMIT %d OFFSET %d",
+			$reflection_id,
+			$per_page,
+			$offset
+		)
+	);
+
+	$items = [];
+
+	foreach ( $rows as $row ) {
+		$author      = get_userdata( (int) $row->user_id );
+		$author_name = $author ? (string) $author->display_name : '';
+
+		$items[] = reci_shape_shared_journal( $row, $author_name );
+	}
+
+	return new WP_REST_Response(
+		[
+			'items'       => $items,
+			'total'       => $total,
+			'page'        => $page,
+			'per_page'    => $per_page,
+			'total_pages' => (int) ceil( $total / $per_page ),
+		],
+		200
+	);
+}

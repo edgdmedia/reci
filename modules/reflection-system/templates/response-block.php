@@ -53,7 +53,49 @@ $args = wp_parse_args(
 				<h3 class="mb-3 font-['Playfair_Display'] text-3xl font-semibold reci-reflection-text">Your saved responses</h3>
 				<p class="max-w-[74rem] text-base leading-8 reci-reflection-soft-text">These responses are tied to your account and this reflection.</p>
 				<div id="responseList" class="mt-4 grid gap-4"></div>
+
+				<?php
+				$reci_reflection_id = get_the_ID();
+				$reci_shared_count  = function_exists( 'reci_get_shared_journal_count' )
+					? reci_get_shared_journal_count( (int) $reci_reflection_id )
+					: 0;
+				?>
+				<?php if ( $reci_shared_count > 0 ) : ?>
+					<button
+						type="button"
+						id="reci-open-shared-journals"
+						class="mt-6 inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-['Oswald'] text-sm uppercase tracking-[0.1em] reci-reflection-text"
+					>
+						<?php
+						printf(
+							/* translators: %d: number of shared reflections */
+							esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
+							(int) $reci_shared_count
+						);
+						?>
+					</button>
+				<?php endif; ?>
 			</div>
 		</div>
 	</div>
 </section>
+
+<?php
+// The overlay is pooled per reflection, so it is emitted once however many
+// prompt chapters the reflection contains. A duplicate id would break the
+// close button on every copy after the first.
+static $reci_shared_overlay_rendered = false;
+
+if ( ! $reci_shared_overlay_rendered && ! empty( $reci_shared_count ) ) {
+	$reci_shared_overlay_rendered = true;
+
+	get_template_part(
+		'modules/reflection-system/templates/shared-journals-overlay',
+		null,
+		[
+			'reflection_id' => (int) $reci_reflection_id,
+			'count'         => (int) $reci_shared_count,
+		]
+	);
+}
+?>
