@@ -74,14 +74,45 @@ The mirror costs a sync obligation (two rows per shared entry) and buys the
 moderation queue, threaded replies, and a Moderator role that maps onto
 `moderate_comments` without inventing capabilities.
 
-### 3.2 Anonymous means publicly anonymous, not untraceable
+### 3.2 Anonymous hides the author from the public *and* from the reflection owner
 
-`comment_author` renders as "Anonymous" with no avatar or profile link, but
-`comment_user_id` stays set. Moderators can identify authors and act on repeat
-offenders; the author keeps the entry in their own dashboard.
+Visible only to administrators and moderators. Specifically:
 
-**This must be stated plainly in the UI copy.** A user who reads "anonymous" as
-"nobody can ever know" and is then moderated has been misled.
+| Audience | Sees the author |
+|---|---|
+| Public | no |
+| Reflection owner (`post_author`) | **no** |
+| Editor, Site Manager | **no** |
+| `reci_moderator` | yes |
+| `administrator` | yes |
+
+This is gated on a new capability, `reci_view_journal_identity`, not on "is
+staff" — because the reflection owner usually *is* staff.
+
+**The landmine this avoids.** WordPress grants `moderate_comments` to `editor`
+by default, and `reci_site_manager` is built from Editor's capabilities
+(`inc/core/roles.php:84-85`), so it inherits the same. A reflection owner will
+therefore normally reach the native comment queue, where core renders the author
+from `comment_user_id`. Masking has to be active and capability-gated, not merely
+"leave the name out of the notification".
+
+**Fail closed, not open.** For anonymous entries the mirror comment stores
+`comment_user_id = 0`, `comment_author = 'Anonymous'` and an empty author email.
+The real identity lives **only** in `wp_reci_journals.user_id`, reachable through
+the `_reci_journal_id` meta, and is *added back* for users holding
+`reci_view_journal_identity`.
+
+The alternative — keep `comment_user_id` set and filter every display path — was
+rejected. It leaks by default: any core path, REST route, export or plugin we
+failed to filter exposes the author. Zeroing the column means a missed path shows
+"Anonymous", which is the safe direction to be wrong in.
+
+This costs nothing the author cares about: their dashboard reads
+`wp_reci_journals` by `user_id`, not `wp_comments`.
+
+**Still state it plainly in the UI copy.** "Anonymous" here means hidden from
+readers and from the reflection's author — not from site administrators. A user
+who reads it as "nobody can ever know" and is later moderated has been misled.
 
 ### 3.3 Reflection owners are notified on approval, not on share
 
@@ -142,8 +173,9 @@ silently unpublish them.
 | `comment_type` | `reci_journal` |
 | `comment_post_ID` | the reflection's post ID |
 | `comment_approved` | `0` on share |
-| `comment_user_id` | the author, **always**, even when anonymous |
+| `comment_user_id` | the author — or **`0`** when anonymous (see §3.2) |
 | `comment_author` | display name, or `Anonymous` |
+| `comment_author_email` | the author's email, or **empty** when anonymous |
 | `comment_content` | the journal response |
 | meta `_reci_journal_id` | row id in `wp_reci_journals` |
 | meta `_reci_anonymous` | `1` when anonymous |
@@ -166,7 +198,13 @@ clean up the other — a `deleted_comment` hook resets the journal to `private`.
 
 - `PATCH /journals/{id}/share` accepts `{ shared: bool, anonymous: bool }`.
 - Sharing: set `status = 'pending'`, `shared_at`, `is_anonymous`; run the term
-  matcher (§G); insert the mirror comment; store `comment_id`.
+  matcher (§G); insert the mirror comment; store `comment_id`. When
+  `is_anonymous`, the mirror is written with `comment_user_id = 0`,
+  `comment_author = 'Anonymous'` and an empty author email (§3.2) — the link back
+  to the real author exists only through `_reci_journal_id`.
+- Toggling anonymity on an already-shared entry rewrites the mirror comment's
+  author fields accordingly. Turning anonymity **on** must also purge the
+  previously stored name from any notification row already written for it.
 - Unsharing: trash the mirror comment, reset to `private`, clear `comment_id`.
 - Fix `reci_create_journal()` so a `public` default privacy creates the entry and
   *then* runs the share path, landing it in `pending` — never straight to public.
@@ -184,12 +222,31 @@ rung on it.
 
 ```
 read, moderate_comments, edit_comment, edit_comments,
-reci_access_admin, reci_moderate_journals
+reci_access_admin, reci_moderate_journals, reci_view_journal_identity
 ```
 
 Deliberately **no** `edit_posts`, `publish_posts`, `list_users` or
 `reci_approve_collaborators`. A moderator manages discussion, not content and not
-people. `reci_moderate_journals` joins `reci_custom_capabilities()`.
+people. `reci_moderate_journals` and `reci_view_journal_identity` join
+`reci_custom_capabilities()`.
+
+**`reci_view_journal_identity` is granted to `administrator` and
+`reci_moderator` only** — explicitly *not* to `editor` or `reci_site_manager`,
+both of which already hold `moderate_comments` and would otherwise see through
+anonymity. They can still approve and reject; they just see "Anonymous".
+
+**Identity resolution.** One helper, `reci_journal_author_for_display( int
+$journal_id ): array`, returns either the real author or the anonymous
+placeholder based on `current_user_can( 'reci_view_journal_identity' )`. Every
+surface calls it — the moderator queue, the journals list table, the
+shared-journals overlay. Because the comment row carries no identity for
+anonymous entries (§3.2), a surface that forgets to call it degrades to
+"Anonymous" rather than leaking.
+
+**Notifications carry no identity.** `reci_create_notification()` writes its
+title and message into `wp_reci_notifications` as stored text, and the reflection
+owner reads those rows. For an anonymous entry the stored copy must never contain
+the author's name — masking at render time would be too late.
 
 **Queue.** Mirror comments appear in the native comment screen filtered by
 `comment_type = reci_journal`. `inc/admin/class-reci-journals-list-table.php`
@@ -206,7 +263,13 @@ Notification type: `shared_journal_approved`.
 
 - New route `GET /reci/v1/reflections/{id}/shared-journals` — approved only,
   paginated, author name replaced by `Anonymous` where `is_anonymous = 1`.
-  Must never leak `user_id` for anonymous rows in its response.
+  Must never return `user_id`, `comment_user_id` or an avatar URL for an
+  anonymous row, to any caller — including one holding
+  `reci_view_journal_identity`. This is a public reading surface; identity
+  belongs in the moderation surfaces, not here.
+- Core's own comment REST route needs the same treatment: a
+  `rest_prepare_comment` filter that strips author fields from `reci_journal`
+  comments, so `/wp/v2/comments` cannot be used as a side door.
 - `modules/reflection-system/templates/response-block.php` gains a sibling panel
   beside "Your saved responses": **Read N shared reflections**, hidden when
   `N = 0`.
@@ -275,18 +338,23 @@ match. The policy opens in a modal, falling back to a normal page.
 **Behaviour change to call out:** comments currently post straight through with no
 gate at all. Matched comments being held for review is new.
 
-## 6. Open decisions for the client
+## 6. Decisions confirmed with the client
 
-1. **Private journals are never routed to moderators.** §G assumes detection
-   warns the writer and stops there. Staff reading a private entry because it
-   matched a word list would break the promise the Private/Shared toggle makes.
-   If the client wants private entries visible to staff, that is a different
-   product and needs saying out loud.
-2. **Owner notification is delayed until approval** (§3.3), not instant.
-3. **"Anonymous" is not untraceable** (§3.2) — confirm the UI copy is honest
-   about this.
-4. **Moderators cannot edit posts or manage users** — confirm that is the
-   intended boundary.
+All four resolved with the client on 2026-09-22:
+
+1. **Private journals are never routed to moderators.** Confirmed. Detection
+   warns the writer and stops there.
+2. **Owner notification waits for approval** (§3.3), not instant. Confirmed.
+3. **Anonymity hides the author from the public *and* the reflection owner**,
+   revealing only to administrators and moderators (§3.2). Confirmed, and
+   widened from the original draft — moderators were added because tracking
+   repeat abuse is the role's purpose.
+4. **Moderators cannot edit posts or manage users.** Confirmed.
+
+Remaining item for the client, not blocking:
+
+- **UI copy for "anonymous"** must say it is hidden from readers and from the
+  reflection's author, but not from site administrators. Needs wording sign-off.
 
 ## 7. Sequencing
 
@@ -309,8 +377,16 @@ does not.
   `1.6.0` with no row changing visibility. Re-running is a no-op.
 - **The defect in §2:** a user with `reci_journal_default_privacy = public`
   creates an entry and it lands `pending`, not public.
-- **Anonymity:** the shared-journals endpoint never returns `user_id` for an
-  anonymous row; the moderator view still resolves the author.
+- **Anonymity, per audience:** for one anonymous entry, assert the author is
+  masked for a logged-out visitor, for the reflection's own `post_author`, for an
+  `editor` and for a `reci_site_manager` — and resolved for a `reci_moderator`
+  and an `administrator`.
+- **Anonymity, per surface:** the shared-journals endpoint, `/wp/v2/comments`,
+  the native comment queue, the journals list table, and the stored
+  notification row all mask an anonymous author. The stored notification text
+  must not contain the name even before rendering.
+- **Fail-closed:** with the display helper deliberately bypassed, an anonymous
+  entry still renders "Anonymous" because `comment_user_id` is `0`.
 - **Round trip:** share → pending → approve → owner notified once → appears in
   the overlay → withdraw → disappears, comment trashed.
 - **Capability boundaries:** `reci_moderator` can reach the comment queue and
