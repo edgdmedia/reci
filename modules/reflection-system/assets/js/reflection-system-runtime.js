@@ -521,8 +521,21 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Unable to save your response.');
+        const shareBox = document.getElementById('reflectionShare');
+        const anonBox = document.getElementById('reflectionAnonymous');
         if (responseInput) responseInput.value = '';
-        if (status) status.textContent = 'Response saved to your account.';
+        if (shareBox?.checked && data.id && window.reciPatchJournalShare) {
+          try {
+            await window.reciPatchJournalShare(data.id, true, Boolean(anonBox?.checked));
+            if (shareBox) shareBox.checked = false;
+            if (anonBox) anonBox.checked = false;
+            if (status) status.textContent = 'Response saved and sent for review.';
+          } catch (shareError) {
+            if (status) status.textContent = 'Response saved privately. Sharing failed — try again from your dashboard.';
+          }
+        } else if (status) {
+          status.textContent = 'Response saved to your account.';
+        }
         await loadResponses();
       } catch (error) {
         if (status) status.textContent = error.message || 'Something went wrong.';

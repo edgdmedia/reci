@@ -44,3 +44,9 @@ reci_assert_same( false, reci_journal_can_transition( 'private', 'private' ), 't
 // Unknown states never transition.
 reci_assert_same( false, reci_journal_can_transition( 'bogus', 'pending' ), 'transition: unknown source rejected' );
 reci_assert_same( false, reci_journal_can_transition( 'pending', 'bogus' ), 'transition: unknown target rejected' );
+
+reci_assert_same( 'Private', reci_journal_status_label( 'private' ), 'label: private' );
+reci_assert_same( 'Pending review', reci_journal_status_label( 'pending' ), 'label: pending is distinct from private' );
+reci_assert_same( 'Shared', reci_journal_status_label( 'approved' ), 'label: approved reads as shared' );
+reci_assert_same( 'Not published', reci_journal_status_label( 'rejected' ), 'label: rejected' );
+reci_assert_same( 'Private', reci_journal_status_label( 'nonsense' ), 'label: unknown status falls back to private' );

@@ -48,7 +48,7 @@ get_header('dashboard');
 					$date          = wp_date( get_option( 'date_format' ), strtotime( $journal->created_at ) );
 					$reflection_post = $reflection_id ? get_post( $reflection_id ) : null;
 				?>
-				<div class="bg-white border border-zinc-200 rounded-xl p-5">
+				<div class="bg-white border border-zinc-200 rounded-xl p-5" data-journal-id="<?php echo esc_attr( (string) $journal->id ); ?>">
 					<div class="flex items-start justify-between gap-4">
 						<div class="min-w-0 flex-1">
 							<p class="text-xs text-zinc-500 mb-1">
@@ -64,9 +64,38 @@ get_header('dashboard');
 							<p class="text-sm text-zinc-600 line-clamp-3"><?php echo esc_html( wp_strip_all_tags( $content ) ); ?></p>
 						</div>
 						<div class="flex flex-col items-end gap-2 shrink-0">
-							<span class="text-xs px-2 py-0.5 rounded-full <?php echo $shared ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600'; ?>">
-								<?php echo $shared ? 'Shared' : 'Private'; ?>
+							<?php
+							$status       = (string) ( $journal->status ?? 'private' );
+							$is_anonymous = (bool) (int) ( $journal->is_anonymous ?? 0 );
+							$pill_class   = [
+								'private'  => 'bg-zinc-100 text-zinc-600',
+								'pending'  => 'bg-amber-100 text-amber-800',
+								'approved' => 'bg-green-100 text-green-700',
+								'rejected' => 'bg-rose-100 text-rose-700',
+							][ $status ] ?? 'bg-zinc-100 text-zinc-600';
+							?>
+							<span data-reci-journal-status class="text-xs px-2 py-0.5 rounded-full <?php echo esc_attr( $pill_class ); ?>">
+								<?php echo esc_html( reci_journal_status_label( $status ) ); ?>
 							</span>
+
+							<label class="flex items-center gap-2 text-xs text-zinc-600">
+								<input
+									type="checkbox"
+									data-reci-journal-share
+									<?php checked( in_array( $status, [ 'pending', 'approved' ], true ) ); ?>
+								/>
+								<?php esc_html_e( 'Share', 'reci-media-hub' ); ?>
+							</label>
+
+							<label class="flex items-center gap-2 text-xs text-zinc-600">
+								<input
+									type="checkbox"
+									data-reci-journal-anonymous
+									<?php checked( $is_anonymous ); ?>
+									<?php disabled( 'private' === $status ); ?>
+								/>
+								<?php esc_html_e( 'Anonymously', 'reci-media-hub' ); ?>
+							</label>
 							<span class="text-xs text-zinc-400"><?php echo esc_html( $date ); ?></span>
 						</div>
 					</div>

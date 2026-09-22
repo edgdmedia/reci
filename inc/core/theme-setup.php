@@ -249,6 +249,26 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 
 		wp_localize_script('reci-community-policy', 'reciCommunityPolicy', reci_community_policy_script_data());
 
+		wp_enqueue_script(
+			'reci-journal-sharing',
+			get_template_directory_uri() . '/assets/js/journal-sharing.js',
+			[],
+			wp_get_theme()->get('Version'),
+			true
+		);
+
+		wp_localize_script(
+			'reci-journal-sharing',
+			'reciJournalSharing',
+			[
+				'root'         => esc_url_raw(rest_url()),
+				'nonce'        => wp_create_nonce('wp_rest'),
+				'pendingLabel' => reci_journal_status_label('pending'),
+				'privateLabel' => reci_journal_status_label('private'),
+				'errorLabel'   => __('Could not update. Try again.', 'reci-media-hub'),
+			]
+		);
+
 		// `/submit/` is the single canonical submission route. The React app only
 		// mounts for approved collaborators, so only load it for that state.
 		$is_submit_page = is_page_template( 'templates/page/template-submit-content.php' )

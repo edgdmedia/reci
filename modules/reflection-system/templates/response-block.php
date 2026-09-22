@@ -43,6 +43,22 @@ $args = wp_parse_args(
 				<div id="responseFormShell" class="mt-4">
 					<label class="mb-2 block font-['Oswald'] text-sm uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
 					<textarea id="reflectionResponse" class="min-h-[220px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
+					<div class="mt-4 grid gap-3">
+						<label class="flex items-start gap-3 text-sm reci-reflection-soft-text">
+							<input type="checkbox" id="reflectionShare" class="mt-1" />
+							<span>
+								<?php esc_html_e( 'Share this reflection with others', 'reci-media-hub' ); ?>
+								<span class="block text-xs opacity-80"><?php esc_html_e( 'A moderator reads it before it appears. You can withdraw it at any time.', 'reci-media-hub' ); ?></span>
+							</span>
+						</label>
+						<label class="flex items-start gap-3 text-sm reci-reflection-soft-text" id="reflectionAnonWrap" hidden>
+							<input type="checkbox" id="reflectionAnonymous" class="mt-1" />
+							<span>
+								<?php esc_html_e( 'Share anonymously', 'reci-media-hub' ); ?>
+								<span class="block text-xs opacity-80"><?php esc_html_e( 'Your name is hidden from readers and from this reflection\'s author. Site administrators can still see it.', 'reci-media-hub' ); ?></span>
+							</span>
+						</label>
+					</div>
 					<div class="mt-4 flex flex-wrap gap-4">
 						<button class="inline-flex items-center justify-center rounded-full bg-[#d4a63f] px-6 py-4 font-['Oswald'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
 					</div>

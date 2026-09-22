@@ -60,3 +60,21 @@ function reci_journal_can_transition( string $from, string $to ): bool {
 
 	return in_array( $to, $allowed[ $from ], true );
 }
+
+/**
+ * The user-facing label for a status.
+ *
+ * The dashboard previously showed a two-state Shared/Private pill driven by
+ * `is_shared`, which would render a pending entry as "Private" and leave the
+ * author wondering whether their share went through.
+ */
+function reci_journal_status_label( string $status ): string {
+	$labels = [
+		'private'  => __( 'Private', 'reci-media-hub' ),
+		'pending'  => __( 'Pending review', 'reci-media-hub' ),
+		'approved' => __( 'Shared', 'reci-media-hub' ),
+		'rejected' => __( 'Not published', 'reci-media-hub' ),
+	];
+
+	return $labels[ $status ] ?? $labels['private'];
+}
