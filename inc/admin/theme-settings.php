@@ -283,6 +283,13 @@ function reci_register_settings(): void {
 	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
 	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything. The log itself lives under RECI Settings &rarr; Email Log.', [], [ 'min' => 0, 'max' => 3650 ] );
 
+	// ── 1c. Community ─────────────────────────────────────────────────────
+	add_settings_section( 'reci_community', 'Community', '__return_false', 'reci-settings-community' );
+
+	reci_add_field( 'submission_guidelines', 'Submission Guidelines', 'textarea', 'reci-settings-community', 'reci_community', 'Shown at the top of the Submit Content page to everyone, including signed-out visitors. Basic HTML is allowed.' );
+	reci_add_field( 'community_policy',      'Community Guideline',   'textarea', 'reci-settings-community', 'reci_community', 'Shown when someone clicks the guideline link beside a journal or comment box. Basic HTML is allowed.' );
+	reci_add_field( 'abuse_terms',           'Flagged Terms',         'textarea', 'reci-settings-community', 'reci_community', 'One term or phrase per line. Lines starting with # are ignored. Matching never blocks a save — it warns the writer and sends shared entries and comments to the moderation queue.' );
+
 	// ── 2. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
 
@@ -565,7 +572,7 @@ function reci_sanitize_settings( $input ): array {
 		'social_linkedin',
 	];
 	$email_fields = [ 'footer_email', 'email_from_address' ];
-	$textarea_fields = [ 'footer_address' ];
+	$textarea_fields = [ 'footer_address', 'abuse_terms' ];
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
 		'content_articles_per_page', 'content_podcasts_per_page', 'content_videos_per_page',
@@ -619,6 +626,20 @@ function reci_sanitize_settings( $input ): array {
 	}
 	foreach ( $checkbox_fields as $field ) {
 		$clean[ $field ] = ! empty( $input[ $field ] ) ? '1' : '0';
+	}
+
+	// The two policy bodies allow the same limited HTML as post content, so
+	// sanitize_textarea_field would strip the formatting an editor just wrote.
+	foreach ( [ 'submission_guidelines', 'community_policy' ] as $field ) {
+		if ( isset( $input[ $field ] ) ) {
+			$clean[ $field ] = wp_kses_post( $input[ $field ] );
+		}
+	}
+
+	// Keep WordPress's own moderation keywords in step with our list, so the
+	// comment path is held by core rather than by a parallel implementation.
+	if ( isset( $clean['abuse_terms'] ) ) {
+		reci_sync_moderation_keys( reci_parse_abuse_terms( $clean['abuse_terms'] ) );
 	}
 
 	return $clean;
@@ -700,6 +721,7 @@ function reci_settings_page_html(): void {
 	$tabs = [
 		'branding'  => 'Branding',
 		'email'     => 'Email',
+		'community' => 'Community',
 		'social'    => 'Social Links',
 		'homepage'  => 'Homepage Content',
 		'footer'    => 'Footer',
