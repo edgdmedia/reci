@@ -110,3 +110,87 @@ function reci_journal_author_for_display( int $journal_id ): array {
 		'user_id'   => $identity['is_masked'] ? 0 : (int) $row->user_id,
 	];
 }
+
+/**
+ * Remove every author-identifying field from a prepared comment payload.
+ *
+ * Pure, so the field list is explicit and can be reviewed against what the
+ * REST controller actually emits.
+ */
+function reci_strip_comment_identity( array $data ): array {
+	$data['author']             = 0;
+	$data['author_name']        = __( 'Anonymous', 'reci-media-hub' );
+	$data['author_url']         = '';
+	$data['author_avatar_urls'] = [];
+
+	// These two have no anonymised form — an email or an IP address is
+	// identifying however it is rendered — so they are dropped outright.
+	unset( $data['author_email'], $data['author_ip'] );
+
+	return $data;
+}
+
+/**
+ * Close the /wp/v2/comments side door.
+ *
+ * Without this, core would serve a mirror comment's author fields directly,
+ * bypassing every masking decision made elsewhere.
+ */
+add_filter( 'rest_prepare_comment', 'reci_rest_mask_journal_comment', 10, 3 );
+function reci_rest_mask_journal_comment( $response, $comment, $request ) {
+	if ( 'reci_journal' !== $comment->comment_type ) {
+		return $response;
+	}
+
+	if ( (int) get_comment_meta( $comment->comment_ID, '_reci_anonymous', true ) !== 1 ) {
+		return $response;
+	}
+
+	if ( reci_can_see_journal_identity() ) {
+		return $response;
+	}
+
+	$response->set_data( reci_strip_comment_identity( (array) $response->get_data() ) );
+
+	return $response;
+}
+
+/**
+ * Mask the byline wherever WordPress renders a comment author.
+ *
+ * The mirror stores no identity for an anonymous entry, so this is a second
+ * line of defence rather than the primary one — it matters for the cases where
+ * something has reconstructed a name from elsewhere.
+ */
+add_filter( 'get_comment_author', 'reci_mask_journal_comment_author', 10, 3 );
+function reci_mask_journal_comment_author( $author, $comment_id, $comment ) {
+	if ( ! $comment || 'reci_journal' !== $comment->comment_type ) {
+		return $author;
+	}
+
+	if ( (int) get_comment_meta( $comment_id, '_reci_anonymous', true ) !== 1 ) {
+		return $author;
+	}
+
+	if ( reci_can_see_journal_identity() ) {
+		return $author;
+	}
+
+	return __( 'Anonymous', 'reci-media-hub' );
+}
+
+/**
+ * An anonymous entry must not carry a profile link.
+ */
+add_filter( 'get_comment_author_url', 'reci_mask_journal_comment_author_url', 10, 3 );
+function reci_mask_journal_comment_author_url( $url, $comment_id, $comment ) {
+	if ( ! $comment || 'reci_journal' !== $comment->comment_type ) {
+		return $url;
+	}
+
+	if ( (int) get_comment_meta( $comment_id, '_reci_anonymous', true ) !== 1 ) {
+		return $url;
+	}
+
+	return reci_can_see_journal_identity() ? $url : '';
+}
