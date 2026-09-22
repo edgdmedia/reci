@@ -38,6 +38,7 @@ $reci_media_hub_includes = [
 	'/inc/features/listing-builder.php',
 	'/inc/features/engagement-counters.php',
 	'/inc/features/community-policy.php',
+	'/inc/features/journal-status.php',
 	'/inc/features/remote-demo-content.php',
 	'/inc/features/theme-updates.php',
 	
