@@ -372,7 +372,13 @@ function reci_ajax_toggle_bookmark(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_bookmarks', array_values( $bookmarks ) );
-	wp_send_json_success( [ 'bookmarked' => $bookmarked ] );
+	reci_bump_engagement_count( $post_id, 'bookmark', $bookmarked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'bookmarked' => $bookmarked,
+			'count'      => reci_get_bookmark_count( $post_id ),
+		]
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +406,13 @@ function reci_ajax_toggle_like(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_likes', array_values( $likes ) );
-	wp_send_json_success( [ 'liked' => $liked ] );
+	reci_bump_engagement_count( $post_id, 'like', $liked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'liked' => $liked,
+			'count' => reci_get_like_count( $post_id ),
+		]
+	);
 }
 
 add_action( 'wp_ajax_reci_get_post_state', 'reci_ajax_get_post_state' );

@@ -340,17 +340,45 @@
     const hotspotLayer = byId('hotspotLayer');
     if (!lightbox || !image || !close) return;
 
-    document.querySelectorAll('.panel-image').forEach((panel) => {
-      panel.addEventListener('click', () => {
-        const notes = parsePanelAnnotations(panel);
-        image.src = panel.getAttribute('src') || '';
-        image.alt = panel.getAttribute('alt') || '';
-        image.dataset.annotations = JSON.stringify(notes);
-        if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
-        if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
-        renderAnnotation(notes, 0, { annotationTitle, annotationBody, annotationList, hotspotLayer });
-        lightbox.classList.add('active');
-      });
+    function openPlainImage(src, alt, caption) {
+      image.src = src || '';
+      image.alt = alt || '';
+      image.dataset.annotations = '[]';
+      if (title) title.textContent = alt || caption || 'Image viewer';
+      if (intro) intro.textContent = caption || '';
+      if (annotationTitle) annotationTitle.textContent = 'Image';
+      if (annotationBody) annotationBody.textContent = caption || '';
+      if (annotationList) annotationList.innerHTML = '';
+      if (hotspotLayer) hotspotLayer.innerHTML = '';
+      lightbox.classList.add('lightbox--plain');
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // Delegated handlers (on document) so they keep working after the builder
+    // preview swaps out a chapter's DOM via the "update-chapter" message.
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-lightbox-image]');
+      if (trigger) {
+        openPlainImage(
+          trigger.getAttribute('data-lightbox-src') || '',
+          trigger.getAttribute('data-lightbox-alt') || '',
+          trigger.getAttribute('data-lightbox-caption') || ''
+        );
+        return;
+      }
+      const panel = event.target.closest('.panel-image');
+      if (!panel) return;
+      const notes = parsePanelAnnotations(panel);
+      image.src = panel.getAttribute('src') || '';
+      image.alt = panel.getAttribute('alt') || '';
+      image.dataset.annotations = JSON.stringify(notes);
+      if (title) title.textContent = panel.getAttribute('alt') || 'Panel reader';
+      if (intro) intro.textContent = 'Select an annotation point or note to read a guided comment on this panel.';
+      lightbox.classList.remove('lightbox--plain');
+      renderAnnotation(notes, 0, { annotationTitle, annotationBody, annotationList, hotspotLayer });
+      lightbox.classList.add('active');
+      document.body.style.overflow = 'hidden';
     });
 
     lightbox.addEventListener('click', (event) => {
@@ -368,9 +396,10 @@
     });
 
     function closeLightbox() {
-      lightbox.classList.remove('active');
+      lightbox.classList.remove('active', 'lightbox--plain');
       if (hotspotLayer) hotspotLayer.innerHTML = '';
       if (annotationList) annotationList.innerHTML = '';
+      document.body.style.overflow = '';
     }
 
     close.addEventListener('click', closeLightbox);
@@ -391,6 +420,25 @@
     const promptText = promptTextNode ? promptTextNode.textContent.replace(/^Prompt:\s*/, '').trim() : '';
     if (!responseList) return;
 
+    const isLoggedIn = Boolean(config.isLoggedIn || Number(config.currentUserId || 0) > 0);
+
+    // Writing is always enabled; the auth modal gates submission.
+    if (gate) {
+      gate.style.display = 'none';
+    }
+
+    if (formShell) {
+      formShell.style.opacity = '1';
+    }
+
+    if (responseInput) {
+      responseInput.disabled = false;
+    }
+
+    if (saveButton) {
+      saveButton.disabled = false;
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll('&', '&amp;')
@@ -401,7 +449,7 @@
     }
 
     async function loadResponses() {
-      if (!config.isLoggedIn || !config.restUrl || !config.reflectionId) {
+      if (!(window.reciIsLoggedIn || isLoggedIn) || !config.restUrl || !config.reflectionId) {
         responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">Log in to save and review your reflections.</div>';
         return;
       }
@@ -409,7 +457,7 @@
       url.searchParams.set('reflection_id', config.reflectionId);
       const res = await fetch(url.toString(), {
         credentials: 'same-origin',
-        headers: { 'X-WP-Nonce': config.nonce }
+        headers: { 'X-WP-Nonce': (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce }
       });
       const data = await res.json();
       const items = Array.isArray(data.items) ? data.items : [];
@@ -426,19 +474,32 @@
       `).join('');
     }
 
-    if (!config.isLoggedIn) {
-      if (gate) gate.style.display = 'block';
-    }
-
     saveButton?.addEventListener('click', async () => {
       const response = (responseInput?.value || '').trim();
-      if (!response || !config.restUrl) {
+      if (!response) {
         if (status) {
           status.textContent = 'Write a response before saving.';
           status.style.display = 'block';
         }
         return;
       }
+
+      // Writing is allowed without an account; submitting requires one.
+      const loggedInNow = Boolean(window.reciIsLoggedIn || isLoggedIn);
+      if (!loggedInNow && window.reciShowAuthModal) {
+        const authed = await window.reciShowAuthModal();
+        if (!authed) return;
+      }
+
+      const nonce = (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce;
+      if (!config.restUrl || !nonce) {
+        if (status) {
+          status.textContent = 'Unable to save right now.';
+          status.style.display = 'block';
+        }
+        return;
+      }
+
       saveButton.disabled = true;
       if (status) {
         status.textContent = 'Saving...';
@@ -450,7 +511,7 @@
           credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
-            'X-WP-Nonce': config.nonce,
+            'X-WP-Nonce': nonce,
           },
           body: JSON.stringify({
             reflection_id: config.reflectionId,
@@ -460,8 +521,21 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Unable to save your response.');
+        const shareBox = document.getElementById('reflectionShare');
+        const anonBox = document.getElementById('reflectionAnonymous');
         if (responseInput) responseInput.value = '';
-        if (status) status.textContent = 'Response saved to your account.';
+        if (shareBox?.checked && data.id && window.reciPatchJournalShare) {
+          try {
+            await window.reciPatchJournalShare(data.id, true, Boolean(anonBox?.checked));
+            if (shareBox) shareBox.checked = false;
+            if (anonBox) anonBox.checked = false;
+            if (status) status.textContent = 'Response saved and sent for review.';
+          } catch (shareError) {
+            if (status) status.textContent = 'Response saved privately. Sharing failed — try again from your dashboard.';
+          }
+        } else if (status) {
+          status.textContent = 'Response saved to your account.';
+        }
         await loadResponses();
       } catch (error) {
         if (status) status.textContent = error.message || 'Something went wrong.';

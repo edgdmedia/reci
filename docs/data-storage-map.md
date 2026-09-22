@@ -8,7 +8,7 @@ Read from the running database, not from code.
 |---|---:|---|
 | `wp_reci_assessment_submissions` | 0 | Quiz/assessment results |
 | `wp_reci_email_log` | 70 | Every wp_mail() attempt: recipient, subject, heading, transport, status, error |
-| `wp_reci_journals` | 0 | Reflection journal entries |
+| `wp_reci_journals` | 0 | Reflection journal entries — `status`, `is_anonymous`, `shared_at`, `comment_id`, and `flagged_terms` added in 1.6.0 |
 | `wp_reci_notifications` | 71 | In-app bell notifications per user |
 
 ## Collaborator application (`reci_collab_app`)

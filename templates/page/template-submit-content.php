@@ -43,6 +43,20 @@ get_header();
 				</div>
 			<?php endif; ?>
 
+			<?php
+			get_template_part(
+				'template-parts/common/guidelines-panel',
+				null,
+				[
+					'title'       => __( 'Submission Guidelines', 'reci-media-hub' ),
+					'body'        => reci_get_submission_guidelines(),
+					// Approved collaborators have read this before and are here
+					// to work, so it starts collapsed for them alone.
+					'collapsible' => ( 'approved_collaborator' === $submit_state ),
+				]
+			);
+			?>
+
 			<?php reci_render_collaborator_application_notices(); ?>
 
 			<?php if ( 'approved_collaborator' !== $submit_state ) : ?>

@@ -8,6 +8,52 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
+if (! function_exists('reci_logo_img')) {
+	/**
+	 * Render a branding logo at a sane weight.
+	 *
+	 * The header used to request the 'full' size, so a 1857px 360KB original was
+	 * downloaded on every page load to be drawn 48-80px tall. This asks for a
+	 * size that fits the slot and lets wp_get_attachment_image() emit a srcset so
+	 * the browser can pick something smaller still; `sizes` is set explicitly
+	 * because WordPress's default assumes a full-width image.
+	 *
+	 * @param int    $attachment_id Configured logo, 0 when unset.
+	 * @param string $fallback_url  Theme asset used when nothing is configured.
+	 * @param string $alt           Alt text.
+	 * @param string $class         CSS classes for the img.
+	 * @param string $sizes         CSS width of the largest rendering, e.g. '311px'.
+	 * @param string $loading       'eager', or 'lazy' for anything off-screen.
+	 */
+	function reci_logo_img(int $attachment_id, string $fallback_url, string $alt, string $class, string $sizes, string $loading = 'eager'): string {
+		if ($attachment_id > 0 && wp_attachment_is_image($attachment_id)) {
+			$html = wp_get_attachment_image(
+				$attachment_id,
+				reci_logo_size($attachment_id, 'medium_large'),
+				false,
+				[
+					'class'   => $class,
+					'alt'     => $alt,
+					'sizes'   => $sizes,
+					'loading' => $loading,
+				]
+			);
+
+			if ('' !== $html) {
+				return $html;
+			}
+		}
+
+		return sprintf(
+			'<img src="%s" alt="%s" class="%s" loading="%s" />',
+			esc_url($fallback_url),
+			esc_attr($alt),
+			esc_attr($class),
+			esc_attr($loading)
+		);
+	}
+}
+
 if (! function_exists('reci_media_hub_setup')) {
 	function reci_media_hub_setup(): void
 	{
@@ -37,6 +83,89 @@ if (! function_exists('reci_media_hub_setup')) {
 }
 
 add_action('after_setup_theme', 'reci_media_hub_setup');
+
+/**
+ * Logo size for email and the header.
+ *
+ * WordPress generates 300px then jumps to 768px. Both the email masthead and
+ * the site header sit in that gap, so each was pulling a 768px file to draw
+ * something half its width. 400px covers the email at 2x and the header's
+ * widest slot with room to spare.
+ *
+ * Registering a size only affects uploads made afterwards, so existing logos
+ * need regenerating — Appearance -> RECI Settings -> Branding has a button.
+ */
+add_action('after_setup_theme', static function (): void {
+	add_image_size('reci-logo', 400, 0, false);
+}, 20);
+
+if (! function_exists('reci_logo_size')) {
+	/**
+	 * Best available logo size, falling back when the file has not been regenerated.
+	 */
+	function reci_logo_size(int $attachment_id, string $fallback = 'medium'): string {
+		$meta = wp_get_attachment_metadata($attachment_id);
+
+		return isset($meta['sizes']['reci-logo']) ? 'reci-logo' : $fallback;
+	}
+}
+
+if (! function_exists('reci_regenerate_logo_sizes')) {
+	/**
+	 * Regenerate the intermediate sizes for the two configured logos.
+	 *
+	 * Only these two attachments — this is not a media-library-wide rebuild.
+	 *
+	 * @return array<int,string> One line per logo describing what happened.
+	 */
+	function reci_regenerate_logo_sizes(): array {
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$results = [];
+
+		foreach (['branding_reci_logo' => 'RECI logo', 'branding_partner_logo' => 'Partner logo'] as $setting => $label) {
+			$id = (int) reci_setting($setting);
+
+			if ($id <= 0 || ! wp_attachment_is_image($id)) {
+				$results[] = sprintf('%s: not set', $label);
+				continue;
+			}
+
+			$file = get_attached_file($id);
+			if (! $file || ! file_exists($file)) {
+				$results[] = sprintf('%s: file missing', $label);
+				continue;
+			}
+
+			$meta = wp_generate_attachment_metadata($id, $file);
+			if (is_wp_error($meta) || empty($meta)) {
+				$results[] = sprintf('%s: regeneration failed', $label);
+				continue;
+			}
+
+			wp_update_attachment_metadata($id, $meta);
+			$results[] = sprintf(
+				'%s: %s',
+				$label,
+				isset($meta['sizes']['reci-logo'])
+					? sprintf('reci-logo %dx%d created', $meta['sizes']['reci-logo']['width'], $meta['sizes']['reci-logo']['height'])
+					: 'regenerated, but no reci-logo size (original may be under 400px wide)'
+			);
+		}
+
+		return $results;
+	}
+}
+
+
+/**
+ * Output favicon link tag.
+ */
+function reci_media_hub_favicon(): void {
+	$favicon = get_template_directory_uri() . '/favicon.png';
+	printf('<link rel="icon" type="image/png" href="%s">' . "\n", esc_url($favicon));
+}
+add_action('wp_head', 'reci_media_hub_favicon', 1);
 
 if (! function_exists('reci_media_hub_enqueue_assets')) {
 	function reci_media_hub_enqueue_assets(): void
@@ -88,7 +217,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						'progressEndpoint' => esc_url_raw(rest_url('reci/v1/assessment-progress')),
 						'restNonce'        => wp_create_nonce('wp_rest'),
 						'loginUrl'         => esc_url_raw(wp_login_url(get_permalink())),
-						'registerUrl'      => esc_url_raw(wp_registration_url()),
+						'registerUrl'      => esc_url_raw(reci_get_sign_up_url()),
 						'currentUser'      => [
 							'isLoggedIn' => is_user_logged_in(),
 							'name'       => is_user_logged_in() ? $current_user->display_name : '',
@@ -110,11 +239,40 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 			);
 		}
 
-		$submit_templates = [
-			'templates/page/template-submit-content.php',
-			'templates/page/dashboard/template-dashboard-submit.php',
-		];
-		$is_submit_page = (bool) array_reduce( $submit_templates, fn( $carry, $t ) => $carry || is_page_template( $t ), false );
+		wp_enqueue_script(
+			'reci-community-policy',
+			get_template_directory_uri() . '/assets/js/community-policy.js',
+			[],
+			wp_get_theme()->get('Version'),
+			true
+		);
+
+		wp_localize_script('reci-community-policy', 'reciCommunityPolicy', reci_community_policy_script_data());
+
+		wp_enqueue_script(
+			'reci-journal-sharing',
+			get_template_directory_uri() . '/assets/js/journal-sharing.js',
+			[],
+			wp_get_theme()->get('Version'),
+			true
+		);
+
+		wp_localize_script(
+			'reci-journal-sharing',
+			'reciJournalSharing',
+			[
+				'root'         => esc_url_raw(rest_url()),
+				'nonce'        => wp_create_nonce('wp_rest'),
+				'pendingLabel' => reci_journal_status_label('pending'),
+				'privateLabel' => reci_journal_status_label('private'),
+				'errorLabel'   => __('Could not update. Try again.', 'reci-media-hub'),
+			]
+		);
+
+		// `/submit/` is the single canonical submission route. The React app only
+		// mounts for approved collaborators, so only load it for that state.
+		$is_submit_page = is_page_template( 'templates/page/template-submit-content.php' )
+			&& ( ! function_exists( 'reci_get_submit_experience_state' ) || 'approved_collaborator' === reci_get_submit_experience_state() );
 		if ( $is_submit_page ) {
 			$submission_path = get_template_directory() . '/assets/js/submission-form.js';
 			if (file_exists($submission_path)) {
@@ -130,15 +288,30 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 				$website      = '';
 
 				if ($is_logged_in_user) {
-					$first_name_meta = (string) get_user_meta($current_user->ID, 'first_name', true);
-					$last_name_meta  = (string) get_user_meta($current_user->ID, 'last_name', true);
+					// Canonical contributor fields first — the same source the collaborator
+					// application and the dashboard profile editor read and write.
+					$profile = function_exists('reci_get_user_collaborator_profile_data')
+						? reci_get_user_collaborator_profile_data($current_user->ID)
+						: [];
 
-					$first_name = $first_name_meta !== '' ? $first_name_meta : (string) ($current_user->user_firstname ?? '');
-					$last_name  = $last_name_meta !== '' ? $last_name_meta : (string) ($current_user->user_lastname ?? '');
-					$email      = (string) $current_user->user_email;
+					$first_name   = (string) ($profile['reci_firstname'] ?? '');
+					$last_name    = (string) ($profile['reci_lastname'] ?? '');
+					$email        = (string) ($profile['user_email'] ?? $current_user->user_email);
+					$organization = (string) ($profile['submission_organization'] ?? '');
+					$role         = (string) ($profile['submission_role'] ?? '');
+					$bio          = (string) ($profile['submission_bio'] ?? '');
+					$website      = (string) ($profile['submission_website'] ?? '');
 
+					if ($first_name === '') {
+						$first_name = (string) ($current_user->user_firstname ?? '');
+					}
+					if ($last_name === '') {
+						$last_name = (string) ($current_user->user_lastname ?? '');
+					}
+
+					// Legacy meta keys, for accounts created before the fields were unified.
 					$organization_candidates = [
-						(string) get_user_meta($current_user->ID, 'organization', true),
+						$organization,
 						(string) get_user_meta($current_user->ID, 'company', true),
 						(string) get_user_meta($current_user->ID, 'institution', true),
 						(string) get_user_meta($current_user->ID, 'affiliation', true),
@@ -152,7 +325,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 					}
 
 					$role_candidates = [
-						(string) get_user_meta($current_user->ID, 'user_title', true),
+						$role,
 						(string) get_user_meta($current_user->ID, 'title', true),
 						(string) get_user_meta($current_user->ID, 'job_title', true),
 						(string) get_user_meta($current_user->ID, 'role_label', true),
@@ -165,8 +338,12 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						}
 					}
 
-					$bio = (string) get_user_meta($current_user->ID, 'description', true);
-					$website = (string) $current_user->user_url;
+					if ($bio === '') {
+						$bio = (string) get_user_meta($current_user->ID, 'description', true);
+					}
+					if ($website === '') {
+						$website = (string) $current_user->user_url;
+					}
 				}
 
 				wp_enqueue_script(
@@ -187,6 +364,8 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 						'spheres'        => function_exists('reci_media_hub_get_submission_spheres') ? reci_media_hub_get_submission_spheres() : [],
 						'practiceOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_practice_focus') : [],
 						'targetAudienceOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_target_audience') : [],
+						'locationOptions' => function_exists('reci_media_hub_get_taxonomy_terms_for_submission') ? reci_media_hub_get_taxonomy_terms_for_submission('reci_location') : [],
+						'typeFields' => function_exists('reci_submission_type_fields') ? reci_submission_type_fields() : [],
 						'currentUser'    => [
 							'isLoggedIn'   => $is_logged_in_user,
 							'firstName'    => $first_name,
@@ -213,6 +392,36 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 }
 
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_assets');
+
+/**
+ * Output theme color CSS custom properties from settings.
+ */
+function reci_theme_color_variables(): void {
+	$primary = reci_setting('branding_primary_color', '#003594');
+	$accent  = reci_setting('branding_accent_color', '#FFB81C');
+
+	printf(
+		'<style>:root{--reci-primary:%s;--reci-accent:%s;}</style>' . "\n",
+		esc_attr($primary),
+		esc_attr($accent)
+	);
+}
+add_action('wp_head', 'reci_theme_color_variables', 2);
+
+/**
+ * Resolve the global fallback thumbnail URL from theme settings.
+ */
+function reci_get_fallback_thumbnail_url(string $size = 'full', string $default = ''): string {
+	$fallback_id = (int) reci_setting('content_fallback_thumbnail', 0);
+	if ($fallback_id > 0) {
+		$fallback_url = wp_get_attachment_image_url($fallback_id, $size);
+		if ($fallback_url) {
+			return $fallback_url;
+		}
+	}
+
+	return $default;
+}
 
 if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
 	function reci_media_hub_enqueue_reflection_renderer(): void
@@ -396,7 +605,7 @@ if (! function_exists('reci_media_hub_enqueue_reflection_stage_styles')) {
 	display: grid;
 	gap: 1.5rem;
 }
-.reci-scroll-panel {
+: {
 	max-height: min(72vh, 820px);
 	overflow-y: auto;
 	padding-right: 0.5rem;
@@ -496,3 +705,94 @@ CSS;
 	}
 }
 add_action('wp_enqueue_scripts', 'reci_media_hub_enqueue_reflection_stage_styles', 20);
+
+/**
+ * Scope site search to content.
+ *
+ * Collaborators have their own directory at the reci_author archive, with its
+ * own search plus subject and affiliation filters. Leaving them in general
+ * search buries actual content — a query for "Racism" returned 11 collaborators
+ * in the first 12 results. Keeps the main query's found_posts in step with what
+ * search.php renders.
+ */
+add_action('pre_get_posts', 'reci_scope_search_to_content');
+
+/**
+ * Make term archives paginate over what they actually display.
+ *
+ * The templates list every post type the taxonomy is registered for, nine to a
+ * page. WordPress's own query for the same URL asked only for 'post' at the
+ * Reading setting's page size, so on /category/community-action/ the main query
+ * found 9 posts in 1 page while the template found 40 items across 5 — the page
+ * offered links 2 to 5 and WordPress answered 404, because as far as it was
+ * concerned those pages did not exist.
+ *
+ * Aligning the main query fixes the 404 and keeps the two counts honest.
+ */
+add_action('pre_get_posts', 'reci_align_taxonomy_archive_query');
+function reci_align_taxonomy_archive_query(WP_Query $query): void {
+	if (is_admin() || ! $query->is_main_query() || $query->is_feed()) {
+		return;
+	}
+
+	if (! $query->is_category() && ! $query->is_tag() && ! $query->is_tax()) {
+		return;
+	}
+
+	// The 'taxonomy' query var is empty here for a custom taxonomy: WordPress
+	// keeps the term under the taxonomy's own query var and only resolves the
+	// queried object later. The parsed tax_query is the reliable source at this
+	// point — reading get('taxonomy') meant this returned early every time.
+	$taxonomy = '';
+
+	if ($query->is_category()) {
+		$taxonomy = 'category';
+	} elseif ($query->is_tag()) {
+		$taxonomy = 'post_tag';
+	} elseif (isset($query->tax_query->queries[0]['taxonomy'])) {
+		$taxonomy = (string) $query->tax_query->queries[0]['taxonomy'];
+	}
+
+	$taxonomy_object = $taxonomy ? get_taxonomy($taxonomy) : null;
+
+	if (! $taxonomy_object || empty($taxonomy_object->object_type)) {
+		return;
+	}
+
+	$post_types = (array) $taxonomy_object->object_type;
+
+	// Honour the template's type filter here as well. Without it the main query
+	// still counts every type, so a filtered list would offer pages the filtered
+	// results do not fill — the same 404 in a different disguise.
+	$requested_type = isset($_GET['type']) ? sanitize_key((string) wp_unslash($_GET['type'])) : '';
+
+	if ('' !== $requested_type && in_array($requested_type, $post_types, true)) {
+		$post_types = [$requested_type];
+	}
+
+	$query->set('post_type', $post_types);
+
+	// Nine, matching the templates. Where a template shows more per page it will
+	// simply link to fewer pages than this allows, which is harmless; the reverse
+	// is what produced the 404.
+	$query->set('posts_per_page', 9);
+}
+
+
+function reci_scope_search_to_content(WP_Query $query): void {
+	if (is_admin() || ! $query->is_main_query() || ! $query->is_search()) {
+		return;
+	}
+
+	$query->set('post_type', [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_course',
+		'reci_document',
+		'reci_assessment',
+	]);
+}
+
