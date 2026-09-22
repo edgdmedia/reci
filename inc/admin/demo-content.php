@@ -1892,6 +1892,13 @@ function reci_install_demo_content( array $only_types = [] ): void {
 		'about_c3_copy'  => 'RECI\'s work is grounded in the metaphor that racism operates as a social virus — and that racial equity consciousness is the vaccine. Through our Structured Cognitive Behavioral Training (SCBT) framework, we guide individuals and organizations through a process-oriented journey of consciousness development across six bilateral spheres. Each sphere represents both an awareness dimension and an action dimension, reflecting the journey from recognition to transformation. This framework has been developed through years of research, tested across multiple cohorts, and is currently supported by NIH-funded research.',
 	];
 
+	// Community policy text lives with the feature, so a demo install and a
+	// normal install seed exactly the same words.
+
+	if ( function_exists( 'reci_default_community_settings' ) ) {
+		$defaults = array_merge( $defaults, reci_default_community_settings() );
+	}
+
 	$updated_options = false;
 	foreach ( $defaults as $key => $val ) {
 		if ( empty( $options[ $key ] ) ) {
@@ -1902,6 +1909,12 @@ function reci_install_demo_content( array $only_types = [] ): void {
 
 	if ( $updated_options ) {
 		update_option( 'reci_theme_settings', $options );
+
+		// The settings screen mirrors the term list into WordPress's own
+		// moderation keywords on save; seeding bypasses that, so do it here.
+		if ( ! empty( $options['abuse_terms'] ) && function_exists( 'reci_sync_moderation_keys' ) ) {
+			reci_sync_moderation_keys( reci_parse_abuse_terms( (string) $options['abuse_terms'] ) );
+		}
 	}
 
 	update_option( 'reci_demo_installed', true );

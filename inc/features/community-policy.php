@@ -292,3 +292,70 @@ function reci_community_policy_script_data(): array {
 		'linkLabel'  => __( 'Community guideline', 'reci-media-hub' ),
 	];
 }
+
+/**
+ * Starter text for the three community settings.
+ *
+ * Used to seed a site that has never had them filled in - by the demo
+ * installer, and once on upgrade for existing sites. Editors override any of
+ * it from RECI Settings > Community; nothing here is read at render time, so
+ * an edit is never quietly reverted.
+ *
+ * @return array<string,string>
+ */
+function reci_default_community_settings(): array {
+	return [
+		'submission_guidelines' => '<p>RECI curates content that is evidence-based and process-oriented, focused on practices, policies, programs, initiatives, frameworks, and resources that effectively advance racial equity. We seek contributions that inform individuals, communities, and organizations&mdash;and ultimately inspire them to share what they have learned.</p><h3>Evidence-Based Standard</h3><p>Submissions should be grounded in evidence. This includes peer-reviewed research, documented outcomes, evaluation data, practitioner knowledge, community-based participatory research, or other credible evidentiary foundations. Claims should be supported, and sources cited where possible.</p><h3>Process Orientation</h3><p>We value content that emphasizes process and developmental growth over static facts or one-time interventions. Content should guide readers, viewers and listeners through a journey of understanding&mdash;modeling the kind of ongoing consciousness development RECI champions.</p><h3>RECI Sphere Alignment</h3><p>All content should align with at least one of RECI&rsquo;s six spheres of consciousness development. Each sphere has both an awareness dimension and an action dimension, reflecting the journey from recognition to transformation.</p><h3>Content Standards</h3><p>All submissions should be original or properly attributed. Content should be respectful, constructive, and grounded in a commitment to advancing racial equity. We welcome diverse perspectives and encourage submissions from contributors of all backgrounds and career stages.</p><h3>Editorial Process</h3><p>All submissions are reviewed by the RECI editorial team for quality, evidence standards, process orientation, and alignment with the RECI framework. We may suggest revisions to strengthen your contribution. Expect a response within 10&ndash;15 business days.</p><h3>Accepted Formats</h3><p>Magazine articles (800&ndash;3,000 words), blog posts (400&ndash;1,200 words), video (3&ndash;30 min), podcasts (15&ndash;60 min), resources, virtual exhibits, assessments and tools, infographics, curricula, and other creative formats that advance racial equity consciousness.</p>',
+		'community_policy'      => '<p>These guidelines cover reflections you choose to share and comments you leave anywhere on the hub. They exist so this stays a place where people can speak honestly about race without being harmed for doing so.</p><h3>What belongs here</h3><ul><li>Your own experience, in your own words&mdash;including the hard, unresolved or unflattering parts.</li><li>Naming racism you have witnessed, experienced or taken part in, and quoting the language that was used against you or others. Testimony about harmful speech is not the same as harmful speech, and it is welcome here.</li><li>Disagreement, including with RECI, offered in good faith.</li></ul><h3>What does not</h3><ul><li>Slurs, abuse or demeaning language aimed at a person or group taking part here.</li><li>Threats, harassment, or encouraging anyone to harm themselves or others.</li><li>Revealing someone else&rsquo;s identity or private details, including another contributor&rsquo;s.</li><li>Speech whose purpose is to advance racism rather than to examine it.</li></ul><h3>How this is reviewed</h3><p>Nothing you write is ever blocked or deleted as you type. Shared reflections and comments are read by a moderator before they appear publicly. If something is not published it stays in your journal, and it stays yours.</p><p>Some words are flagged so a moderator reads them in context. A flag is not an accusation: testimony that quotes a slur will be flagged and, in almost every case, published.</p><h3>Sharing anonymously</h3><p>You can share a reflection anonymously. Your name is then hidden from readers and from the author of the reflection you are responding to. Site administrators and moderators can still see it, so that abuse can be acted on.</p>',
+		'abuse_terms'           => "# One term or phrase per line. Lines beginning with # are ignored.
+# Matching never blocks a save: it warns the writer, and sends shared
+# reflections and comments to the moderation queue for a human to read.
+#
+# These are phrases of directed abuse rather than a list of slurs. On this
+# site people quote the language used against them, and a slur list would
+# flag almost every piece of real testimony - burying actual abuse in false
+# positives. Add the specific terms your moderators need.
+kill yourself
+kys
+go back to your country
+go back where you came from
+your kind
+subhuman
+vermin
+race traitor
+white trash
+deserve what you get
+should be deported",
+	];
+}
+
+/**
+ * Fill any community setting that has never been given a value.
+ *
+ * Runs once per site. Existing values are never touched, and clearing a field
+ * afterwards stays cleared - the flag means this will not run again.
+ */
+add_action( 'admin_init', 'reci_seed_community_defaults' );
+function reci_seed_community_defaults(): void {
+	if ( get_option( 'reci_community_defaults_seeded' ) ) {
+		return;
+	}
+
+	$settings = get_option( 'reci_theme_settings', [] );
+	$settings = is_array( $settings ) ? $settings : [];
+	$changed  = false;
+
+	foreach ( reci_default_community_settings() as $key => $value ) {
+		if ( empty( $settings[ $key ] ) ) {
+			$settings[ $key ] = $value;
+			$changed          = true;
+		}
+	}
+
+	if ( $changed ) {
+		update_option( 'reci_theme_settings', $settings );
+		reci_sync_moderation_keys( reci_parse_abuse_terms( (string) $settings['abuse_terms'] ) );
+	}
+
+	update_option( 'reci_community_defaults_seeded', 1 );
+}

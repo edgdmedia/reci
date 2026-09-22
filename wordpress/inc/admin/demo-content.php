@@ -38,9 +38,156 @@ add_action( 'admin_menu', function (): void {
 	);
 });
 
+if ( ! function_exists( 'reci_demo_taxonomy_groups' ) ) {
+	function reci_demo_tag_terms(): array {
+		$datasets = [ 'articles', 'events', 'podcasts', 'videos', 'courses', 'assessments', 'reflections' ];
+		$tags = [];
+		$collect = static function ( $value ) use ( &$collect, &$tags ): void {
+			if ( is_array( $value ) ) {
+				if ( isset( $value['tags'] ) && is_array( $value['tags'] ) ) {
+					foreach ( $value['tags'] as $tag ) {
+						if ( is_string( $tag ) && '' !== trim( $tag ) ) {
+							$tags[] = trim( $tag );
+						}
+					}
+				}
+
+				foreach ( $value as $child ) {
+					$collect( $child );
+				}
+			}
+		};
+
+		foreach ( $datasets as $dataset ) {
+			if ( function_exists( 'reci_demo_load_php_dataset' ) ) {
+				$collect( reci_demo_load_php_dataset( $dataset ) );
+			}
+		}
+
+		return array_values( array_unique( $tags ) );
+	}
+
+	function reci_demo_collaborator_taxonomy_terms( string $field ): array {
+		$terms = [];
+		$profiles = function_exists( 'reci_collaborator_import_dataset' ) ? reci_collaborator_import_dataset() : [];
+
+		foreach ( $profiles as $profile ) {
+			foreach ( (array) ( $profile[ $field ] ?? [] ) as $term ) {
+				if ( is_string( $term ) && '' !== trim( $term ) ) {
+					$terms[] = trim( $term );
+				}
+			}
+		}
+
+		return array_values( array_unique( $terms ) );
+	}
+
+	function reci_demo_taxonomy_groups(): array {
+		$sphere_names = function_exists( 'reci_media_hub_default_spheres' )
+			? array_values( array_filter( array_map( static fn( $sphere ) => (string) ( $sphere['name'] ?? '' ), reci_media_hub_default_spheres() ) ) )
+			: [
+				'Recognizing Racial Oppression',
+				'Examining Racial Identities',
+				'Embracing Racial Diversity',
+				'Building Racial Empathy',
+				'Acknowledging Racial Trauma',
+				'Gauging Racial Inequities',
+			];
+		$sphere_names[] = 'Fostering Racial Literacy';
+
+		$sdg_names = function_exists( 'reci_media_hub_default_sdgs' )
+			? array_values( array_filter( array_map( static fn( $sdg ) => (string) ( $sdg['name'] ?? '' ), reci_media_hub_default_sdgs() ) ) )
+			: [
+				'No Poverty', 'Zero Hunger', 'Good Health and Well-being', 'Quality Education',
+				'Gender Equality', 'Clean Water and Sanitation', 'Affordable and Clean Energy',
+				'Decent Work and Economic Growth', 'Industry, Innovation and Infrastructure',
+				'Reduced Inequalities', 'Sustainable Cities and Communities',
+				'Responsible Consumption and Production', 'Climate Action', 'Life Below Water',
+				'Life on Land', 'Peace, Justice and Strong Institutions', 'Partnerships for the Goals',
+			];
+		$affiliation_names = function_exists( 'reci_media_hub_default_collaborator_affiliation_terms' )
+			? reci_media_hub_default_collaborator_affiliation_terms()
+			: [ 'Alumni', 'Community Partner', 'Consultant', 'Faculty', 'Researcher', 'Staff', 'Student' ];
+		$expertise_names = function_exists( 'reci_media_hub_default_expertise_terms' )
+			? reci_media_hub_default_expertise_terms()
+			: [ 'Behavioral Health', 'Community Development', 'Economics', 'Education', 'Family', 'Law', 'Mental Health', 'Public Health', 'Race Relations', 'Racial Equity' ];
+		$audience_names = function_exists( 'reci_media_hub_default_target_audience_terms' )
+			? reci_media_hub_default_target_audience_terms()
+			: [ 'Educators / Academics', 'Community Organizers', 'Policy Makers', 'Organizational Leaders', 'Students', 'General Public' ];
+		$affiliation_names = array_values( array_unique( array_merge( $affiliation_names, reci_demo_collaborator_taxonomy_terms( 'affiliation' ) ) ) );
+		$expertise_names = array_values( array_unique( array_merge( $expertise_names, reci_demo_collaborator_taxonomy_terms( 'practice_focus' ) ) ) );
+
+		return [
+			'reci_demo_taxonomy_categories' => [
+				'label'    => 'Categories',
+				'taxonomy' => 'category',
+				'terms'    => [
+					'Systemic Racism', 'Intersectionality', 'Cultural Identity', 'Workplace Equity',
+					'Community Action', 'Education', 'Health Disparities', 'Criminal Justice',
+					'Indigenous Rights', 'Technology & Equity', 'Public Service', 'Rural Equity',
+					'Health Determinants', 'Inclusion', 'Cultural Competence', 'Access',
+					'Economic Stability',
+				],
+			],
+			'reci_demo_taxonomy_locations' => [
+				'label'    => 'Locations',
+				'taxonomy' => 'reci_location',
+				'terms'    => [ 'Pittsburgh', 'Allegheny County', 'Pennsylvania', 'National' ],
+			],
+			'reci_demo_taxonomy_spheres' => [
+				'label'    => 'RECI Spheres',
+				'taxonomy' => 'reci_sphere',
+				'terms'    => array_values( array_unique( $sphere_names ) ),
+			],
+			'reci_demo_taxonomy_practice_focus' => [
+				'label'    => 'Practice Focus',
+				'taxonomy' => 'reci_practice_focus',
+				'terms'    => [ 'Framework / Model', 'Community-Based Approach', 'Policy / Legislation', 'Curriculum / Training', 'Practice / Intervention', 'Research / Evaluation', 'Organizational Strategy', 'Other' ],
+			],
+			'reci_demo_taxonomy_affiliations' => [
+				'label'    => 'Affiliations',
+				'taxonomy' => 'reci_affiliation',
+				'terms'    => $affiliation_names,
+			],
+			'reci_demo_taxonomy_expertise' => [
+				'label'    => 'Subject Areas',
+				'taxonomy' => 'reci_expertise',
+				'terms'    => $expertise_names,
+			],
+			'reci_demo_taxonomy_target_audience' => [
+				'label'    => 'Target Audience',
+				'taxonomy' => 'reci_target_audience',
+				'terms'    => $audience_names,
+			],
+			'reci_demo_taxonomy_tags' => [
+				'label'    => 'Tags',
+				'taxonomy' => 'post_tag',
+				'terms'    => reci_demo_tag_terms(),
+			],
+			'reci_demo_taxonomy_shows' => [
+				'label'    => 'Shows',
+				'taxonomy' => 'reci_show',
+				'terms'    => [ 'Healing Overflow with Dr Toy' ],
+			],
+			'reci_demo_taxonomy_sdgs' => [
+				'label'    => 'SDGs',
+				'taxonomy' => 'sdgs',
+				'terms'    => $sdg_names,
+			],
+		];
+	}
+}
+
 if ( ! function_exists( 'reci_demo_content_types' ) ) {
 	function reci_demo_content_types(): array {
 		$image_groups = function_exists( 'reci_demo_image_groups' ) ? reci_demo_image_groups() : [];
+		$taxonomy_groups = [];
+		foreach ( reci_demo_taxonomy_groups() as $key => $group ) {
+			$taxonomy_groups[ $key ] = [
+				'label' => (string) $group['label'],
+				'count' => count( (array) $group['terms'] ),
+			];
+		}
 		return [
 			'reci_demo_images_reflections' => [ 'label' => 'Reflection Images', 'count' => count( $image_groups['reci_demo_images_reflections'] ?? [] ) ],
 			'reci_demo_images_articles'    => [ 'label' => 'Article Images',    'count' => count( $image_groups['reci_demo_images_articles'] ?? [] ) ],
@@ -51,7 +198,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_demo_images_quizzes'     => [ 'label' => 'Quiz Images',       'count' => count( $image_groups['reci_demo_images_quizzes'] ?? [] ) ],
 			'reci_demo_images_partners'    => [ 'label' => 'Partner Images',    'count' => count( $image_groups['reci_demo_images_partners'] ?? [] ) ],
 			'reci_demo_images_misc'        => [ 'label' => 'Shared / Misc Images', 'count' => count( $image_groups['reci_demo_images_misc'] ?? [] ) ],
-			'reci_demo_taxonomies'         => [ 'label' => 'Taxonomies (Categories, Spheres, SDGs, Locations)', 'count' => 10 + 6 + 17 + 4 ],
+		] + $taxonomy_groups + [
 			'post'   => [ 'label' => 'Articles',     'count' => 15 ],
 			'reci_podcast'   => [ 'label' => 'Podcasts',     'count' => 3 ],
 			'reci_video'     => [ 'label' => 'Videos',       'count' => 6 ],
@@ -63,7 +210,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_team'      => [ 'label' => 'Team',         'count' => 3 ],
 			'reci_testimonial'    => [ 'label' => 'Testimonials',     'count' => 6 ],
 			'reci_glossary_term' => [ 'label' => 'Glossary Terms',  'count' => 42 ],
-			'reci_author'        => [ 'label' => 'Author Profiles', 'count' => 1 ],
+			'reci_author'        => [ 'label' => 'Collaborators', 'count' => 110 ],
 			'reci_partner'       => [ 'label' => 'Partners',        'count' => 7 ],
 			'reci_page'          => [ 'label' => 'Core Pages',      'count' => 18 ],
 		];
@@ -169,7 +316,189 @@ function reci_demo_present_job_state( array $job ): array {
 		'completed'     => array_values( is_array( $job['completed'] ?? null ) ? $job['completed'] : [] ),
 		'failed'        => array_values( is_array( $job['failed'] ?? null ) ? $job['failed'] : [] ),
 		'skipped'       => array_values( is_array( $job['skipped'] ?? null ) ? $job['skipped'] : [] ),
+		'group_status'  => reci_demo_group_status_map(),
 	];
+}
+
+function reci_demo_expected_group_paths( string $group ): array {
+	$image_groups = reci_demo_image_groups();
+	if ( isset( $image_groups[ $group ] ) && is_array( $image_groups[ $group ] ) ) {
+		return array_values( $image_groups[ $group ] );
+	}
+
+	$remote_group = function_exists( 'reci_remote_demo_group_definition' ) ? reci_remote_demo_group_definition( $group ) : [];
+	if ( ! empty( $remote_group ) ) {
+		$root = ltrim( (string) ( $remote_group['registry_prefix'] ?? $remote_group['extract_root'] ?? '' ), '/' );
+		$assets = reci_demo_remote_group_assets( $group, $remote_group );
+		if ( ! empty( $assets ) ) {
+			return array_values( array_map( static fn( $asset ) => (string) ( $asset['path'] ?? '' ), $assets ) );
+		}
+
+		if ( 'release-archive' === sanitize_key( (string) ( $remote_group['type'] ?? '' ) ) && $root !== '' ) {
+			$local_root = get_template_directory() . '/demo-content/images/' . str_replace( 'site/', '', trailingslashit( $root ) );
+			if ( is_dir( $local_root ) ) {
+				$paths = reci_demo_collect_image_paths_from_directory( trailingslashit( str_replace( 'site/', 'site/', $root ) ) );
+				if ( ! empty( $paths ) ) {
+					return $paths;
+				}
+			}
+		}
+	}
+
+	return [];
+}
+
+function reci_demo_group_status_map(): array {
+	$types    = reci_demo_content_types();
+	$slugs    = get_option( 'reci_demo_slugs', [] );
+	$job      = reci_demo_get_job();
+	$queue    = is_array( $job['queue'] ?? null ) ? $job['queue'] : [];
+	$pending_groups = array_values( array_unique( array_map( static fn( $step ) => (string) ( $step['group'] ?? '' ), $queue ) ) );
+	$result = [];
+
+	foreach ( $types as $group => $info ) {
+		$expected = (int) ( $info['count'] ?? 0 );
+		$imported = 0;
+
+		if ( str_starts_with( $group, 'reci_demo_images_' ) ) {
+			$paths = reci_demo_expected_group_paths( $group );
+			$expected = count( $paths );
+			foreach ( $paths as $path ) {
+				if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
+					$imported++;
+				}
+			}
+		} elseif ( 'reci_demo_taxonomies' === $group || isset( reci_demo_taxonomy_groups()[ $group ] ) ) {
+			$imported = reci_demo_imported_taxonomy_count( $group );
+		} elseif ( reci_demo_group_uses_demo_posts( $group ) ) {
+			$imported = reci_demo_imported_post_count_for_group( $group );
+		} else {
+			$imported = reci_demo_imported_slug_count_for_group( $group, $slugs );
+		}
+
+		$status = 'not_started';
+		if ( in_array( $group, $pending_groups, true ) ) {
+			$status = ! empty( $job['running'] ) ? 'in_progress' : 'partial';
+		}
+		if ( $expected > 0 && $imported >= $expected ) {
+			$status = 'completed';
+		} elseif ( $imported > 0 ) {
+			$status = 'partial';
+		}
+
+		$result[ $group ] = [
+			'label'     => (string) ( $info['label'] ?? $group ),
+			'expected'  => $expected,
+			'imported'  => $imported,
+			'remaining' => max( 0, $expected - $imported ),
+			'status'    => $status,
+		];
+	}
+
+	return $result;
+}
+
+function reci_demo_group_uses_demo_posts( string $group ): bool {
+	return in_array( $group, [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_quote',
+		'reci_assessment',
+		'reci_course',
+		'reci_team',
+		'reci_testimonial',
+		'reci_glossary_term',
+		'reci_author',
+		'reci_partner',
+		'reci_page',
+	], true );
+}
+
+function reci_demo_imported_post_count_for_group( string $group ): int {
+	$post_type = 'page' === $group || 'reci_page' === $group ? 'page' : $group;
+	$query = new WP_Query([
+		'post_type'              => $post_type,
+		'post_status'            => [ 'publish', 'draft', 'pending', 'private' ],
+		'posts_per_page'         => 1,
+		'fields'                 => 'ids',
+		'no_found_rows'          => false,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [
+			[
+				'key'   => '_reci_demo',
+				'value' => '1',
+			],
+		],
+	]);
+
+	return (int) $query->found_posts;
+}
+
+function reci_demo_imported_slug_count_for_group( string $group, array $slugs ): int {
+	if ( empty( $slugs ) ) {
+		return 0;
+	}
+
+	$matched = [];
+	$datasets = [
+		'post' => 'articles',
+		'reci_podcast' => 'podcasts',
+		'reci_video' => 'videos',
+		'reci_event' => 'events',
+		'reci_quote' => 'quotes',
+		'reci_assessment' => 'assessments',
+		'reci_course' => 'courses',
+		'reci_team' => 'team',
+		'reci_testimonial' => 'testimonials',
+		'reci_glossary_term' => 'glossary',
+		'reci_author' => 'authors',
+		'reci_partner' => 'partners',
+	];
+
+	if ( 'reci_reflection' === $group ) {
+		foreach ( reci_demo_reflection_queue_items() as $item ) {
+			$matched[] = (string) ( $item['slug'] ?? '' );
+		}
+	} elseif ( 'reci_page' === $group ) {
+		$page_dataset = reci_demo_load_php_dataset( 'pages' );
+		foreach ( (array) ( $page_dataset['core'] ?? [] ) as $slug => $cfg ) {
+			$matched[] = (string) $slug;
+		}
+		$matched[] = 'dashboard';
+		foreach ( (array) ( $page_dataset['dashboard']['children'] ?? [] ) as $slug => $cfg ) {
+			$matched[] = 'dashboard/' . (string) $slug;
+		}
+	} elseif ( isset( $datasets[ $group ] ) ) {
+		$items = reci_demo_load_group_items( $datasets[ $group ] );
+		foreach ( (array) $items as $item ) {
+			if ( is_array( $item ) && ! empty( $item['slug'] ) ) {
+				$matched[] = (string) $item['slug'];
+			}
+		}
+	}
+
+	return count( array_intersect( array_unique( array_filter( $matched ) ), array_unique( $slugs ) ) );
+}
+
+function reci_demo_load_group_items( string $dataset_name ): array {
+	$path = get_template_directory() . '/demo-content/' . $dataset_name;
+	if ( is_dir( $path ) ) {
+		$items = [];
+		foreach ( glob( trailingslashit( $path ) . '*.php' ) ?: [] as $file ) {
+			$data = require $file;
+			if ( is_array( $data ) ) {
+				$items = array_merge( $items, $data );
+			}
+		}
+		return $items;
+	}
+
+	$data = reci_demo_load_php_dataset( $dataset_name );
+	return isset( $data['items'] ) && is_array( $data['items'] ) ? $data['items'] : ( is_array( $data ) ? $data : [] );
 }
 
 function reci_demo_result_entry( string $status, string $label, string $message, array $extra = [] ): array {
@@ -249,7 +578,67 @@ function reci_demo_reflection_queue_items(): array {
 	return array_values( (array) ( $dataset['items'] ?? [] ) );
 }
 
+function reci_demo_seed_taxonomy_group( string $group_key ): void {
+	$groups = reci_demo_taxonomy_groups();
+	$selected_groups = 'reci_demo_taxonomies' === $group_key ? $groups : array_intersect_key( $groups, [ $group_key => true ] );
+
+	foreach ( $selected_groups as $key => $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		$terms    = (array) ( $group['terms'] ?? [] );
+
+		if ( 'reci_demo_taxonomy_spheres' === $key ) {
+			delete_option( 'reci_media_hub_spheres_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_spheres' ) ) {
+				reci_media_hub_seed_default_spheres();
+			}
+		} elseif ( 'reci_demo_taxonomy_sdgs' === $key ) {
+			delete_option( 'reci_media_hub_sdgs_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_sdgs' ) ) {
+				reci_media_hub_seed_default_sdgs();
+			}
+			if ( function_exists( 'reci_media_hub_backfill_sdg_descriptions' ) ) {
+				reci_media_hub_backfill_sdg_descriptions();
+			}
+		} elseif ( 'reci_demo_taxonomy_shows' === $key ) {
+			delete_option( 'reci_media_hub_shows_seeded' );
+			if ( function_exists( 'reci_media_hub_seed_default_shows' ) ) {
+				reci_media_hub_seed_default_shows();
+			}
+		}
+
+		if ( '' !== $taxonomy && ! empty( $terms ) ) {
+			reci_demo_ensure_terms( $taxonomy, $terms );
+		}
+
+		update_option( 'reci_demo_taxonomies_seeded', 1, false );
+		update_option( 'reci_demo_taxonomy_seeded_' . sanitize_key( $key ), 1, false );
+	}
+}
+
+function reci_demo_imported_taxonomy_count( string $group_key ): int {
+	$groups = reci_demo_taxonomy_groups();
+	$selected_groups = 'reci_demo_taxonomies' === $group_key ? $groups : array_intersect_key( $groups, [ $group_key => true ] );
+	$total = 0;
+
+	foreach ( $selected_groups as $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+			continue;
+		}
+
+		foreach ( (array) ( $group['terms'] ?? [] ) as $term_name ) {
+			if ( term_exists( (string) $term_name, $taxonomy ) ) {
+				++$total;
+			}
+		}
+	}
+
+	return $total;
+}
+
 function reci_demo_bootstrap_taxonomies(): array {
+	reci_demo_seed_taxonomy_group( 'reci_demo_taxonomies' );
+
 	$topics = reci_demo_ensure_terms( 'category', [
 		'Systemic Racism',
 		'Intersectionality',
@@ -285,17 +674,6 @@ function reci_demo_bootstrap_taxonomies(): array {
 	reci_demo_ensure_terms( 'reci_sphere', [ 'Recognizing Racial Oppression', 'Gauging Racial Inequities', 'Embracing Racial Diversity', 'Building Racial Empathy' ] );
 	reci_demo_ensure_terms( 'reci_practice_focus', [ 'Framework / Model', 'Community-Based Approach', 'Policy / Legislation', 'Curriculum / Training', 'Practice / Intervention', 'Research / Evaluation', 'Organizational Strategy', 'Other' ] );
 	reci_demo_ensure_terms( 'reci_show', [ 'Healing Overflow with Dr Toy' ] );
-	if ( function_exists( 'reci_media_hub_seed_default_spheres' ) ) {
-		reci_media_hub_seed_default_spheres();
-	}
-	if ( function_exists( 'reci_media_hub_seed_default_sdgs' ) ) {
-		reci_media_hub_seed_default_sdgs();
-	}
-	if ( function_exists( 'reci_media_hub_backfill_sdg_descriptions' ) ) {
-		reci_media_hub_backfill_sdg_descriptions();
-	}
-	reci_media_hub_seed_default_shows();
-
 	return [ 'topics' => $topics, 'locations' => $locations ];
 }
 
@@ -304,8 +682,23 @@ function reci_demo_build_import_queue( array $selected ): array {
 	$image_groups = reci_demo_image_groups();
 
 	foreach ( $selected as $group ) {
-		if ( 'reci_demo_taxonomies' === $group ) {
-			reci_demo_bootstrap_taxonomies();
+		$remote_group = function_exists( 'reci_remote_demo_group_definition' ) ? reci_remote_demo_group_definition( $group ) : [];
+		if ( ! empty( $remote_group ) ) {
+			$archive_step = reci_demo_remote_group_archive_step( $group, $remote_group );
+			if ( ! empty( $archive_step ) ) {
+				$queue[] = $archive_step;
+				continue;
+			}
+
+			$remote_assets = reci_demo_remote_group_assets( $group, $remote_group );
+			foreach ( $remote_assets as $asset ) {
+				$queue[] = [ 'type' => 'import_remote_image', 'group' => $group, 'asset' => $asset ];
+			}
+			continue;
+		}
+
+		if ( 'reci_demo_taxonomies' === $group || isset( reci_demo_taxonomy_groups()[ $group ] ) ) {
+			reci_demo_seed_taxonomy_group( $group );
 			$queue[] = [ 'type' => 'skip', 'group' => $group, 'message' => 'Taxonomies seeded.' ];
 			continue;
 		}
@@ -330,15 +723,87 @@ function reci_demo_build_import_queue( array $selected ): array {
 	return $queue;
 }
 
+function reci_demo_remote_group_archive_step( string $group_id, array $group_definition ): array {
+	$type = sanitize_key( (string) ( $group_definition['type'] ?? '' ) );
+	$url  = esc_url_raw( (string) ( $group_definition['url'] ?? '' ) );
+
+	if ( 'release-archive' !== $type || '' === $url ) {
+		return [];
+	}
+
+	return [
+		'type'  => 'import_remote_archive',
+		'group' => $group_id,
+		'url'   => $url,
+		'root'  => ltrim( (string) ( $group_definition['extract_root'] ?? '' ), '/' ),
+		'registry_prefix' => ltrim( (string) ( $group_definition['registry_prefix'] ?? '' ), '/' ),
+		'label' => (string) ( $group_definition['label'] ?? $group_id ),
+	];
+}
+
+function reci_demo_remote_group_assets( string $group_id, array $group_definition ): array {
+	$assets = $group_definition['assets'] ?? [];
+	if ( ! is_array( $assets ) ) {
+		return [];
+	}
+
+	$normalized = [];
+	foreach ( $assets as $asset ) {
+		if ( ! is_array( $asset ) ) {
+			continue;
+		}
+
+		$path = isset( $asset['path'] ) ? ltrim( (string) $asset['path'], '/' ) : '';
+		$url  = isset( $asset['url'] ) ? esc_url_raw( (string) $asset['url'] ) : '';
+		if ( '' === $path || '' === $url ) {
+			continue;
+		}
+
+		$normalized[] = [
+			'path' => $path,
+			'url'  => $url,
+		];
+	}
+
+	return $normalized;
+}
+
 function reci_demo_get_registered_asset( string $path ): array {
 	$registry = reci_demo_get_asset_registry();
 	$entry = $registry[ $path ] ?? [];
 	return is_array( $entry ) ? $entry : [];
 }
 
+/**
+ * The attachment a registry entry points at, if it is still there.
+ *
+ * The registry records what was imported, not what survives. Deleting the media
+ * library left 157 of 158 entries pointing at attachments that no longer exist,
+ * and because both the status screen and the importer trusted the recorded id,
+ * every group still read "completed" and a re-import skipped every file. A dead
+ * entry is dropped so the next run imports it again.
+ */
+function reci_demo_registered_attachment_id( string $path ): int {
+	$entry = reci_demo_get_registered_asset( $path );
+	$id    = (int) ( $entry['attachment_id'] ?? 0 );
+
+	if ( $id <= 0 ) {
+		return 0;
+	}
+
+	if ( 'attachment' === get_post_type( $id ) ) {
+		return $id;
+	}
+
+	$registry = reci_demo_get_asset_registry();
+	unset( $registry[ $path ] );
+	reci_demo_set_asset_registry( $registry );
+
+	return 0;
+}
+
 function reci_demo_import_image_asset( string $path ): array {
-	$existing = reci_demo_get_registered_asset( $path );
-	if ( ! empty( $existing['attachment_id'] ) ) {
+	if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
 		return reci_demo_result_entry( 'skipped', $path, 'Image already imported.', [ 'path' => $path ] );
 	}
 
@@ -361,6 +826,123 @@ function reci_demo_import_image_asset( string $path ): array {
 	reci_demo_set_asset_registry( $registry );
 
 	return reci_demo_result_entry( 'completed', $path, 'Image imported successfully.', [ 'path' => $path ] );
+}
+
+function reci_demo_import_remote_image_asset( array $asset ): array {
+	$path = ltrim( (string) ( $asset['path'] ?? '' ), '/' );
+	$url  = esc_url_raw( (string) ( $asset['url'] ?? '' ) );
+
+	if ( '' === $path || '' === $url ) {
+		return reci_demo_result_entry( 'failed', 'Remote image', 'Remote image asset is missing a path or URL.' );
+	}
+
+	if ( reci_demo_registered_attachment_id( $path ) > 0 ) {
+		return reci_demo_result_entry( 'skipped', $path, 'Remote image already imported.', [ 'path' => $path ] );
+	}
+
+	$imgs = [];
+	$error_message = '';
+	$attachment_id = reci_demo_sideload_image_from_url( $path, $url, 0, $imgs, $error_message );
+	if ( ! $attachment_id ) {
+		return reci_demo_result_entry( 'failed', $path, 'Remote image import failed.' . ( '' !== $error_message ? ' ' . $error_message : '' ), [ 'path' => $path ] );
+	}
+
+	$entry = [
+		'attachment_id' => $attachment_id,
+		'url'           => wp_get_attachment_url( $attachment_id ) ?: '',
+		'path'          => $path,
+		'source_url'    => $url,
+		'imported_at'   => time(),
+	];
+
+	$registry = reci_demo_get_asset_registry();
+	$registry[ $path ] = $entry;
+	reci_demo_set_asset_registry( $registry );
+
+	return reci_demo_result_entry( 'completed', $path, 'Remote image imported successfully.', [ 'path' => $path ] );
+}
+
+function reci_demo_import_remote_archive_group( array $step ): array {
+	$url   = esc_url_raw( (string) ( $step['url'] ?? '' ) );
+	$root  = ltrim( (string) ( $step['root'] ?? '' ), '/' );
+	$registry_prefix = ltrim( (string) ( $step['registry_prefix'] ?? $root ), '/' );
+	$label = (string) ( $step['label'] ?? ( $step['group'] ?? 'Remote archive' ) );
+
+	if ( '' === $url ) {
+		return reci_demo_result_entry( 'failed', $label, 'Remote archive URL is missing.' );
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	WP_Filesystem();
+
+	$temp_zip = download_url( $url, 60 );
+	if ( is_wp_error( $temp_zip ) ) {
+		return reci_demo_result_entry( 'failed', $label, 'Archive download failed: ' . $temp_zip->get_error_message() );
+	}
+
+	$extract_dir = trailingslashit( get_temp_dir() ) . 'reci-demo-' . wp_generate_password( 8, false, false );
+	wp_mkdir_p( $extract_dir );
+
+	$unzipped = unzip_file( $temp_zip, $extract_dir );
+	@unlink( $temp_zip );
+	if ( is_wp_error( $unzipped ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive extraction failed: ' . $unzipped->get_error_message() );
+	}
+
+	$base_dir = '' !== $root ? trailingslashit( $extract_dir ) . $root : $extract_dir;
+	if ( ! is_dir( $base_dir ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive root not found after extraction.' );
+	}
+
+	$files = reci_demo_collect_importable_files_from_directory( $base_dir );
+	if ( empty( $files ) ) {
+		reci_demo_delete_directory( $extract_dir );
+		return reci_demo_result_entry( 'failed', $label, 'Archive contained no importable image files.' );
+	}
+
+	$completed = 0;
+	$skipped   = 0;
+	$failed    = [];
+	$imgs      = [];
+
+	foreach ( $files as $file_path ) {
+		$relative = ltrim( str_replace( trailingslashit( $base_dir ), '', $file_path ), '/' );
+		$registry_key = ( '' !== $registry_prefix ? trailingslashit( $registry_prefix ) : '' ) . str_replace( DIRECTORY_SEPARATOR, '/', $relative );
+
+		$existing = reci_demo_get_registered_asset( $registry_key );
+		if ( ! empty( $existing['attachment_id'] ) ) {
+			$skipped++;
+			continue;
+		}
+
+		$error_message = '';
+		$attachment_id = reci_demo_sideload_image_from_path( $registry_key, $file_path, 0, $imgs, $error_message );
+		if ( ! $attachment_id ) {
+			$failed[] = $registry_key . ( '' !== $error_message ? ' (' . $error_message . ')' : '' );
+			continue;
+		}
+
+		$registry = reci_demo_get_asset_registry();
+		$registry[ $registry_key ] = [
+			'attachment_id' => $attachment_id,
+			'url'           => wp_get_attachment_url( $attachment_id ) ?: '',
+			'path'          => $registry_key,
+			'source_url'    => $url,
+			'imported_at'   => time(),
+		];
+		reci_demo_set_asset_registry( $registry );
+		$completed++;
+	}
+
+	reci_demo_delete_directory( $extract_dir );
+
+	if ( ! empty( $failed ) ) {
+		return reci_demo_result_entry( 'failed', $label, sprintf( 'Archive imported with %1$d successes, %2$d skipped, %3$d failures.', $completed, $skipped, count( $failed ) ), [ 'activity' => $failed ] );
+	}
+
+	return reci_demo_result_entry( 'completed', $label, sprintf( 'Archive imported successfully (%1$d imported, %2$d skipped).', $completed, $skipped ) );
 }
 
 function reci_demo_resolve_registry_url( string $path ): string {
@@ -501,6 +1083,16 @@ function reci_demo_process_next_job_step( array $job ): array {
 		$job['current_label'] = 'Importing image: ' . $path;
 		$job = reci_demo_append_activity( $job, $job['current_label'] );
 		$result = reci_demo_import_image_asset( $path );
+	} elseif ( 'import_remote_image' === ( $step['type'] ?? '' ) ) {
+		$asset = is_array( $step['asset'] ?? null ) ? $step['asset'] : [];
+		$path = (string) ( $asset['path'] ?? 'remote-image' );
+		$job['current_label'] = 'Importing remote image: ' . $path;
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_remote_image_asset( $asset );
+	} elseif ( 'import_remote_archive' === ( $step['type'] ?? '' ) ) {
+		$job['current_label'] = 'Importing remote archive: ' . (string) ( $step['label'] ?? $step['group'] ?? 'Archive' );
+		$job = reci_demo_append_activity( $job, $job['current_label'] );
+		$result = reci_demo_import_remote_archive_group( $step );
 	} elseif ( 'import_reflection' === ( $step['type'] ?? '' ) ) {
 		$item = is_array( $step['item'] ?? null ) ? $step['item'] : [];
 		$job['current_label'] = 'Creating reflection: ' . (string) ( $item['title'] ?? $item['slug'] ?? 'Reflection' );
@@ -1149,17 +1741,19 @@ function reci_install_demo_content( array $only_types = [] ): void {
 				'topics'   => [ 'Education', 'Systemic Racism' ],
 				'focus'    => [ 'Curriculum / Training' ],
 				'spheres'  => [ 'Recognizing Racial Oppression', 'Building Racial Empathy' ],
-				'image'    => 'site/reflections/we-humans/students-1959.webp',
+				'image'    => 'site/reflections/we-humans/We Humans - Students hearing the curriculum, 1959.webp',
 				'meta'     => [],
 			], $topics, $locations, $imgs );
 
 			$wh = get_page_by_path( 'reci-demo-we-humans', OBJECT, 'reci_reflection' );
 			if ( $wh ) {
 				$wh_files = [
-					'students-1959.webp', 'are-you-ethnocentric.webp', 'ethnocentric.webp', 'teacher-1959.webp',
+					'We Humans - Students hearing the curriculum, 1959.webp', 'are-you-ethnocentric.webp', 'ethnocentric.webp', 'teacher-1959.webp',
 					'courier-1956.webp', 'sf-library-1959.webp', 'indianapolis-1.webp', 'indianapolis-2.webp',
 					'panel-1a.webp', 'panel-1b.webp', 'panel-2a.webp', 'panel-2b.webp',
-					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp',
+					'panel-3a.webp', 'panel-3b.webp', 'panel-4a.webp', 'panel-4b.webp', 'about.webp', 'at-70.webp',
+					'comments-from-teachers.pdf', 'swauger-museum-as-teacher.pdf',
+					'roosevelt-1956.webp',
 				];
 				$wh_img = [];
 				foreach ( $wh_files as $file ) {
@@ -1222,6 +1816,16 @@ function reci_install_demo_content( array $only_types = [] ): void {
 		$authors = reci_demo_load_php_dataset( 'authors' );
 		foreach ( $authors as $d ) {
 			reci_demo_insert_author( $d );
+		}
+
+		// The real CRSP collaboratory directory. Idempotent and asset-heavy, so
+		// it runs in batches and skips anything already imported.
+		if ( function_exists( 'reci_collaborator_import_run' ) ) {
+			$offset = 0;
+			do {
+				$batch  = reci_collaborator_import_run( 10, $offset );
+				$offset = (int) ( $batch['offset'] ?? 0 );
+			} while ( empty( $batch['done'] ) );
 		}
 	}
 
@@ -1288,6 +1892,13 @@ function reci_install_demo_content( array $only_types = [] ): void {
 		'about_c3_copy'  => 'RECI\'s work is grounded in the metaphor that racism operates as a social virus — and that racial equity consciousness is the vaccine. Through our Structured Cognitive Behavioral Training (SCBT) framework, we guide individuals and organizations through a process-oriented journey of consciousness development across six bilateral spheres. Each sphere represents both an awareness dimension and an action dimension, reflecting the journey from recognition to transformation. This framework has been developed through years of research, tested across multiple cohorts, and is currently supported by NIH-funded research.',
 	];
 
+	// Community policy text lives with the feature, so a demo install and a
+	// normal install seed exactly the same words.
+
+	if ( function_exists( 'reci_default_community_settings' ) ) {
+		$defaults = array_merge( $defaults, reci_default_community_settings() );
+	}
+
 	$updated_options = false;
 	foreach ( $defaults as $key => $val ) {
 		if ( empty( $options[ $key ] ) ) {
@@ -1298,6 +1909,12 @@ function reci_install_demo_content( array $only_types = [] ): void {
 
 	if ( $updated_options ) {
 		update_option( 'reci_theme_settings', $options );
+
+		// The settings screen mirrors the term list into WordPress's own
+		// moderation keywords on save; seeding bypasses that, so do it here.
+		if ( ! empty( $options['abuse_terms'] ) && function_exists( 'reci_sync_moderation_keys' ) ) {
+			reci_sync_moderation_keys( reci_parse_abuse_terms( (string) $options['abuse_terms'] ) );
+		}
 	}
 
 	update_option( 'reci_demo_installed', true );
@@ -1306,6 +1923,126 @@ function reci_install_demo_content( array $only_types = [] ): void {
 // ---------------------------------------------------------------------------
 // Reset handler
 // ---------------------------------------------------------------------------
+
+function reci_demo_managed_post_types(): array {
+	return [
+		'post',
+		'reci_podcast',
+		'reci_video',
+		'reci_event',
+		'reci_reflection',
+		'reci_quote',
+		'reci_assessment',
+		'reci_course',
+		'reci_testimonial',
+		'reci_glossary_term',
+		'reci_author',
+		'reci_team',
+		'reci_partner',
+		'page',
+	];
+}
+
+function reci_demo_delete_post_if_safe( WP_Post $post ): void {
+	$linked_user = 'reci_author' === $post->post_type
+		? absint( get_post_meta( $post->ID, '_reci_author_profile_user_id', true ) )
+		: 0;
+
+	if ( $linked_user > 0 ) {
+		return;
+	}
+
+	reci_demo_delete_post_attachments( $post );
+	wp_delete_post( $post->ID, true );
+}
+
+function reci_demo_delete_post_attachments( WP_Post $post ): void {
+	$attachment_ids = [];
+	$thumbnail_id = absint( get_post_thumbnail_id( $post->ID ) );
+	if ( $thumbnail_id > 0 ) {
+		$attachment_ids[] = $thumbnail_id;
+	}
+
+	$cv_id = 'reci_author' === $post->post_type ? absint( get_post_meta( $post->ID, '_reci_author_cv_id', true ) ) : 0;
+	if ( $cv_id > 0 ) {
+		$attachment_ids[] = $cv_id;
+	}
+
+	$children = get_children( [
+		'post_parent' => $post->ID,
+		'post_type'   => 'attachment',
+		'fields'      => 'ids',
+	] );
+
+	foreach ( (array) $children as $child_id ) {
+		$attachment_ids[] = (int) $child_id;
+	}
+
+	foreach ( array_unique( array_filter( $attachment_ids ) ) as $attachment_id ) {
+		wp_delete_attachment( (int) $attachment_id, true );
+	}
+}
+
+function reci_demo_reset_demo_marked_posts(): void {
+	$ids = get_posts( [
+		'post_type'              => reci_demo_managed_post_types(),
+		'post_status'            => [ 'publish', 'draft', 'pending', 'private', 'future' ],
+		'fields'                 => 'ids',
+		'posts_per_page'         => -1,
+		'no_found_rows'          => true,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+	] );
+
+	foreach ( $ids as $post_id ) {
+		$post = get_post( (int) $post_id );
+		if ( $post instanceof WP_Post ) {
+			reci_demo_delete_post_if_safe( $post );
+		}
+	}
+}
+
+function reci_demo_reset_demo_marked_attachments(): void {
+	$ids = get_posts( [
+		'post_type'              => 'attachment',
+		'post_status'            => 'inherit',
+		'fields'                 => 'ids',
+		'posts_per_page'         => -1,
+		'no_found_rows'          => true,
+		'update_post_meta_cache' => false,
+		'update_post_term_cache' => false,
+		'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+	] );
+
+	foreach ( $ids as $attachment_id ) {
+		wp_delete_attachment( (int) $attachment_id, true );
+	}
+}
+
+function reci_demo_reset_taxonomy_terms(): void {
+	foreach ( reci_demo_taxonomy_groups() as $key => $group ) {
+		$taxonomy = (string) ( $group['taxonomy'] ?? '' );
+		if ( '' === $taxonomy || ! taxonomy_exists( $taxonomy ) ) {
+			continue;
+		}
+
+		foreach ( (array) ( $group['terms'] ?? [] ) as $term_name ) {
+			$term = term_exists( (string) $term_name, $taxonomy );
+			$term_id = is_array( $term ) ? (int) ( $term['term_id'] ?? 0 ) : (int) $term;
+			if ( $term_id > 0 ) {
+				wp_delete_term( $term_id, $taxonomy );
+			}
+		}
+
+		delete_option( 'reci_demo_taxonomy_seeded_' . sanitize_key( $key ) );
+	}
+
+	delete_option( 'reci_media_hub_spheres_seeded' );
+	delete_option( 'reci_media_hub_sdgs_seeded' );
+	delete_option( 'reci_media_hub_shows_seeded' );
+	delete_option( 'reci_media_hub_taxonomy_terms_seeded' );
+}
 
 function reci_reset_demo_content(): void {
 	$slugs = get_option( 'reci_demo_slugs', [] );
@@ -1316,11 +2053,7 @@ function reci_reset_demo_content(): void {
 	} );
 
 	foreach ( $slugs as $slug ) {
-		$post = get_page_by_path( $slug, OBJECT, [
-			'post', 'reci_podcast', 'reci_video', 'reci_event',
-			'reci_reflection', 'reci_quote', 'reci_assessment', 'reci_course',
-			'reci_testimonial', 'reci_glossary_term', 'reci_author', 'reci_team', 'page',
-		] );
+		$post = get_page_by_path( $slug, OBJECT, reci_demo_managed_post_types() );
 		if ( ! $post && str_contains( $slug, '/' ) ) {
 			// Fallback 1: Try explicitly checking the page post type with the full slug.
 			$post = get_page_by_path( $slug, OBJECT, 'page' );
@@ -1330,9 +2063,12 @@ function reci_reset_demo_content(): void {
 			}
 		}
 		if ( $post ) {
-			wp_delete_post( $post->ID, true );
+			reci_demo_delete_post_if_safe( $post );
 		}
 	}
+
+	reci_demo_reset_demo_marked_posts();
+	reci_demo_reset_demo_marked_attachments();
 
 	$registry = reci_demo_get_asset_registry();
 	foreach ( $registry as $entry ) {
@@ -1344,6 +2080,8 @@ function reci_reset_demo_content(): void {
 
 	delete_option( 'reci_demo_installed' );
 	delete_option( 'reci_demo_slugs' );
+	delete_option( 'reci_demo_taxonomies_seeded' );
+	reci_demo_reset_taxonomy_terms();
 	delete_option( reci_demo_asset_registry_option_key() );
 	delete_option( reci_demo_job_option_key() );
 }
@@ -1573,6 +2311,50 @@ function reci_demo_ensure_author_profile( array $data ): int {
 	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
 
 	return (int) $post_id;
+}
+
+function reci_demo_insert_sample_collaborator_application(): void {
+	if ( ! function_exists( 'reci_get_collaborator_application_post_type' ) ) {
+		return;
+	}
+
+	$post_type = reci_get_collaborator_application_post_type();
+	$slug      = 'sample-collaborator-application';
+	$existing  = get_page_by_path( $slug, OBJECT, $post_type );
+	if ( $existing ) {
+		return;
+	}
+
+	$post_id = wp_insert_post([
+		'post_type'    => $post_type,
+		'post_status'  => 'pending',
+		'post_name'    => $slug,
+		'post_title'   => 'Sample Collaborator Application',
+		'post_content' => 'This sample application demonstrates the collaborator review workflow in wp-admin.',
+	]);
+
+	if ( is_wp_error( $post_id ) || ! $post_id ) {
+		return;
+	}
+
+	update_post_meta( $post_id, '_reci_collaborator_application_status', 'pending' );
+	update_post_meta( $post_id, '_reci_submission_first_name', 'Jordan' );
+	update_post_meta( $post_id, '_reci_submission_last_name', 'Reed' );
+	update_post_meta( $post_id, '_reci_submission_email', 'jordan.reed@example.com' );
+	update_post_meta( $post_id, '_reci_collaborator_affiliated_with_pitt', 'Yes' );
+	update_post_meta( $post_id, '_reci_collaborator_pitt_affiliation', 'Graduate Student' );
+	update_post_meta( $post_id, '_reci_submission_organization', 'University of Pittsburgh' );
+	update_post_meta( $post_id, '_reci_collaborator_department', 'School of Social Work' );
+	update_post_meta( $post_id, '_reci_submission_role', 'Community Research Fellow' );
+	update_post_meta( $post_id, '_reci_submission_bio', 'Jordan Reed works at the intersection of community partnership, racial equity education, and public-facing research communication.' );
+	update_post_meta( $post_id, '_reci_submission_website', 'https://example.com/jordan-reed' );
+	update_post_meta( $post_id, '_reci_collaborator_social_handles', '@jordanreed' );
+	update_post_meta( $post_id, '_reci_collaborator_membership_objective', 'To contribute equity-centered resources and connect research to community learning.' );
+	update_post_meta( $post_id, '_reci_demo', '1' );
+
+	$slugs   = get_option( 'reci_demo_slugs', [] );
+	$slugs[] = $slug;
+	update_option( 'reci_demo_slugs', array_unique( $slugs ) );
 }
 
 function reci_demo_get_markdown_articles(): array {
@@ -2970,7 +3752,7 @@ function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs,
 		return 0;
 	}
 
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
 	if ( is_wp_error( $metadata ) ) {
 		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
 		wp_delete_attachment( $attachment_id, true );
@@ -2980,6 +3762,212 @@ function reci_demo_sideload_image( string $filename, int $post_id, array &$imgs,
 
 	$imgs[ $filename ] = $attachment_id;
 	return $attachment_id;
+}
+
+function reci_demo_sideload_image_from_url( string $registry_key, string $url, int $post_id, array &$imgs, string &$error_message = '' ): int {
+	if ( isset( $imgs[ $registry_key ] ) ) {
+		return $imgs[ $registry_key ];
+	}
+
+	if ( '' === $url ) {
+		$error_message = 'Remote source URL is empty.';
+		return 0;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+
+	$response = wp_remote_get( $url, [ 'timeout' => 30 ] );
+	if ( is_wp_error( $response ) ) {
+		$error_message = 'Remote download failed: ' . $response->get_error_message();
+		return 0;
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $response );
+	if ( $code < 200 || $code >= 300 ) {
+		$error_message = 'Remote download returned HTTP ' . $code . '.';
+		return 0;
+	}
+
+	$file_contents = wp_remote_retrieve_body( $response );
+	if ( '' === $file_contents ) {
+		$error_message = 'Remote source returned an empty body.';
+		return 0;
+	}
+
+	$filename = wp_basename( wp_parse_url( $url, PHP_URL_PATH ) ?: $registry_key );
+	if ( '' === $filename ) {
+		$filename = sanitize_title( basename( $registry_key ) ) . '.jpg';
+	}
+
+	$upload = wp_upload_bits( $filename, null, $file_contents );
+	if ( ! empty( $upload['error'] ) ) {
+		$error_message = 'Upload failed: ' . $upload['error'];
+		return 0;
+	}
+
+	$check = wp_check_filetype( $filename );
+	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/jpeg';
+	$base_name = pathinfo( $filename, PATHINFO_FILENAME );
+
+	$attachment_id = wp_insert_attachment(
+		[
+			'post_mime_type' => $mime_type,
+			'post_title'     => $base_name . ' Image',
+			'post_name'      => sanitize_title( $base_name ) . '-img',
+			'post_status'    => 'inherit',
+			'post_parent'    => $post_id,
+		],
+		$upload['file'],
+		$post_id
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		$error_message = 'Attachment creation failed' . ( is_wp_error( $attachment_id ) ? ': ' . $attachment_id->get_error_message() : '.' );
+		if ( ! empty( $upload['file'] ) && file_exists( $upload['file'] ) ) {
+			wp_delete_file( $upload['file'] );
+		}
+		return 0;
+	}
+
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	if ( is_wp_error( $metadata ) ) {
+		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
+		wp_delete_attachment( $attachment_id, true );
+		return 0;
+	}
+
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+	$imgs[ $registry_key ] = $attachment_id;
+
+	return $attachment_id;
+}
+
+function reci_demo_sideload_image_from_path( string $registry_key, string $file_path, int $post_id, array &$imgs, string &$error_message = '' ): int {
+	if ( isset( $imgs[ $registry_key ] ) ) {
+		return $imgs[ $registry_key ];
+	}
+
+	if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+		$error_message = 'Extracted file is missing or unreadable.';
+		return 0;
+	}
+
+	$file_contents = file_get_contents( $file_path );
+	if ( false === $file_contents || '' === $file_contents ) {
+		$error_message = 'Extracted file is empty.';
+		return 0;
+	}
+
+	$filename = wp_basename( $file_path );
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+
+	$upload = wp_upload_bits( $filename, null, $file_contents );
+	if ( ! empty( $upload['error'] ) ) {
+		$error_message = 'Upload failed: ' . $upload['error'];
+		return 0;
+	}
+
+	$check = wp_check_filetype( $filename );
+	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/jpeg';
+	$base_name = pathinfo( $filename, PATHINFO_FILENAME );
+
+	$attachment_id = wp_insert_attachment(
+		[
+			'post_mime_type' => $mime_type,
+			'post_title'     => $base_name . ' Image',
+			'post_name'      => sanitize_title( $base_name ) . '-img',
+			'post_status'    => 'inherit',
+			'post_parent'    => $post_id,
+		],
+		$upload['file'],
+		$post_id
+	);
+
+	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+		$error_message = 'Attachment creation failed' . ( is_wp_error( $attachment_id ) ? ': ' . $attachment_id->get_error_message() : '.' );
+		if ( ! empty( $upload['file'] ) && file_exists( $upload['file'] ) ) {
+			wp_delete_file( $upload['file'] );
+		}
+		return 0;
+	}
+
+	$metadata = reci_demo_generate_attachment_metadata( $attachment_id, $upload['file'] );
+	if ( is_wp_error( $metadata ) ) {
+		$error_message = 'Metadata generation failed: ' . $metadata->get_error_message();
+		wp_delete_attachment( $attachment_id, true );
+		return 0;
+	}
+
+	wp_update_attachment_metadata( $attachment_id, $metadata );
+	$imgs[ $registry_key ] = $attachment_id;
+
+	return $attachment_id;
+}
+
+function reci_demo_collect_importable_files_from_directory( string $directory ): array {
+	if ( ! is_dir( $directory ) ) {
+		return [];
+	}
+
+	$paths = [];
+	$iterator = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ) );
+	foreach ( $iterator as $file ) {
+		if ( ! $file instanceof SplFileInfo || ! $file->isFile() ) {
+			continue;
+		}
+		$extension = strtolower( $file->getExtension() );
+		if ( ! in_array( $extension, [ 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif' ], true ) ) {
+			continue;
+		}
+		$paths[] = $file->getPathname();
+	}
+
+	sort( $paths );
+	return $paths;
+}
+
+function reci_demo_generate_attachment_metadata( int $attachment_id, string $file_path ) {
+	$disable_intermediate_sizes = static function() {
+		return [];
+	};
+	$disable_big_image_threshold = static function() {
+		return false;
+	};
+
+	add_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+	add_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+
+	try {
+		return wp_generate_attachment_metadata( $attachment_id, $file_path );
+	} finally {
+		remove_filter( 'intermediate_image_sizes_advanced', $disable_intermediate_sizes );
+		remove_filter( 'big_image_size_threshold', $disable_big_image_threshold );
+	}
+}
+
+function reci_demo_delete_directory( string $directory ): void {
+	if ( ! is_dir( $directory ) ) {
+		return;
+	}
+
+	$iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $directory, FilesystemIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+
+	foreach ( $iterator as $item ) {
+		if ( $item->isDir() ) {
+			@rmdir( $item->getPathname() );
+		} else {
+			@unlink( $item->getPathname() );
+		}
+	}
+
+	@rmdir( $directory );
 }
 
 /**
@@ -3009,6 +3997,63 @@ function reci_demo_lorem( int $paragraphs = 2 ): string {
 	return implode( "\n\n", array_slice( $all, 0, min( $paragraphs, 4 ) ) );
 }
 
+if ( ! function_exists( 'reci_demo_imported_count' ) ) {
+	/**
+	 * How many items of one demo type are already in place.
+	 *
+	 * The importer is idempotent and skips what exists, so the useful question on
+	 * this screen is not "did it run" but "what is still missing".
+	 *
+	 * Three kinds of key need three ways of counting: image groups live in the
+	 * asset registry, taxonomies are terms, and everything else is a post type
+	 * carrying the _reci_demo marker.
+	 */
+	function reci_demo_imported_count( string $key ): int {
+		if ( str_starts_with( $key, 'reci_demo_images_' ) ) {
+			$registry = reci_demo_get_asset_registry();
+			$paths    = ( function_exists( 'reci_demo_image_groups' ) ? reci_demo_image_groups() : [] )[ $key ] ?? [];
+			$count    = 0;
+
+			foreach ( $paths as $path ) {
+				foreach ( $registry as $entry ) {
+					if ( ( $entry['path'] ?? $entry['source'] ?? '' ) === $path && ! empty( $entry['attachment_id'] ) ) {
+						++$count;
+						break;
+					}
+				}
+			}
+
+			// Fall back to the registry size when the shape does not match, which
+			// is better than reporting nothing imported when plenty was.
+			return $count > 0 ? $count : min( count( $paths ), count( $registry ) );
+		}
+
+		if ( 'reci_demo_taxonomies' === $key || isset( reci_demo_taxonomy_groups()[ $key ] ) ) {
+			return reci_demo_imported_taxonomy_count( $key );
+		}
+
+		$post_type = 'reci_page' === $key ? 'page' : $key;
+
+		if ( ! post_type_exists( $post_type ) ) {
+			return 0;
+		}
+
+		$query = new WP_Query(
+			[
+				'post_type'              => $post_type,
+				'post_status'            => 'any',
+				'posts_per_page'         => 1,
+				'fields'                 => 'ids',
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'meta_query'             => [ [ 'key' => '_reci_demo', 'value' => '1' ] ],
+			]
+		);
+
+		return (int) $query->found_posts;
+	}
+}
+
 function reci_demo_import_page_html(): void {
 	$installed = get_option( 'reci_demo_installed', false );
 	$count     = count( get_option( 'reci_demo_slugs', [] ) );
@@ -3019,7 +4064,7 @@ function reci_demo_import_page_html(): void {
 
 	$tabs = [
 		'media'       => [ 'label' => 'Media',       'keys' => [ 'reci_demo_images_reflections', 'reci_demo_images_articles', 'reci_demo_images_events', 'reci_demo_images_courses', 'reci_demo_images_podcasts', 'reci_demo_images_videos', 'reci_demo_images_quizzes', 'reci_demo_images_partners', 'reci_demo_images_misc' ] ],
-		'taxonomies'  => [ 'label' => 'Taxonomies',  'keys' => [ 'reci_demo_taxonomies' ] ],
+		'taxonomies'  => [ 'label' => 'Taxonomies',  'keys' => array_keys( reci_demo_taxonomy_groups() ) ],
 		'content'     => [ 'label' => 'Content',     'keys' => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_reflection', 'reci_quote', 'reci_assessment', 'reci_course', 'reci_glossary_term' ] ],
 		'pages'       => [ 'label' => 'Pages',       'keys' => [ 'reci_team', 'reci_testimonial', 'reci_author', 'reci_partner', 'reci_page' ] ],
 	];
@@ -3044,7 +4089,7 @@ function reci_demo_import_page_html(): void {
 		<div style="background:#fff; padding: 20px; border:1px solid #ccd0d4; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
 			<div>
 				<h3 style="margin-top:0;">Reset Demo Content</h3>
-				<p style="margin-bottom:0;">Deletes tracked demo posts and imported demo media, and clears demo import progress. This cannot be undone.</p>
+				<p style="margin-bottom:0;">Deletes tracked demo posts and imported demo media, clears demo import progress, and keeps claimed collaborator profiles. This cannot be undone.</p>
 			</div>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<?php wp_nonce_field( 'reci_demo_action' ); ?>
@@ -3068,15 +4113,34 @@ function reci_demo_import_page_html(): void {
 								<tr>
 									<th style="width:40px;"><input type="checkbox" @change="$event.target.closest('table').querySelectorAll('tbody tr').forEach(tr => { if (tr.style.display !== 'none') { const cb = tr.querySelector('input[type=checkbox]'); if (cb) cb.checked = $event.target.checked; } })" /></th>
 									<th>Content Type</th>
-									<th>Items</th>
+									<th style="width:80px;">Items</th>
+									<th style="width:90px;">Imported</th>
+									<th style="width:95px;">Remaining</th>
+									<th style="width:120px;">Status</th>
 								</tr>
 							</thead>
 							<tbody>
 								<?php foreach ( $all_types as $pt => $info ) : ?>
 									<tr x-show="tabData.keys.includes('<?php echo esc_js( $pt ); ?>')">
 										<td><input type="checkbox" name="reci_demo_types[]" value="<?php echo esc_attr( $pt ); ?>" /></td>
+										<?php
+										$expected  = (int) $info['count'];
+										$imported  = reci_demo_imported_count( $pt );
+										$remaining = max( 0, $expected - $imported );
+
+										if ( 0 === $imported ) {
+											$state = [ '#8a6d1f', __( 'Not imported', 'reci-media-hub' ) ];
+										} elseif ( $remaining > 0 ) {
+											$state = [ '#8a6d1f', __( 'Partial', 'reci-media-hub' ) ];
+										} else {
+											$state = [ '#1f7a5a', __( 'Complete', 'reci-media-hub' ) ];
+										}
+										?>
 										<td><?php echo esc_html( $info['label'] ); ?></td>
-										<td><?php echo (int) $info['count']; ?></td>
+										<td><?php echo $expected; ?></td>
+										<td><?php echo $imported; ?></td>
+										<td><?php echo $remaining > 0 ? esc_html( (string) $remaining ) : '&mdash;'; ?></td>
+										<td><span style="color:<?php echo esc_attr( $state[0] ); ?>;font-weight:600;"><?php echo esc_html( $state[1] ); ?></span></td>
 									</tr>
 								<?php endforeach; ?>
 							</tbody>

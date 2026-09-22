@@ -31,3 +31,35 @@ reci_test_stub_options( [] );
 reci_assert_same( [], reci_get_abuse_terms(), 'getter: missing option yields empty list' );
 reci_assert_same( '', reci_get_community_policy(), 'getter: missing policy yields empty string' );
 reci_assert_same( '', reci_get_submission_guidelines(), 'getter: missing guidelines yields empty string' );
+
+// --- Starter community settings -----------------------------------------
+//
+// These seed a site that has never had the fields filled in. An empty one
+// would leave the guidelines invisible and the term list inert, which is
+// exactly the state that made the feature look missing.
+$defaults = reci_default_community_settings();
+
+foreach ( [ 'submission_guidelines', 'community_policy', 'abuse_terms' ] as $key ) {
+	reci_assert_same( true, isset( $defaults[ $key ] ), "defaults: {$key} is present" );
+	reci_assert_same( true, '' !== trim( (string) ( $defaults[ $key ] ?? '' ) ), "defaults: {$key} is not empty" );
+}
+
+$default_terms = reci_parse_abuse_terms( $defaults['abuse_terms'] );
+reci_assert_same( true, count( $default_terms ) > 0, 'defaults: the starter term list parses to at least one term' );
+
+// Every starter term must actually match itself, or it is dead weight in the
+// list and a moderator would never see it fire.
+foreach ( $default_terms as $term ) {
+	reci_assert_same(
+		[ $term ],
+		reci_match_flagged_terms( 'before ' . $term . ' after', $default_terms ),
+		'defaults: starter term "' . $term . '" matches itself and nothing else'
+	);
+}
+
+// Ordinary testimony must not trip the starter list.
+reci_assert_same(
+	[],
+	reci_match_flagged_terms( 'I reflected on my own experience of bias at work today.', $default_terms ),
+	'defaults: ordinary reflection is not flagged'
+);
