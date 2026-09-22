@@ -28,20 +28,65 @@
 	}
 
 	// Reflection page: reveal the anonymity option only when sharing.
-	var shareBox = document.getElementById( 'reflectionShare' );
-	var anonWrap = document.getElementById( 'reflectionAnonWrap' );
+	//
+	// Delegated, because a reflection may contain several prompt chapters and
+	// each renders its own copy of the controls. They are matched by data
+	// attribute and scoped to their own wrapper, so no ids can collide.
+	document.addEventListener( 'change', function ( event ) {
+		var target = event.target;
 
-	if ( shareBox && anonWrap ) {
-		shareBox.addEventListener( 'change', function () {
-			anonWrap.hidden = ! shareBox.checked;
+		if ( ! target || ! target.matches || ! target.matches( '[data-reci-share]' ) ) {
+			return;
+		}
 
-			if ( ! shareBox.checked ) {
-				var anonBox = document.getElementById( 'reflectionAnonymous' );
-				if ( anonBox ) {
-					anonBox.checked = false;
-				}
+		var scope = target.closest( '[data-reci-share-controls]' );
+
+		if ( ! scope ) {
+			return;
+		}
+
+		var anonWrap = scope.querySelector( '[data-reci-anon-wrap]' );
+		var anonBox = scope.querySelector( '[data-reci-anonymous]' );
+
+		if ( anonWrap ) {
+			anonWrap.hidden = ! target.checked;
+		}
+
+		if ( ! target.checked && anonBox ) {
+			anonBox.checked = false;
+		}
+	} );
+
+	/**
+	 * Read the share intent nearest a given element.
+	 *
+	 * Both reflection save paths - the panel runtime and the immersive stage
+	 * runtime - call this after a successful save, so the two families share one
+	 * definition of what the controls mean.
+	 */
+	function readShareIntent( fromElement ) {
+		var root = fromElement && fromElement.closest ? fromElement.closest( '.reci-stage' ) : null;
+		var scope = root
+			? root.querySelector( '[data-reci-share-controls]' )
+			: document.querySelector( '[data-reci-share-controls]' );
+
+		if ( ! scope ) {
+			return { share: false, anonymous: false };
+		}
+
+		var shareBox = scope.querySelector( '[data-reci-share]' );
+		var anonBox = scope.querySelector( '[data-reci-anonymous]' );
+
+		return {
+			share: !! ( shareBox && shareBox.checked ),
+			anonymous: !! ( anonBox && anonBox.checked ),
+			reset: function () {
+				if ( shareBox ) { shareBox.checked = false; }
+				if ( anonBox ) { anonBox.checked = false; }
+				var wrap = scope.querySelector( '[data-reci-anon-wrap]' );
+				if ( wrap ) { wrap.hidden = true; }
 			}
-		} );
+		};
 	}
 
 	// Dashboard list: one control per row.
@@ -144,16 +189,20 @@
 
 	function initSharedJournalOverlay() {
 		var overlay = document.getElementById( 'reci-shared-journals' );
-		var openButton = document.getElementById( 'reci-open-shared-journals' );
+		var openButtons = document.querySelectorAll( '[data-reci-open-shared]' );
 		var closeButton = document.getElementById( 'reci-shared-journals-close' );
 
-		if ( ! overlay || ! openButton || ! closeButton ) {
+		if ( ! overlay || ! openButtons.length || ! closeButton ) {
 			return;
 		}
 
-		openButton.addEventListener( 'click', function () {
-			overlay.classList.remove( 'hidden' );
-			loadSharedJournals( overlay );
+		// Every prompt chapter may show its own button; they all open the one
+		// pooled overlay.
+		openButtons.forEach( function ( openButton ) {
+			openButton.addEventListener( 'click', function () {
+				overlay.classList.remove( 'hidden' );
+				loadSharedJournals( overlay );
+			} );
 		} );
 
 		closeButton.addEventListener( 'click', function () {
@@ -169,6 +218,7 @@
 
 	initSharedJournalOverlay();
 
-	// Let the reflection runtime call the same helper after a save.
+	// Let both reflection runtimes call the same helpers after a save.
 	window.reciPatchJournalShare = patchShare;
+	window.reciReadShareIntent = readShareIntent;
 }() );

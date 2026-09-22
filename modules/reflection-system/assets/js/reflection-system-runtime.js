@@ -521,14 +521,16 @@
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Unable to save your response.');
-        const shareBox = document.getElementById('reflectionShare');
-        const anonBox = document.getElementById('reflectionAnonymous');
+        // The controls are scoped to this chapter, not looked up by id: a
+        // reflection may hold several prompt chapters.
+        const intent = window.reciReadShareIntent
+          ? window.reciReadShareIntent(responseInput || saveButton)
+          : { share: false, anonymous: false };
         if (responseInput) responseInput.value = '';
-        if (shareBox?.checked && data.id && window.reciPatchJournalShare) {
+        if (intent.share && data.id && window.reciPatchJournalShare) {
           try {
-            await window.reciPatchJournalShare(data.id, true, Boolean(anonBox?.checked));
-            if (shareBox) shareBox.checked = false;
-            if (anonBox) anonBox.checked = false;
+            await window.reciPatchJournalShare(data.id, true, intent.anonymous);
+            if (intent.reset) intent.reset();
             if (status) status.textContent = 'Response saved and sent for review.';
           } catch (shareError) {
             if (status) status.textContent = 'Response saved privately. Sharing failed — try again from your dashboard.';

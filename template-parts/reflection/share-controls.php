@@ -1,0 +1,104 @@
+<?php
+/**
+ * Share controls for a reflection prompt.
+ *
+ * Included by every live `reflection-prompt` variant. There are two families —
+ * the panel style (journal, exit-stage) and the full-screen stage style
+ * (minimal, immersive-dark, protest-march) — so `style` picks the skin while
+ * the markup and hooks stay identical.
+ *
+ * Deliberately no `id` attributes: a reflection may contain several prompt
+ * chapters, and duplicate ids would leave every control after the first inert.
+ * Everything is found by data attribute, scoped to the nearest `.reci-stage`.
+ *
+ * @package reci-media-hub
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+// Sharing is tied to an account. The variants already tell signed-out visitors
+// to log in, so rendering a dead toggle here would only be noise.
+if ( ! is_user_logged_in() ) {
+	return;
+}
+
+$reci_share = wp_parse_args(
+	$args ?? [],
+	[
+		'style' => 'panel',
+	]
+);
+
+$reci_is_stage = 'stage' === $reci_share['style'];
+
+$reci_wrap_class = $reci_is_stage
+	? 'reci-share-controls mt-6 grid w-full max-w-[600px] gap-3 text-left mx-auto'
+	: 'reci-share-controls mt-4 grid gap-3';
+
+$reci_label_class = $reci_is_stage
+	? 'flex items-start gap-3 text-sm text-white/80'
+	: 'flex items-start gap-3 text-sm reci-reflection-soft-text';
+
+$reci_hint_class = $reci_is_stage
+	? 'block text-xs text-white/55'
+	: 'block text-xs opacity-80';
+?>
+<div class="<?php echo esc_attr( $reci_wrap_class ); ?>" data-reci-share-controls>
+	<label class="<?php echo esc_attr( $reci_label_class ); ?>">
+		<input type="checkbox" class="mt-1" data-reci-share />
+		<span>
+			<?php esc_html_e( 'Share this reflection with others', 'reci-media-hub' ); ?>
+			<span class="<?php echo esc_attr( $reci_hint_class ); ?>"><?php esc_html_e( 'A moderator reads it before it appears. You can withdraw it at any time.', 'reci-media-hub' ); ?></span>
+		</span>
+	</label>
+	<label class="<?php echo esc_attr( $reci_label_class ); ?>" data-reci-anon-wrap hidden>
+		<input type="checkbox" class="mt-1" data-reci-anonymous />
+		<span>
+			<?php esc_html_e( 'Share anonymously', 'reci-media-hub' ); ?>
+			<span class="<?php echo esc_attr( $reci_hint_class ); ?>"><?php esc_html_e( 'Your name is hidden from readers and from this reflection\'s author. Site administrators can still see it.', 'reci-media-hub' ); ?></span>
+		</span>
+	</label>
+</div>
+
+<?php
+$reci_reflection_id = (int) get_the_ID();
+$reci_shared_count  = function_exists( 'reci_get_shared_journal_count' )
+	? reci_get_shared_journal_count( $reci_reflection_id )
+	: 0;
+
+if ( $reci_shared_count < 1 ) {
+	return;
+}
+
+$reci_button_class = $reci_is_stage
+	? 'reci-open-shared mt-6 inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white'
+	: 'reci-open-shared mt-6 inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] reci-reflection-text';
+?>
+<button type="button" class="<?php echo esc_attr( $reci_button_class ); ?>" data-reci-open-shared>
+	<?php
+	printf(
+		/* translators: %d: number of shared reflections */
+		esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
+		(int) $reci_shared_count
+	);
+	?>
+</button>
+
+<?php
+// Several prompt chapters may each show a button, but they all open the same
+// pooled list, so the overlay itself is emitted once per page. Not a `static`:
+// at file scope that resets on every include.
+if ( empty( $GLOBALS['reci_shared_overlay_rendered'] ) ) {
+	$GLOBALS['reci_shared_overlay_rendered'] = true;
+
+	get_template_part(
+		'modules/reflection-system/templates/shared-journals-overlay',
+		null,
+		[
+			'reflection_id' => $reci_reflection_id,
+			'count'         => $reci_shared_count,
+		]
+	);
+}

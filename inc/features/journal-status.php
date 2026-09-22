@@ -78,3 +78,30 @@ function reci_journal_status_label( string $status ): string {
 
 	return $labels[ $status ] ?? $labels['private'];
 }
+
+/**
+ * Row-action keys wp-admin hides with global CSS.
+ *
+ * `wp-admin/css/common.css` carries an unscoped `.approve { display: none; }`
+ * (plus `.unapproved .unapprove`), for the comments screen's approve/unapprove
+ * toggle. WP_List_Table::row_actions() renders every key as
+ * `<span class="{key}">`, so any custom table using these keys renders a link
+ * that is in the HTML and invisible on screen.
+ *
+ * @return array<int,string>
+ */
+function reci_wp_admin_reserved_action_keys(): array {
+	return [ 'approve', 'unapprove', 'spam', 'unspam', 'trash', 'untrash' ];
+}
+
+/**
+ * The row-action keys the journals list table uses.
+ *
+ * Kept here, beside the reserved list, so the test can hold them against each
+ * other.
+ *
+ * @return array<int,string>
+ */
+function reci_journal_row_action_keys(): array {
+	return [ 'reci-approve', 'reci-reject' ];
+}

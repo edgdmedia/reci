@@ -105,13 +105,16 @@ class Reci_Journals_List_Table extends WP_List_Table {
 			return $content;
 		}
 
+		// Keys come from reci_journal_row_action_keys(): 'approve' collides with
+		// an unscoped `.approve { display: none; }` in wp-admin's common.css,
+		// which renders the link into the HTML and hides it on screen.
 		$actions = [
-			'approve' => sprintf(
+			'reci-approve' => sprintf(
 				'<a href="%s">%s</a>',
 				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_approve&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
 				esc_html__( 'Approve', 'reci-media-hub' )
 			),
-			'reject'  => sprintf(
+			'reci-reject'  => sprintf(
 				'<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
 				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_reject&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
 				esc_js( __( 'Reject this shared reflection?', 'reci-media-hub' ) ),
@@ -143,8 +146,93 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		return implode( ' ', $badges );
 	}
 
+	/**
+	 * Bulk actions.
+	 *
+	 * The table has always rendered a checkbox column, so without these the
+	 * screen offered a selection that could not be acted on.
+	 */
+	public function get_bulk_actions() {
+		if ( ! current_user_can( 'reci_moderate_journals' ) ) {
+			return [];
+		}
+
+		return [
+			'reci-approve' => __( 'Approve', 'reci-media-hub' ),
+			'reci-reject'  => __( 'Reject', 'reci-media-hub' ),
+		];
+	}
+
+	/**
+	 * Apply a bulk action to the selected entries.
+	 *
+	 * Only entries actually awaiting review are touched: the transition table
+	 * rejects the rest, but filtering here keeps the reported count honest.
+	 */
+	public function process_bulk_action(): void {
+		$action = $this->current_action();
+
+		if ( ! in_array( $action, [ 'reci-approve', 'reci-reject' ], true ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'reci_moderate_journals' ) ) {
+			wp_die( esc_html__( 'You are not allowed to moderate journal entries.', 'reci-media-hub' ) );
+		}
+
+		// WP_List_Table nonces bulk submissions as 'bulk-' . $plural.
+		check_admin_referer( 'bulk-' . $this->_args['plural'] );
+
+		$ids = isset( $_REQUEST['journal'] ) ? array_map( 'absint', (array) wp_unslash( $_REQUEST['journal'] ) ) : [];
+		$ids = array_values( array_filter( $ids ) );
+
+		if ( [] === $ids ) {
+			return;
+		}
+
+		$done = 0;
+
+		foreach ( $ids as $journal_id ) {
+			$ok = ( 'reci-approve' === $action )
+				? reci_approve_journal( $journal_id )
+				: reci_reject_journal( $journal_id );
+
+			if ( ! $ok ) {
+				continue;
+			}
+
+			$done++;
+
+			// Keep the mirror comment in step, so both moderation surfaces
+			// report the same state.
+			$journal = reci_get_journal_row( $journal_id );
+
+			if ( $journal && (int) $journal['comment_id'] ) {
+				wp_set_comment_status(
+					(int) $journal['comment_id'],
+					( 'reci-approve' === $action ) ? 'approve' : 'trash'
+				);
+			}
+		}
+
+		wp_safe_redirect(
+			add_query_arg(
+				[
+					'page'      => 'reci-journals',
+					'moderated' => ( 'reci-approve' === $action ) ? 'approved' : 'rejected',
+					'count'     => $done,
+				],
+				admin_url( 'admin.php' )
+			)
+		);
+		exit;
+	}
+
 	public function prepare_items() {
 		global $wpdb;
+
+		$this->process_bulk_action();
+
 		$table_name = $wpdb->prefix . 'reci_journals';
 
 		$per_page = 20;

@@ -13,8 +13,13 @@
 	var data = window.reciCommunityPolicy || {};
 	var terms = data.terms || [];
 	var accentMap = data.accentMap || {};
+	var policyHtml = data.policyHtml || '';
 
-	if ( ! terms.length ) {
+	// Deliberately no early return on an empty term list. The guideline link
+	// and the term matcher are independent: a site may publish a policy without
+	// listing a single term, and it should still be reachable from every box
+	// people write in.
+	if ( ! terms.length && ! policyHtml ) {
 		return;
 	}
 
@@ -69,11 +74,60 @@
 		return notice;
 	}
 
+	function openPolicyDialog() {
+		var existing = document.getElementById( 'reci-policy-dialog' );
+
+		if ( existing ) {
+			existing.hidden = false;
+			return;
+		}
+
+		var overlay = document.createElement( 'div' );
+		overlay.id = 'reci-policy-dialog';
+		overlay.setAttribute( 'role', 'dialog' );
+		overlay.setAttribute( 'aria-modal', 'true' );
+		overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;overflow-y:auto;background:rgba(9,8,7,0.94);padding:48px 16px;';
+
+		var panel = document.createElement( 'div' );
+		panel.style.cssText = 'max-width:720px;margin:0 auto;background:#fff;color:#18181b;border-radius:18px;padding:28px;';
+
+		var heading = document.createElement( 'h2' );
+		heading.textContent = data.linkLabel || 'Community guideline';
+		heading.style.cssText = 'margin:0 0 16px;font-size:1.5rem;';
+
+		var body = document.createElement( 'div' );
+		// policyHtml comes from wp_kses_post() on save, so it carries only the
+		// markup an editor is allowed to publish anywhere else on the site.
+		body.innerHTML = policyHtml;
+
+		var close = document.createElement( 'button' );
+		close.type = 'button';
+		close.textContent = 'Close';
+		close.style.cssText = 'margin-top:24px;border:1px solid currentColor;border-radius:999px;padding:8px 20px;background:none;cursor:pointer;';
+		close.addEventListener( 'click', function () {
+			overlay.hidden = true;
+		} );
+
+		overlay.addEventListener( 'click', function ( event ) {
+			if ( event.target === overlay ) {
+				overlay.hidden = true;
+			}
+		} );
+
+		panel.appendChild( heading );
+		panel.appendChild( body );
+		panel.appendChild( close );
+		overlay.appendChild( panel );
+		document.body.appendChild( overlay );
+	}
+
 	function buildLink() {
-		var link = document.createElement( 'a' );
+		var link = document.createElement( 'button' );
+		link.type = 'button';
 		link.className = 'reci-policy-link';
-		link.href = data.policyUrl || '#';
 		link.textContent = data.linkLabel || 'Community guideline';
+		link.style.cssText = 'display:inline-block;margin-top:8px;background:none;border:none;padding:0;text-decoration:underline;cursor:pointer;color:inherit;font:inherit;';
+		link.addEventListener( 'click', openPolicyDialog );
 		return link;
 	}
 
@@ -84,10 +138,15 @@
 		textarea.dataset.reciPolicyBound = '1';
 
 		var notice = buildNotice();
-		var link = buildLink();
-
 		textarea.insertAdjacentElement( 'afterend', notice );
-		textarea.insertAdjacentElement( 'afterend', link );
+
+		if ( policyHtml ) {
+			textarea.insertAdjacentElement( 'afterend', buildLink() );
+		}
+
+		if ( ! terms.length ) {
+			return;
+		}
 
 		var timer = null;
 
@@ -101,7 +160,7 @@
 	}
 
 	document.addEventListener( 'DOMContentLoaded', function () {
-		[ '#reflectionResponse', '#comment' ].forEach( function ( selector ) {
+		[ '#reflectionResponse', '#comment', '.reflect-input' ].forEach( function ( selector ) {
 			document.querySelectorAll( selector ).forEach( attach );
 		} );
 	} );

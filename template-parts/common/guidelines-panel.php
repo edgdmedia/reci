@@ -23,6 +23,18 @@ $panel = wp_parse_args(
 );
 
 if ( '' === trim( (string) $panel['body'] ) ) {
+	// Rendering nothing to the public is right - an unconfigured site should
+	// not show an empty box. But it made a configured-but-empty feature look
+	// like a missing one, so anyone who can actually fix it is told where.
+	if ( current_user_can( 'manage_options' ) ) {
+		printf(
+			'<div class="mb-6 rounded-2xl border border-dashed border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900">%s <a class="underline" href="%s">%s</a></div>',
+			esc_html__( 'This guideline has no content yet, so visitors see nothing here.', 'reci-media-hub' ),
+			esc_url( admin_url( 'admin.php?page=reci-settings&tab=community' ) ),
+			esc_html__( 'Add it under RECI Settings → Community.', 'reci-media-hub' )
+		);
+	}
+
 	return;
 }
 ?>

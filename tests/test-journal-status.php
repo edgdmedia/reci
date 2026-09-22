@@ -50,3 +50,23 @@ reci_assert_same( 'Pending review', reci_journal_status_label( 'pending' ), 'lab
 reci_assert_same( 'Shared', reci_journal_status_label( 'approved' ), 'label: approved reads as shared' );
 reci_assert_same( 'Not published', reci_journal_status_label( 'rejected' ), 'label: rejected' );
 reci_assert_same( 'Private', reci_journal_status_label( 'nonsense' ), 'label: unknown status falls back to private' );
+
+// --- Row action keys must not collide with wp-admin's global CSS ---------
+//
+// wp-admin/css/common.css carries an UNSCOPED rule:
+//     .approve, .unapproved .unapprove { display: none; }
+// WP_List_Table::row_actions() renders each key as <span class="{key}">, so a
+// row action keyed 'approve' is present in the HTML and invisible on screen.
+// This bit us once; the guard stops it coming back silently.
+$reserved = reci_wp_admin_reserved_action_keys();
+
+reci_assert_same( true, in_array( 'approve', $reserved, true ), 'reserved: approve is known to collide' );
+reci_assert_same( true, in_array( 'unapprove', $reserved, true ), 'reserved: unapprove is known to collide' );
+
+foreach ( reci_journal_row_action_keys() as $key ) {
+	reci_assert_same(
+		false,
+		in_array( $key, $reserved, true ),
+		'row action key "' . $key . '" must not collide with wp-admin CSS'
+	);
+}
