@@ -239,6 +239,16 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 			);
 		}
 
+		wp_enqueue_script(
+			'reci-community-policy',
+			get_template_directory_uri() . '/assets/js/community-policy.js',
+			[],
+			wp_get_theme()->get('Version'),
+			true
+		);
+
+		wp_localize_script('reci-community-policy', 'reciCommunityPolicy', reci_community_policy_script_data());
+
 		// `/submit/` is the single canonical submission route. The React app only
 		// mounts for approved collaborators, so only load it for that state.
 		$is_submit_page = is_page_template( 'templates/page/template-submit-content.php' )

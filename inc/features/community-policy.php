@@ -212,3 +212,83 @@ function reci_match_flagged_terms( string $text, array $terms ): array {
 function reci_text_has_flagged_terms( string $text ): bool {
 	return [] !== reci_match_flagged_terms( $text, reci_get_abuse_terms() );
 }
+
+/**
+ * Should a match on this surface be routed to a moderator?
+ *
+ * A private journal entry is the writer's own space. Detection warns them and
+ * stops there: putting private writing in front of staff because it contained
+ * a word from a list would break the promise the Private/Shared toggle makes.
+ *
+ * Unknown surfaces fail closed. Flagging is what exposes writing to another
+ * person, so anything we cannot classify is left alone.
+ *
+ * @param string             $surface One of 'private_journal', 'shared_journal', 'comment'.
+ * @param array<int,string>  $matches Result of reci_match_flagged_terms().
+ */
+function reci_should_flag_for_review( string $surface, array $matches ): bool {
+	if ( [] === $matches ) {
+		return false;
+	}
+
+	return in_array( $surface, [ 'shared_journal', 'comment' ], true );
+}
+
+/**
+ * Hold a matching comment for review.
+ *
+ * Comments currently post straight through with no gate at all, so this is new
+ * behaviour. The comment is still saved — it is held, never rejected.
+ */
+add_filter( 'pre_comment_approved', 'reci_hold_flagged_comment', 20, 2 );
+function reci_hold_flagged_comment( $approved, $commentdata ) {
+	// Leave spam and errors alone; this filter only downgrades an approval.
+	if ( 'spam' === $approved || is_wp_error( $approved ) ) {
+		return $approved;
+	}
+
+	$matches = reci_match_flagged_terms(
+		(string) ( $commentdata['comment_content'] ?? '' ),
+		reci_get_abuse_terms()
+	);
+
+	if ( ! reci_should_flag_for_review( 'comment', $matches ) ) {
+		return $approved;
+	}
+
+	return 0;
+}
+
+/**
+ * Record why a comment was held, so the moderator sees the reason.
+ */
+add_action( 'comment_post', 'reci_record_comment_flags', 10, 3 );
+function reci_record_comment_flags( $comment_id, $approved, $commentdata ): void {
+	$matches = reci_match_flagged_terms(
+		(string) ( $commentdata['comment_content'] ?? '' ),
+		reci_get_abuse_terms()
+	);
+
+	if ( [] === $matches ) {
+		return;
+	}
+
+	update_comment_meta( $comment_id, '_reci_flagged_terms', $matches );
+}
+
+/**
+ * Hand the term list and policy to the browser.
+ *
+ * The list is published in the guideline by design, so shipping it to the
+ * client is not a disclosure.
+ */
+function reci_community_policy_script_data(): array {
+	return [
+		'terms'      => reci_get_abuse_terms(),
+		'accentMap'  => reci_accent_fold_map(),
+		'policyUrl'  => '#reci-community-policy',
+		'policyHtml' => reci_get_community_policy(),
+		'warning'    => __( 'This may need review before it is published. Read our community guideline.', 'reci-media-hub' ),
+		'linkLabel'  => __( 'Community guideline', 'reci-media-hub' ),
+	];
+}
