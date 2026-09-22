@@ -98,6 +98,30 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		return esc_html( $label ) . $anonymous;
 	}
 
+	protected function column_response( $item ) {
+		$content = esc_html( wp_trim_words( $item->response, 15, '...' ) );
+
+		if ( ! current_user_can( 'reci_moderate_journals' ) || 'pending' !== ( $item->status ?? 'private' ) ) {
+			return $content;
+		}
+
+		$actions = [
+			'approve' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_approve&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
+				esc_html__( 'Approve', 'reci-media-hub' )
+			),
+			'reject'  => sprintf(
+				'<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
+				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_reject&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
+				esc_js( __( 'Reject this shared reflection?', 'reci-media-hub' ) ),
+				esc_html__( 'Reject', 'reci-media-hub' )
+			),
+		];
+
+		return $content . $this->row_actions( $actions );
+	}
+
 	/**
 	 * Render the flagged-term column, so a moderator sees why an entry
 	 * surfaced rather than having to guess.
@@ -178,7 +202,7 @@ add_action( 'admin_menu', function() {
 		'reci-submissions',
 		__( 'Journals', 'reci-media-hub' ),
 		__( 'Journals', 'reci-media-hub' ),
-		'edit_others_posts',
+		'reci_moderate_journals',
 		'reci-journals',
 		'reci_media_hub_journals_admin_page'
 	);
