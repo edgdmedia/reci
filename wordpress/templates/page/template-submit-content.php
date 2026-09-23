@@ -49,24 +49,15 @@ get_header();
 			<?php endif; ?>
 
 			<?php
+			// The guideline belongs to the signed-out entry point only. A member
+			// already has it inside the submission app, and repeating it here
+			// gave the page two copies of the same document.
 			$reci_is_guest_intro = ( 'guest' === $submit_state && 'account' !== $reci_submit_step );
-
-			get_template_part(
-				'template-parts/common/guidelines-panel',
-				null,
-				[
-					'title'       => __( 'Submission Guidelines', 'reci-media-hub' ),
-					'body'        => reci_get_submission_guidelines(),
-					// Approved collaborators have read this before and are here
-					// to work, so it starts collapsed for them alone. A visitor
-					// reading the guidelines as their whole first step gets them
-					// open and full width.
-					'collapsible' => ( 'approved_collaborator' === $submit_state ),
-				]
-			);
 			?>
 
 			<?php if ( $reci_is_guest_intro ) : ?>
+
+				<?php get_template_part( 'template-parts/common/submission-guidelines-panel' ); ?>
 
 				<div class="max-w-4xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
 					<h2 class="font-heading text-2xl font-bold text-zinc-900"><?php esc_html_e( 'Ready to contribute?', 'reci-media-hub' ); ?></h2>
