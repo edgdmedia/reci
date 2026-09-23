@@ -36,7 +36,7 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 		<?php endif; ?>
 		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
 			<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read' ] ); ?>
+				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read', 'button_class' => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-[\'Oswald\'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105' ] ); ?>
 				<button class="reci-complete-btn inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-['Oswald'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
 			</div>
 	</div>

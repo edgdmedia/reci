@@ -25,6 +25,10 @@ $reci_share = wp_parse_args(
 		// 'all', 'toggles' or 'read'. Variants that want the read button on the
 		// same row as their own continue button render the two parts apart.
 		'show'  => 'all',
+		// The variants style their own continue button differently, and the two
+		// sit side by side, so the caller hands us its exact classes rather than
+		// us guessing a look that nearly matches.
+		'button_class' => '',
 	]
 );
 
@@ -84,20 +88,14 @@ if ( $reci_shared_count < 1 ) {
 
 $reci_is_stage = 'stage' === $reci_share['style'];
 
-$reci_button_class = $reci_is_stage
-	? 'reci-open-shared inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors'
-	: 'reci-open-shared inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] reci-reflection-text';
+$reci_button_class = '' !== (string) $reci_share['button_class']
+	? (string) $reci_share['button_class']
+	: ( $reci_is_stage
+		? 'inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline'
+		: 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] reci-reflection-text' );
 ?>
 <button
 	type="button"
-	class="<?php echo esc_attr( $reci_button_class ); ?>"
+	class="reci-open-shared <?php echo esc_attr( $reci_button_class ); ?>"
 	data-stage-target="reci-shared-journals"
->
-	<?php
-	printf(
-		/* translators: %d: number of shared reflections */
-		esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
-		(int) $reci_shared_count
-	);
-	?>
-</button>
+><?php esc_html_e( 'Shared Reflections', 'reci-media-hub' ); ?></button>

@@ -45,7 +45,7 @@ $args = wp_parse_args($args ?? [], [
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
 						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'toggles' ] ); ?>
 						<div class="mt-4 flex flex-wrap items-center gap-4">
-							<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read' ] ); ?>
+							<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read', 'button_class' => 'inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-4 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]' ] ); ?>
 							<button class="inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-4 font-['Oswald'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
 							<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
 							<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>

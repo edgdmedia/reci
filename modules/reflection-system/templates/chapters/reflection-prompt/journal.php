@@ -49,7 +49,7 @@ $args = wp_parse_args($args ?? [], [
 						<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text"></div>
 					</div>
 					<div class="mt-6 flex flex-wrap items-center gap-4">
-						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read' ] ); ?>
+						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read', 'button_class' => 'reci-continue' ] ); ?>
 						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
 						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
 						<?php endif; ?>

@@ -25,7 +25,7 @@ $args = wp_parse_args($args ?? [], [
 		<?php endif; ?>
 		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
 			<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read' ] ); ?>
+				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read', 'button_class' => 'enter-btn' ] ); ?>
 				<button class="enter-btn reci-complete-btn" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
 			</div>
 	</div>
