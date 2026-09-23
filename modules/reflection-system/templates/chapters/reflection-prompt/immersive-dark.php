@@ -23,7 +23,7 @@ $args = wp_parse_args($args ?? [], [
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'style'          => 'stage',
 			'prompt'         => $args['prompt'],
-			'textarea_class' => 'reci-reflection-prompt__input',
+			'textarea_class' => 'reflect-input reci-reflection-prompt__input',
 			'placeholder'    => 'Share your thoughts...',
 			'note_class'     => 'mt-4 text-sm text-white/60',
 			'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',

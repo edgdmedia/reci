@@ -101,15 +101,8 @@ class Reci_Journals_List_Table extends WP_List_Table {
 	 * Render the status column.
 	 */
 	public function column_status( $item ): string {
-		$labels = [
-			'private'  => __( 'Private', 'reci-media-hub' ),
-			'pending'  => __( 'Pending review', 'reci-media-hub' ),
-			'approved' => __( 'Published', 'reci-media-hub' ),
-			'rejected' => __( 'Not published', 'reci-media-hub' ),
-		];
-
 		$status = (string) ( $item->status ?? 'private' );
-		$label  = $labels[ $status ] ?? $status;
+		$label  = reci_journal_status_label( $status );
 
 		$colours = [
 			'private'  => '#f0f0f1;color:#50575e',
@@ -189,7 +182,7 @@ class Reci_Journals_List_Table extends WP_List_Table {
 	protected function current_status(): string {
 		$status = isset( $_GET['journal_status'] ) ? sanitize_key( wp_unslash( $_GET['journal_status'] ) ) : '';
 
-		return reci_journal_is_valid_status( $status ) ? $status : '';
+		return in_array( $status, reci_journal_moderatable_statuses(), true ) ? $status : '';
 	}
 
 	/**
@@ -201,7 +194,10 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		global $wpdb;
 
 		$table = $wpdb->prefix . 'reci_journals';
-		$rows  = $wpdb->get_results( "SELECT status, COUNT(id) AS total FROM {$table} GROUP BY status" );
+		$rows  = $wpdb->get_results( sprintf(
+			"SELECT status, COUNT(id) AS total FROM {$table} WHERE status IN ( %s ) GROUP BY status",
+			implode( ', ', array_map( static fn( $st ) => "'" . esc_sql( $st ) . "'", reci_journal_moderatable_statuses() ) )
+		) );
 
 		$counts = [];
 		$all    = 0;
@@ -224,7 +220,7 @@ class Reci_Journals_List_Table extends WP_List_Table {
 			),
 		];
 
-		foreach ( RECI_JOURNAL_STATUSES as $status ) {
+		foreach ( reci_journal_moderatable_statuses() as $status ) {
 			$views[ $status ] = sprintf(
 				'<a href="%s"%s>%s <span class="count">(%d)</span></a>',
 				esc_url( add_query_arg( 'journal_status', $status, $base ) ),
@@ -346,7 +342,15 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		$offset       = ( $current_page - 1 ) * $per_page;
 
 		$status = $this->current_status();
-		$where  = '' !== $status ? $wpdb->prepare( 'WHERE status = %s', $status ) : '';
+
+		// Private entries never appear. They were not shared with anyone, and
+		// this screen exists to moderate what was.
+		$where = '' !== $status
+			? $wpdb->prepare( 'WHERE status = %s', $status )
+			: sprintf(
+				"WHERE status IN ( %s )",
+				implode( ', ', array_map( static fn( $st ) => "'" . esc_sql( $st ) . "'", reci_journal_moderatable_statuses() ) )
+			);
 
 		$total_items = (int) $wpdb->get_var( "SELECT COUNT(id) FROM $table_name $where" );
 

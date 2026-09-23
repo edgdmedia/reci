@@ -107,3 +107,16 @@ function reci_wp_admin_reserved_action_keys(): array {
 function reci_journal_row_action_keys(): array {
 	return [ 'reci-approve', 'reci-reject' ];
 }
+
+/**
+ * Statuses a moderator may see.
+ *
+ * Everything except `private`. A private entry was never shared with anyone,
+ * so it is the author's own writing and does not belong on a moderation
+ * screen - the same reason the term matcher never flags one.
+ *
+ * @return array<int,string>
+ */
+function reci_journal_moderatable_statuses(): array {
+	return array_values( array_diff( RECI_JOURNAL_STATUSES, [ 'private' ] ) );
+}

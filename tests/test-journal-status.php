@@ -76,3 +76,18 @@ foreach ( reci_journal_row_action_keys() as $key ) {
 		'row action key "' . $key . '" must not collide with wp-admin CSS'
 	);
 }
+
+// --- What a moderator may see ---------------------------------------------
+$moderatable = reci_journal_moderatable_statuses();
+
+reci_assert_same( false, in_array( 'private', $moderatable, true ), 'moderation: A PRIVATE ENTRY IS NEVER LISTED' );
+reci_assert_same( true, in_array( 'pending', $moderatable, true ), 'moderation: pending is listed' );
+reci_assert_same( true, in_array( 'approved', $moderatable, true ), 'moderation: approved is listed' );
+reci_assert_same( true, in_array( 'rejected', $moderatable, true ), 'moderation: rejected is listed' );
+reci_assert_same( 3, count( $moderatable ), 'moderation: exactly the three shared states' );
+
+// One vocabulary: the admin table used to call approved "Published" while
+// everything else called it "Shared".
+foreach ( RECI_JOURNAL_STATUSES as $reci_s ) {
+	reci_assert_same( true, '' !== reci_journal_status_label( $reci_s ), 'moderation: every status has a label' );
+}

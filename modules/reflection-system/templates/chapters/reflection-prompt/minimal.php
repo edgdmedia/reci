@@ -25,7 +25,7 @@ $args = wp_parse_args($args ?? [], [
 			get_template_part( 'template-parts/reflection/prompt-form', null, [
 				'style'          => 'stage',
 				'prompt'         => $args['prompt'] ?: $args['title'],
-				'textarea_class' => 'reci-reflection-prompt__input mt-8 h-[150px] w-full max-w-[600px] rounded-none border border-white/20 bg-[#222] px-5 py-4 text-base text-white outline-none',
+				'textarea_class' => 'reflect-input reci-reflection-prompt__input mt-8 h-[150px] w-full max-w-[600px] rounded-none border border-white/20 bg-[#222] px-5 py-4 text-base text-white outline-none',
 				'placeholder'    => 'Share your thoughts...',
 				'note_class'     => 'mt-4 text-sm text-white/60',
 				'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',

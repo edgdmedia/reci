@@ -34,7 +34,7 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'style'          => 'stage',
 			'prompt'         => $args['prompt'],
-			'textarea_class' => 'reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-[\'Merriweather\'] text-white',
+			'textarea_class' => 'reflect-input reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-[\'Merriweather\'] text-white',
 			'placeholder'    => 'Share your thoughts...',
 			'note_class'     => 'mb-6 text-sm text-white/60',
 			'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
