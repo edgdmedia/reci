@@ -22,10 +22,6 @@ $reci_share = wp_parse_args(
 	$args ?? [],
 	[
 		'style' => 'panel',
-		// 'all', 'toggles', or 'read'. Variants that want the read button on
-		// the same row as their continue button render the two parts
-		// separately.
-		'show'  => 'all',
 	]
 );
 
@@ -44,11 +40,11 @@ $reci_hint_class = $reci_is_stage
 	: 'block text-xs opacity-80';
 ?>
 <?php
-// Sharing needs an account, so the toggles are for members only - the variants
-// already tell a signed-out visitor to log in. Reading what others shared is
-// public, so the button below is not gated.
+// Sharing needs an account, so these are for members only - the variants
+// already tell a signed-out visitor to log in. Reading what others shared
+// needs no account, and now happens in its own chapter.
 ?>
-<?php if ( 'read' !== $reci_share['show'] && is_user_logged_in() ) : ?>
+<?php if ( is_user_logged_in() ) : ?>
 <div class="<?php echo esc_attr( $reci_wrap_class ); ?>" data-reci-share-controls>
 	<label class="<?php echo esc_attr( $reci_label_class ); ?>">
 		<input type="checkbox" class="mt-1" data-reci-share />
@@ -66,48 +62,3 @@ $reci_hint_class = $reci_is_stage
 	</label>
 </div>
 <?php endif; ?>
-
-<?php
-if ( 'toggles' === $reci_share['show'] ) {
-	return;
-}
-
-$reci_reflection_id = (int) get_the_ID();
-$reci_shared_count  = function_exists( 'reci_get_shared_journal_count' )
-	? reci_get_shared_journal_count( $reci_reflection_id )
-	: 0;
-
-if ( $reci_shared_count < 1 ) {
-	return;
-}
-
-$reci_button_class = $reci_is_stage
-	? 'reci-open-shared inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white'
-	: 'reci-open-shared inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] reci-reflection-text';
-?>
-<button type="button" class="<?php echo esc_attr( $reci_button_class ); ?>" data-reci-open-shared>
-	<?php
-	printf(
-		/* translators: %d: number of shared reflections */
-		esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
-		(int) $reci_shared_count
-	);
-	?>
-</button>
-
-<?php
-// Several prompt chapters may each show a button, but they all open the same
-// pooled list, so the overlay itself is emitted once per page. Not a `static`:
-// at file scope that resets on every include.
-if ( empty( $GLOBALS['reci_shared_overlay_rendered'] ) ) {
-	$GLOBALS['reci_shared_overlay_rendered'] = true;
-
-	get_template_part(
-		'modules/reflection-system/templates/shared-journals-overlay',
-		null,
-		[
-			'reflection_id' => $reci_reflection_id,
-			'count'         => $reci_shared_count,
-		]
-	);
-}

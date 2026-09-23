@@ -388,6 +388,58 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 		}
 
 		/**
+		 * Append the shared reflections chapter when there is something to read.
+		 *
+		 * Authors never place this one. It belongs to the piece the way any
+		 * other chapter does, but it only exists once other people have shared
+		 * something, so the blueprint cannot know about it in advance.
+		 *
+		 * @param array<int,array<string,mixed>> $chapters
+		 * @return array<int,array<string,mixed>>
+		 */
+		private static function with_shared_journals_chapter(array $chapters): array {
+			if (! function_exists('reci_get_shared_journal_count')) {
+				return $chapters;
+			}
+
+			$reflection_id = (int) get_the_ID();
+
+			if ($reflection_id < 1) {
+				return $chapters;
+			}
+
+			$count = reci_get_shared_journal_count($reflection_id);
+
+			if ($count < 1) {
+				return $chapters;
+			}
+
+			// An author who has placed the family by hand keeps control of
+			// where it sits; only add our own when there is none.
+			foreach ($chapters as $chapter) {
+				if (($chapter['family'] ?? '') === 'shared-journals') {
+					return $chapters;
+				}
+			}
+
+			$chapters[] = [
+				'id' => 'reci-shared-journals',
+				'family' => 'shared-journals',
+				'variant' => 'default',
+				'props' => [
+					'id' => 'reci-shared-journals',
+					'reflection_id' => $reflection_id,
+					'count' => $count,
+					'include_in_menu' => '1',
+					'menu_label' => __('Shared reflections', 'reci-media-hub'),
+					'menu_description' => __('What others chose to share here.', 'reci-media-hub'),
+				],
+			];
+
+			return $chapters;
+		}
+
+		/**
 		 * @param array<string,mixed> $blueprint
 		 * @return array<int,array<string,string>>
 		 */
@@ -452,6 +504,17 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 		 */
 		public static function render_blueprint(array $blueprint): void {
 			$blueprint = reci_reflection_system_normalize_blueprint($blueprint);
+
+			// Settle the chapter list before the menu is built, so the shared
+			// reflections chapter appears in the navigation like any other
+			// rather than being a section the menu cannot reach.
+			$blueprint['chapters'] = self::with_shared_journals_chapter(
+				array_values(array_filter(
+					is_array($blueprint['chapters'] ?? null) ? $blueprint['chapters'] : [],
+					'is_array'
+				))
+			);
+
 			self::render_menu_overlay($blueprint);
 			
 			$global_settings = $blueprint['settings'] ?? [];
@@ -464,13 +527,7 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 				]);
 			}
 			
-			self::render_components(
-				array_values(array_filter(
-					is_array($blueprint['chapters'] ?? null) ? $blueprint['chapters'] : [],
-					'is_array'
-				)),
-				$global_settings
-			);
+			self::render_components($blueprint['chapters'], $global_settings);
 			
 			get_template_part('modules/reflection-system/templates/annotated-lightbox');
 		}

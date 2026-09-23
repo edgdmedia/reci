@@ -134,7 +134,7 @@
 		var prompt = document.createElement( 'p' );
 		var response = document.createElement( 'p' );
 
-		article.className = 'rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4';
+		article.className = 'rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-5';
 		author.textContent = entry.author_name;
 		prompt.className = 'mt-1 text-xs uppercase tracking-[0.08em] reci-reflection-muted';
 		prompt.textContent = entry.prompt;
@@ -148,59 +148,23 @@
 		return article;
 	}
 
-	function loadSharedJournals( overlay ) {
-		var list = document.getElementById( 'reci-shared-journals-list' );
-		var status = document.getElementById( 'reci-shared-journals-status' );
-
-		if ( ! list || overlay.dataset.reciLoaded === '1' ) {
-			return;
-		}
-
-		overlay.dataset.reciLoaded = '1';
-
-		if ( ! settings.root ) {
-			status.textContent = 'Shared reflections are unavailable.';
-			return;
-		}
-
-		status.textContent = 'Loading shared reflections...';
-
-		window.fetch( settings.root + 'reci/v1/reflections/' + overlay.dataset.reflectionId + '/shared-journals', {
-			credentials: 'same-origin',
-			headers: { 'X-WP-Nonce': settings.nonce || '' }
-		} )
-			.then( function ( response ) {
-				if ( ! response.ok ) {
-					throw new Error( 'request failed' );
-				}
-				return response.json();
-			} )
-			.then( function ( data ) {
-				list.replaceChildren.apply( list, ( data.items || [] ).map( renderSharedEntry ) );
-				status.textContent = ( data.items || [] ).length
-					? 'Showing ' + data.items.length + ' shared reflection' + ( data.items.length === 1 ? '' : 's' ) + '.'
-					: 'No shared reflections are available yet.';
-			} )
-			.catch( function () {
-				overlay.dataset.reciLoaded = '0';
-				status.textContent = 'Could not load shared reflections. Try again.';
-			} );
-	}
-
 	/**
-	 * Fill the inline shared list on the journal variant.
+	 * Fill the shared reflections chapter.
 	 *
-	 * Same endpoint and same card as the overlay, rendered straight into the
-	 * page because on that layout there is room for it beside the writing box.
+	 * The chapter is only rendered when the server counted approved entries, so
+	 * this expects to find some. If they have since been withdrawn the section
+	 * removes itself rather than standing empty.
 	 */
-	function loadInlineShared() {
-		var host = document.querySelector('[data-reci-shared-inline]');
+	function loadSharedChapter() {
+		var host = document.querySelector('[data-reci-shared-chapter]');
 
 		if (!host || !settings.root) {
 			return;
 		}
 
 		var list = host.querySelector('[data-reci-shared-list]');
+		var status = host.querySelector('[data-reci-shared-status]');
+		var section = host.closest('section') || host;
 
 		if (!list) {
 			return;
@@ -220,51 +184,26 @@
 				var items = data.items || [];
 
 				if (!items.length) {
-					// Approved entries can be withdrawn between the page
-					// rendering and this running, so the section removes
-					// itself rather than standing empty.
-					host.remove();
+					section.remove();
 					return;
 				}
 
 				list.replaceChildren.apply(list, items.map(renderSharedEntry));
+
+				if (status) {
+					status.textContent = items.length === 1
+						? '1 shared reflection'
+						: items.length + ' shared reflections';
+				}
 			})
 			.catch(function () {
-				host.remove();
+				if (status) {
+					status.textContent = 'Could not load shared reflections.';
+				}
 			});
 	}
 
-	function initSharedJournalOverlay() {
-		var overlay = document.getElementById( 'reci-shared-journals' );
-		var openButtons = document.querySelectorAll( '[data-reci-open-shared]' );
-		var closeButton = document.getElementById( 'reci-shared-journals-close' );
-
-		if ( ! overlay || ! openButtons.length || ! closeButton ) {
-			return;
-		}
-
-		// Every prompt chapter may show its own button; they all open the one
-		// pooled overlay.
-		openButtons.forEach( function ( openButton ) {
-			openButton.addEventListener( 'click', function () {
-				overlay.classList.remove( 'hidden' );
-				loadSharedJournals( overlay );
-			} );
-		} );
-
-		closeButton.addEventListener( 'click', function () {
-			overlay.classList.add( 'hidden' );
-		} );
-
-		overlay.addEventListener( 'click', function ( event ) {
-			if ( event.target === overlay ) {
-				overlay.classList.add( 'hidden' );
-			}
-		} );
-	}
-
-	initSharedJournalOverlay();
-	loadInlineShared();
+	loadSharedChapter();
 
 	// Let both reflection runtimes call the same helpers after a save.
 	window.reciPatchJournalShare = patchShare;
