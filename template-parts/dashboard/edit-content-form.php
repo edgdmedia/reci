@@ -27,6 +27,9 @@ $edit_errors = [
 	'not_allowed'   => __( 'You cannot edit that item.', 'reci-media-hub' ),
 	'missing_title' => __( 'A title is required.', 'reci-media-hub' ),
 	'save_failed'   => __( 'We could not save your changes. Please try again.', 'reci-media-hub' ),
+	// The text saved; only the upload failed. Worth its own message so the
+	// author does not think they have lost their edits.
+	'image_failed'  => __( 'Your changes were saved, but the featured image could not be uploaded. Please try that image again.', 'reci-media-hub' ),
 ];
 $error_code = isset( $_GET['edit_error'] ) ? sanitize_key( wp_unslash( $_GET['edit_error'] ) ) : '';
 
@@ -47,7 +50,7 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 	</div>
 <?php endif; ?>
 
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="max-w-4xl space-y-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="max-w-4xl space-y-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
 	<input type="hidden" name="action" value="reci_update_content" />
 	<input type="hidden" name="post_id" value="<?php echo esc_attr( (string) $post_id ); ?>" />
 	<?php wp_nonce_field( 'reci_edit_content_' . $post_id, 'reci_edit_nonce' ); ?>
@@ -70,6 +73,24 @@ $status_label     = $status_labels[ $edit_post->post_status ] ?? $edit_post->pos
 		<label class="mb-2 block text-sm font-medium text-zinc-800" for="reci-edit-summary"><?php esc_html_e( 'Summary', 'reci-media-hub' ); ?></label>
 		<textarea id="reci-edit-summary" name="submission_summary" rows="3" class="<?php echo esc_attr( $input_classes ); ?>"><?php echo esc_textarea( $edit_post->post_excerpt ); ?></textarea>
 		<p class="mt-2 text-xs text-zinc-500"><?php esc_html_e( 'The short description shown in listings.', 'reci-media-hub' ); ?></p>
+	</div>
+
+	<div>
+		<label class="mb-2 block text-sm font-medium text-zinc-800" for="reci-edit-featured-image"><?php esc_html_e( 'Featured Image', 'reci-media-hub' ); ?></label>
+
+		<?php $reci_thumb_id = get_post_thumbnail_id( $edit_post ); ?>
+		<?php if ( $reci_thumb_id ) : ?>
+			<div class="mb-3 flex items-start gap-4">
+				<?php echo get_the_post_thumbnail( $edit_post, 'medium', [ 'class' => 'h-28 w-auto rounded-xl border border-zinc-200 object-cover' ] ); ?>
+				<label class="flex items-center gap-2 text-sm text-zinc-600">
+					<input type="checkbox" name="submission_remove_featured_image" value="1" />
+					<?php esc_html_e( 'Remove this image', 'reci-media-hub' ); ?>
+				</label>
+			</div>
+		<?php endif; ?>
+
+		<input id="reci-edit-featured-image" name="submission_featured_image" type="file" accept="image/*" class="block w-full text-sm text-zinc-600 file:mr-4 file:rounded-full file:border-0 file:bg-zinc-100 file:px-4 file:py-2 file:text-sm file:font-medium file:text-zinc-700 hover:file:bg-zinc-200" />
+		<p class="mt-2 text-xs text-zinc-500"><?php esc_html_e( 'The image shown in listings and at the top of the piece. Uploading a new one replaces the current image.', 'reci-media-hub' ); ?></p>
 	</div>
 
 	<div class="reci-editor">

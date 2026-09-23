@@ -40,17 +40,26 @@ $args = wp_parse_args($args ?? [], [
 					</div>
 				<?php endif; ?>
 				<div class="mt-8 w-full max-w-[42rem] rounded-[24px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-6 text-left">
-					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent" for="reflectionResponse"><?php echo reci_reflection_format_text($args['prompt'] ?: 'Your reflection'); ?></label>
-					<div id="responseFormShell">
-						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
-						<div class="mt-4 flex flex-wrap gap-4">
-							<button class="inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-4 font-['Oswald'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
-							<?php if (($args['transition_mode'] ?? 'button') === 'button') : ?>
-							<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
-							<?php endif; ?>
-						</div>
-						<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card-strong)] px-4 py-4 text-sm reci-reflection-soft-text"></div>
-					</div>
+					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo reci_reflection_format_text($args['prompt'] ?: 'Your reflection'); ?></label>
+					<?php
+					get_template_part( 'template-parts/reflection/prompt-form', null, [
+						'style'           => 'panel',
+						'prompt'          => $args['prompt'],
+						'textarea_class'  => 'min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none',
+						'note_class'      => 'mt-4 text-sm reci-reflection-soft-text',
+						'row_class'       => 'mt-4 flex flex-wrap items-center gap-4',
+						'status_class'    => 'mt-4 rounded-[18px] bg-[var(--reflection-card-strong)] px-4 py-4 text-sm reci-reflection-soft-text',
+						'button_class'    => 'inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-4 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]',
+												'success_class'       => 'flex-col items-start w-full reci-reflection-text',
+						'success_title_class' => 'mb-3 font-[\'Playfair_Display\'] text-3xl font-semibold reci-reflection-text',
+						'success_body_class'  => 'mb-6 text-base leading-8 reci-reflection-soft-text',
+						'success_row_class'   => 'flex flex-col sm:flex-row gap-4',
+						'restart_class'       => 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-4 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] reci-reflection-text',
+						'continue_label'  => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? $args['continue_label'] : '',
+						'continue_target' => $args['continue_target'],
+						'continue_class'  => 'reci-continue',
+					] );
+					?>
 				</div>
 			</div>
 		</div>

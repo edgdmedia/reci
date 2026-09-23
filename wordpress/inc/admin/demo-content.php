@@ -51,7 +51,7 @@ if ( ! function_exists( 'reci_demo_content_types' ) ) {
 			'reci_demo_images_quizzes'     => [ 'label' => 'Quiz Images',       'count' => count( $image_groups['reci_demo_images_quizzes'] ?? [] ) ],
 			'reci_demo_images_partners'    => [ 'label' => 'Partner Images',    'count' => count( $image_groups['reci_demo_images_partners'] ?? [] ) ],
 			'reci_demo_images_misc'        => [ 'label' => 'Shared / Misc Images', 'count' => count( $image_groups['reci_demo_images_misc'] ?? [] ) ],
-			'reci_demo_taxonomies'         => [ 'label' => 'Taxonomies (Spheres, SDGs, Topics, Locations)', 'count' => 6 + 17 + 8 + 4 ],
+			'reci_demo_taxonomies'         => [ 'label' => 'Taxonomies (Categories, Spheres, SDGs, Locations)', 'count' => 10 + 6 + 17 + 4 ],
 			'post'   => [ 'label' => 'Articles',     'count' => 15 ],
 			'reci_podcast'   => [ 'label' => 'Podcasts',     'count' => 3 ],
 			'reci_video'     => [ 'label' => 'Videos',       'count' => 6 ],
@@ -250,7 +250,7 @@ function reci_demo_reflection_queue_items(): array {
 }
 
 function reci_demo_bootstrap_taxonomies(): array {
-	$topics = reci_demo_ensure_terms( 'reci_topic', [
+	$topics = reci_demo_ensure_terms( 'category', [
 		'Systemic Racism',
 		'Intersectionality',
 		'Cultural Identity',
@@ -623,7 +623,7 @@ function reci_install_demo_content( array $only_types = [] ): void {
 	$do_all = $want === $all;
 
 	// Taxonomy terms first.
-	$topics = reci_demo_ensure_terms( 'reci_topic', [
+	$topics = reci_demo_ensure_terms( 'category', [
 		'Systemic Racism',
 		'Intersectionality',
 		'Cultural Identity',
@@ -2493,10 +2493,10 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'alt'         => 'Case I, Panel B',
 							'description' => 'In this panel, Swauger and Dragoo claimed that while racism, or "ethnocentrism," is inherently human, it can also be overcome by knowledge and reflection. They pulled examples from throughout human history of people either embracing or dismissing ethnocentric ideas.',
 							'annotations' => [
-								[ 'x' => '13.2', 'y' => '50.0', 'title' => 'Examples of "ethnocentric" thinking', 'body' => 'For examples of "ethnocentric" thinking, Swauger and Dragoo quote an ancient Egyptian pharaoh, the Greek dramatist Euripides, a late 19th century Chinese Minister of Education, and Adolf Hitler (the leader of the Nazi party), each claiming that one group is superior to another.' ],
+								[ 'x' => '10.2', 'y' => '50.0', 'title' => 'Examples of "ethnocentric" thinking', 'body' => 'For examples of "ethnocentric" thinking, Swauger and Dragoo quote an ancient Egyptian pharaoh, the Greek dramatist Euripides, a late 19th century Chinese Minister of Education, and Adolf Hitler (the leader of the Nazi party), each claiming that one group is superior to another.' ],
 								[ 'x' => '38.3', 'y' => '50.0', 'title' => 'Autonyms and group identity', 'body' => 'Swauger and Dragoo also stated that many Indigenous peoples espoused "ethnocentric" thinking, based on the fact that some Indigenous groups\' autonyms (the names they call themselves) can be translated into concepts like "the people." In this way, Swauger and Dragoo confused group identity with a sense of superiority. Not only did they make a harmful accusation here, they got information about group names and meanings wrong.' ],
-								[ 'x' => '85.7', 'y' => '50.0', 'title' => 'Progressive Western voices', 'body' => 'As examples of humans with progressive views on human equality, Swauger and Dragoo quoted: Greek playwright Menander, Jesus of Nazareth, founding father Thomas Jefferson, German writer Johann Wolfgang von Goethe, and American anthropologist George P. Murdock. In privileging the ideas of Western figures in this way, Swauger and Dragoo seem to undermine their message of equality.' ],
-								[ 'x' => '37.2', 'y' => '75.5', 'title' => 'A risk of trivializing', 'body' => 'While Swauger and Dragoo promoted a positive idea that racism could, and needed to, be challenged, they also risked trivializing the matter by writing things like, "And it is silly, isn\'t it?"' ],
+								[ 'x' => '95.7', 'y' => '50.0', 'title' => 'Progressive Western voices', 'body' => 'As examples of humans with progressive views on human equality, Swauger and Dragoo quoted: Greek playwright Menander, Jesus of Nazareth, founding father Thomas Jefferson, German writer Johann Wolfgang von Goethe, and American anthropologist George P. Murdock. In privileging the ideas of Western figures in this way, Swauger and Dragoo seem to undermine their message of equality.' ],
+								[ 'x' => '37.2', 'y' => '81.5', 'title' => 'A risk of trivializing', 'body' => 'While Swauger and Dragoo promoted a positive idea that racism could, and needed to, be challenged, they also risked trivializing the matter by writing things like, "And it is silly, isn\'t it?"' ],
 							],
 						],
 						[
@@ -2516,12 +2516,12 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'alt'         => 'Case II, Panel B',
 							'description' => 'For this panel, Swauger and Dragoo selected, categorized and pinned to a board objects from the Carnegie Museum of Natural History\'s anthropology collections that are of a similar material and manufacture, but that come from different regions of the world. They intentionally left the items unlabeled in order to encourage viewers to question their ability to identify and judge the items in racial terms.',
 							'annotations' => [
-								[ 'x' => '12.3', 'y' => '78.4', 'title' => '"Are you a wizard?"', 'body' => 'Swauger and Dragoo pose a provocative question ("Are you a wizard?"), implying that it would take magic powers for someone to be able to label the items in this panel according to a racial group. This framing represents an interesting break from their usual emphasis on science and facts.' ],
+								[ 'x' => '12.3', 'y' => '85.0', 'title' => '"Are you a wizard?"', 'body' => 'Swauger and Dragoo pose a provocative question ("Are you a wizard?"), implying that it would take magic powers for someone to be able to label the items in this panel according to a racial group. This framing represents an interesting break from their usual emphasis on science and facts.' ],
 								[ 'x' => '8.1', 'y' => '34.8', 'title' => 'Native American materials', 'body' => 'On the left materials from Native American cultures are displayed, such as this tray made of elm bark, which is attributed to the Seneca people and was made before 1910.' ],
 								[ 'x' => '50.5', 'y' => '51.0', 'title' => 'African materials', 'body' => 'In the center are materials from the African continent. This is a cloth mat made by Kuba people from the Democratic Republic of the Congo.' ],
 								[ 'x' => '92.9', 'y' => '52.1', 'title' => 'European objects', 'body' => 'To the right are objects with origins in present-day Europe, such as this stone blade, an object from prehistoric Scandinavia.' ],
-								[ 'x' => '40.0', 'y' => '80.0', 'title' => 'Interpretation by Kristina Gaugler', 'body' => 'Kristina Gaugler is Anthropology Collection Manager, Carnegie Museum of Natural History.<br><br>"As was typical for a 1950s museum exhibition, this panel showcases objects devoid of both context and humanity. By grouping these items together using a racial typology, all the nuance, care, history, and purpose that went into creating them is reduced to something with very little meaning. In museum spaces today, particularly when it comes to culture studies, we strive to tell authentic stories, with community involvement, where objects are displayed as complementary to these narratives rather than used as a prop for a particular ideology. I do commend our Carnegie Museum of Natural History forbearers for their effort in trying to educate our communities with the message that, ultimately, we are all not so different. Unfortunately, by today\'s standards, their execution leaves a lot to be desired."' ],
-								[ 'x' => '92.0', 'y' => '80.0', 'title' => 'Interpretation by Amy Covell-Murthy', 'body' => 'Amy Covell-Murthy is Archaeology Collection Manager and Head of the Section of Anthropology, Carnegie Museum of Natural History.<br><br>"This is not how we organize and interpret cultural material for exhibition purposes at Carnegie Museum of Natural History any longer. Our focus now is to provide a platform for authentic voices and to share authority with members of the communities from where these collections originated. We prioritize relationships over objects and celebrate the diversity of human experience. While Dragoo and Swauger\'s work in the 1950s was commendable, we can now acknowledge that taking a multicultural approach to understanding how inequities are rooted in systemic racism is crucial to building a better message."' ],
+								[ 'x' => '40.0', 'y' => '85.0', 'title' => 'Interpretation by Kristina Gaugler', 'body' => 'Kristina Gaugler is Anthropology Collection Manager, Carnegie Museum of Natural History.<br><br>"As was typical for a 1950s museum exhibition, this panel showcases objects devoid of both context and humanity. By grouping these items together using a racial typology, all the nuance, care, history, and purpose that went into creating them is reduced to something with very little meaning. In museum spaces today, particularly when it comes to culture studies, we strive to tell authentic stories, with community involvement, where objects are displayed as complementary to these narratives rather than used as a prop for a particular ideology. I do commend our Carnegie Museum of Natural History forbearers for their effort in trying to educate our communities with the message that, ultimately, we are all not so different. Unfortunately, by today\'s standards, their execution leaves a lot to be desired."' ],
+								[ 'x' => '92.0', 'y' => '85.0', 'title' => 'Interpretation by Amy Covell-Murthy', 'body' => 'Amy Covell-Murthy is Archaeology Collection Manager and Head of the Section of Anthropology, Carnegie Museum of Natural History.<br><br>"This is not how we organize and interpret cultural material for exhibition purposes at Carnegie Museum of Natural History any longer. Our focus now is to provide a platform for authentic voices and to share authority with members of the communities from where these collections originated. We prioritize relationships over objects and celebrate the diversity of human experience. While Dragoo and Swauger\'s work in the 1950s was commendable, we can now acknowledge that taking a multicultural approach to understanding how inequities are rooted in systemic racism is crucial to building a better message."' ],
 							],
 						],
 						[
@@ -2559,9 +2559,9 @@ function reci_demo_we_humans_blueprint( array $img = [] ): array {
 							'alt'         => 'Case IV, Panel B',
 							'description' => 'In the final panel, Swauger and Dragoo equate human cultures to "designs for living," reaffirming the assertions from Case II, Panel B that all groups are equally valid in their approach to fundamental, and universal, aspects of how to survive and live as humans.',
 							'annotations' => [
-								[ 'x' => '14.6', 'y' => '23.9', 'title' => 'Arts and Crafts', 'body' => 'This section displays (from top to bottom) spoons made by the Haida people of the Pacific Northwest (United States), knives from Russia, and spoons from Cameroon, West Africa.' ],
-								[ 'x' => '40.5', 'y' => '26.7', 'title' => 'Religion', 'body' => 'This section displays (from left to right) a wooden figure from the Democratic Republic of the Congo, three metal figures from India, and a Hopi katsina from the American Southwest.' ],
-								[ 'x' => '68.7', 'y' => '55.0', 'title' => 'War', 'body' => 'This section juxtaposes three swords (left to right): one from Japan, one from the Democratic Republic of the Congo, and one from Germany.' ],
+								[ 'x' => '14.6', 'y' => '18.9', 'title' => 'Arts and Crafts', 'body' => 'This section displays (from top to bottom) spoons made by the Haida people of the Pacific Northwest (United States), knives from Russia, and spoons from Cameroon, West Africa.' ],
+								[ 'x' => '40.5', 'y' => '20.7', 'title' => 'Religion', 'body' => 'This section displays (from left to right) a wooden figure from the Democratic Republic of the Congo, three metal figures from India, and a Hopi katsina from the American Southwest.' ],
+								[ 'x' => '70.7', 'y' => '55.0', 'title' => 'War', 'body' => 'This section juxtaposes three swords (left to right): one from Japan, one from the Democratic Republic of the Congo, and one from Germany.' ],
 							],
 						],
 					],
@@ -2830,7 +2830,7 @@ function reci_demo_insert_post(
 		'Indigenous Rights', 'Technology & Equity'
 	];
 
-	// Assign category terms from either 'category' or 'topics' keys since 'reci_topic' was merged into 'category'
+	// Assign category terms from either 'category' or legacy 'topics' keys.
 	$all_categories = array_unique(array_merge(
 		(array) ($data['category'] ?? []),
 		(array) ($data['topics'] ?? [])

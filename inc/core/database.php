@@ -13,7 +13,7 @@ function reci_media_hub_create_custom_tables() {
 	global $wpdb;
 	
 	$installed_ver = get_option( 'reci_db_version' );
-	$current_ver   = '1.5.0';
+	$current_ver   = '1.6.0';
 
 	if ( $installed_ver !== $current_ver ) {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -29,10 +29,17 @@ function reci_media_hub_create_custom_tables() {
 			prompt text NOT NULL,
 			response longtext NOT NULL,
 			is_shared tinyint(1) NOT NULL DEFAULT 0,
+			status varchar(20) NOT NULL DEFAULT 'private',
+			is_anonymous tinyint(1) NOT NULL DEFAULT 0,
+			shared_at datetime NULL DEFAULT NULL,
+			comment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			flagged_terms text NOT NULL,
 			created_at datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
 			PRIMARY KEY  (id),
 			KEY user_id (user_id),
-			KEY reflection_id (reflection_id)
+			KEY reflection_id (reflection_id),
+			KEY status (status),
+			KEY comment_id (comment_id)
 		) $charset_collate;";
 
 		// Assessment Submissions Table
@@ -132,6 +139,29 @@ function reci_media_hub_create_custom_tables() {
 			// raw DELETE would leave stale values readable for the rest of the
 			// request.
 			delete_metadata( 'user', 0, '_reci_collaborator_status', '', true );
+		}
+
+		if ( version_compare( (string) $installed_ver, '1.6.0', '<' ) ) {
+			// Entries already flagged shared were publicly visible before this
+			// version. Land them on 'approved' so the migration changes what
+			// the database records, not what anybody can see.
+			$wpdb->query(
+				"UPDATE {$table_journals}
+				    SET status = 'approved', shared_at = created_at
+				  WHERE is_shared = 1"
+			);
+
+			$wpdb->query(
+				"UPDATE {$table_journals}
+				    SET status = 'private'
+				  WHERE is_shared = 0"
+			);
+
+			// Counters have never been computed, so build them once from the
+			// per-user meta that has always been the source of truth.
+			if ( function_exists( 'reci_backfill_engagement_counts' ) ) {
+				reci_backfill_engagement_counts();
+			}
 		}
 
 		update_option( 'reci_db_version', $current_ver );

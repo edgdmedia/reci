@@ -529,6 +529,24 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'button_href' => ['type' => 'text', 'label' => 'Button href'],
 				]),
 			],
+			// Appended automatically by the render service when a reflection has
+			// approved shared entries. Authors do not place it: it exists only
+			// when other people have written something to read.
+			'shared-journals' => [
+				'label' => 'Shared Reflections',
+				'kind' => 'chapter',
+				'loader' => 'modules/reflection-system/templates/chapters/chapter-shared-journals',
+				'default_variant' => 'default',
+				'variants' => [
+					'default' => 'Default',
+				],
+				'fields' => [
+					'id' => ['type' => 'text', 'label' => 'Section ID'],
+					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
+					'title' => ['type' => 'text', 'label' => 'Title'],
+					'intro' => ['type' => 'textarea', 'label' => 'Intro'],
+				],
+			],
 			'quote' => [
 				'label' => 'Quote',
 				'kind' => 'chapter',

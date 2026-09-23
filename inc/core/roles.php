@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Bump when the definitions below change, so installs re-apply them.
  */
-const RECI_ROLES_VERSION = '1.0.0';
+const RECI_ROLES_VERSION = '1.2.0';
 
 /**
  * Custom capabilities, so screens gate on intent rather than on a borrowed cap.
@@ -42,6 +42,10 @@ function reci_custom_capabilities(): array {
 		'reci_confirm_registrations',
 		// Reach the wp-admin side of the site at all.
 		'reci_access_admin',
+		// Approve, reject and read the shared journal queue.
+		'reci_moderate_journals',
+		// See the real author behind an entry shared anonymously.
+		'reci_view_journal_identity',
 	];
 }
 
@@ -102,16 +106,55 @@ function reci_install_roles(): void {
 			'reci_approve_collaborators' => true,
 			'reci_confirm_registrations' => true,
 			'reci_access_admin'          => true,
+			// Deliberately no reci_view_journal_identity: an editor is usually
+			// the author of the reflection being journalled against, and the
+			// Site Manager is built from Editor, so anonymity must hold here
+			// too.
+			'reci_moderate_journals'     => true,
 		]
 	);
 
 	remove_role( 'reci_site_manager' );
 	add_role( 'reci_site_manager', __( 'Site Manager', 'reci-media-hub' ), $caps );
 
+	// ── Moderator: orthogonal to the ladder ──────────────────────────────
+	// Not a rung. A moderator manages discussion, and nothing else: no post
+	// editing, no publishing, no user management, no collaborator approvals.
+	// They are one of only two roles that may see through anonymity.
+	remove_role( 'reci_moderator' );
+	add_role(
+		'reci_moderator',
+		__( 'Moderator', 'reci-media-hub' ),
+		[
+			'read'                       => true,
+			'moderate_comments'          => true,
+			'edit_comment'               => true,
+			'edit_comments'              => true,
+			'reci_access_admin'          => true,
+			'reci_moderate_journals'     => true,
+			'reci_view_journal_identity' => true,
+		]
+	);
+
 	// ── Levels 1–4 and 6: stock roles, adjusted ─────────────────────────
 	$grants = [
-		'administrator' => [ 'reci_approve_collaborators', 'reci_confirm_registrations', 'reci_access_admin' ],
-		'editor'        => [ 'reci_approve_collaborators', 'reci_confirm_registrations', 'reci_access_admin' ],
+		'administrator' => [
+			'reci_approve_collaborators',
+			'reci_confirm_registrations',
+			'reci_access_admin',
+			'reci_moderate_journals',
+			'reci_view_journal_identity',
+		],
+		// Anonymity protects a contributor from other members and from the
+		// public, not from the staff who run the site. Editors moderate and
+		// answer for what is published here, so they see the author too.
+		'editor'        => [
+			'reci_approve_collaborators',
+			'reci_confirm_registrations',
+			'reci_access_admin',
+			'reci_moderate_journals',
+			'reci_view_journal_identity',
+		],
 	];
 
 	foreach ( $grants as $role_name => $capabilities ) {

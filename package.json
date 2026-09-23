@@ -8,11 +8,13 @@
     "build": "vite build && cd modules/reflection-system && vite build",
     "watch": "vite build --watch",
     "test": "vitest run",
+    "test:php": "php tests/run.php",
     "test:theme-assets": "node scripts/verify-theme-image-boundaries.mjs",
     "test:watch": "vitest",
     "preview": "vite preview",
     "tailwind:dev": "tailwindcss -i ./src/tailwind.css -o ./assets/css/tailwind.css --watch",
-    "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./assets/css/tailwind.css --minify"
+    "tailwind:build": "tailwindcss -i ./src/tailwind.css -o ./assets/css/tailwind.css --minify",
+    "test:reflections": "node scripts/verify-reflection-prompts.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

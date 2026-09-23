@@ -134,87 +134,10 @@
       return;
     }
 
-    const completeBtn = event.target.closest('.reci-complete-btn');
-    if (completeBtn && completeBtn instanceof HTMLElement) {
-      const href = completeBtn.dataset.completeHref;
-      const stage = completeBtn.closest('.reci-stage');
-      const input = stage ? stage.querySelector('.reflect-input') : null;
-      const text = input ? input.value.trim() : '';
+    // Saving moved to the shared prompt form in
+    // reflection-system-runtime.js, so every prompt style saves the same way.
+    // This file keeps only the behaviour that is genuinely its own.
 
-      const proceed = () => {
-        if (href) window.location.href = href;
-      };
-
-      if (!text) {
-        proceed();
-        return;
-      }
-
-      const showSuccess = () => {
-        const form = stage.querySelector('.reci-reflection-form');
-        const success = stage.querySelector('.reci-reflection-success');
-        if (form && success) {
-          form.classList.add('hidden');
-          success.classList.remove('hidden');
-          
-          // Small delay to allow display:block to apply before animating opacity
-          setTimeout(() => {
-            success.classList.remove('opacity-0');
-          }, 50);
-
-          const restartBtn = success.querySelector('.reci-restart-btn');
-          if (restartBtn) {
-            restartBtn.addEventListener('click', () => {
-              window.location.reload();
-            });
-          }
-        } else {
-          proceed();
-        }
-      };
-
-      const saveReflection = () => {
-        if (window.reciDashboard && window.reciDashboard.restNonce) {
-          completeBtn.disabled = true;
-          completeBtn.innerText = 'Saving...';
-          
-          const reflectionId = stage.getAttribute('data-reflection-id');
-          const prompt = stage.getAttribute('data-prompt');
-
-          fetch(window.reciDashboard.restUrl + 'reci/v1/journals', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-WP-Nonce': window.reciDashboard.restNonce
-            },
-            body: JSON.stringify({
-              reflection_id: reflectionId,
-              prompt: prompt,
-              response: text
-            })
-          })
-          .then(() => showSuccess())
-          .catch((err) => {
-            console.error('Failed to submit reflection:', err);
-            proceed();
-          });
-        } else {
-          proceed();
-        }
-      };
-
-      if (window.reciShowAuthModal) {
-        window.reciShowAuthModal().then((loggedIn) => {
-          if (loggedIn) {
-            saveReflection();
-          } else {
-            proceed();
-          }
-        });
-      } else {
-        saveReflection();
-      }
-    }
   });
 
   if (!isNewSystem && controller) {

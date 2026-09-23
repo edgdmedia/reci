@@ -226,6 +226,29 @@ function reci_handle_content_update(): void {
 		exit;
 	}
 
+	// Featured image. Handled after wp_update_post(), so an upload failure
+	// cannot cost the author the text they just wrote.
+	if ( ! empty( $_POST['submission_remove_featured_image'] ) ) {
+		delete_post_thumbnail( $post_id );
+	}
+
+	if ( ! empty( $_FILES['submission_featured_image']['name'] ) ) {
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
+
+		$attachment_id = media_handle_upload( 'submission_featured_image', $post_id );
+
+		if ( is_wp_error( $attachment_id ) ) {
+			// The post itself saved; only the image did not. Say so rather than
+			// reporting a failure that did not happen.
+			wp_safe_redirect( add_query_arg( 'edit_error', 'image_failed', $edit_url ) );
+			exit;
+		}
+
+		set_post_thumbnail( $post_id, $attachment_id );
+	}
+
 	$link = esc_url_raw( wp_unslash( $_POST['submission_content_link'] ?? '' ) );
 	if ( '' !== $link ) {
 		update_post_meta( $post_id, '_reci_submission_content_link', $link );

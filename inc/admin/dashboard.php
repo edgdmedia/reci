@@ -297,27 +297,37 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
  */
 function reci_render_post_actions( int $post_id = 0 ): string {
 	if ( ! $post_id ) { $post_id = get_the_ID(); }
-	if ( ! is_user_logged_in() ) { return ''; }
-
-	$user_id   = get_current_user_id();
-	$bookmarks = reci_get_user_bookmarks( $user_id );
-	$likes     = reci_get_user_likes( $user_id );
+	$logged_in = is_user_logged_in();
 
 	$is_bookmarked = false;
-	foreach ( $bookmarks as $b ) {
-		if ( (int) $b['post_id'] === $post_id ) { $is_bookmarked = true; break; }
+	$is_liked      = false;
+
+	if ( $logged_in ) {
+		$user_id   = get_current_user_id();
+		$bookmarks = reci_get_user_bookmarks( $user_id );
+		$likes     = reci_get_user_likes( $user_id );
+
+		foreach ( $bookmarks as $b ) {
+			if ( (int) $b['post_id'] === $post_id ) { $is_bookmarked = true; break; }
+		}
+
+		$is_liked = in_array( $post_id, $likes );
 	}
 
-	$is_liked = in_array( $post_id, $likes );
+	// A signed-out visitor sees the same controls. Clicking one opens the
+	// sign-in modal rather than doing nothing, which turns the buttons into a
+	// way in rather than a locked door.
+	$auth_attr = $logged_in ? '' : ' data-requires-auth="1"';
 
 	$out = '<div class="reci-post-actions flex items-center gap-2">';
 	
 	// Like Button
 	$out .= sprintf(
-		'<button class="reci-like-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-liked="%d">',
+		'<button class="reci-like-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-liked="%d"%s>',
 		$is_liked ? 'liked bg-red-50 text-red-600 border-red-200' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-red-300 hover:text-red-600',
 		$post_id,
-		$is_liked ? 1 : 0
+		$is_liked ? 1 : 0,
+		$auth_attr
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_liked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>';
 	$out .= '<span class="like-label">' . ( $is_liked ? 'Liked' : 'Like' ) . '</span>';
@@ -325,10 +335,11 @@ function reci_render_post_actions( int $post_id = 0 ): string {
 
 	// Bookmark Button
 	$out .= sprintf(
-		'<button class="reci-bookmark-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-bookmarked="%d">',
+		'<button class="reci-bookmark-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-bookmarked="%d"%s>',
 		$is_bookmarked ? 'bookmarked bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-amber-300 hover:text-amber-700',
 		$post_id,
-		$is_bookmarked ? 1 : 0
+		$is_bookmarked ? 1 : 0,
+		$auth_attr
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_bookmarked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>';
 	$out .= '<span class="bookmark-label">' . ( $is_bookmarked ? 'Saved' : 'Save' ) . '</span>';
@@ -372,7 +383,13 @@ function reci_ajax_toggle_bookmark(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_bookmarks', array_values( $bookmarks ) );
-	wp_send_json_success( [ 'bookmarked' => $bookmarked ] );
+	reci_bump_engagement_count( $post_id, 'bookmark', $bookmarked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'bookmarked' => $bookmarked,
+			'count'      => reci_get_bookmark_count( $post_id ),
+		]
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +417,13 @@ function reci_ajax_toggle_like(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_likes', array_values( $likes ) );
-	wp_send_json_success( [ 'liked' => $liked ] );
+	reci_bump_engagement_count( $post_id, 'like', $liked ? 1 : -1 );
+	wp_send_json_success(
+		[
+			'liked' => $liked,
+			'count' => reci_get_like_count( $post_id ),
+		]
+	);
 }
 
 add_action( 'wp_ajax_reci_get_post_state', 'reci_ajax_get_post_state' );
@@ -443,6 +466,25 @@ function reci_ajax_mark_notification_read(): void {
 // AJAX — reflection modal signin / signup
 // ---------------------------------------------------------------------------
 
+/**
+ * Report whether this visitor is signed in.
+ *
+ * Read-only and deliberately nonce-free: the nonce printed into a signed-out
+ * page stops verifying the moment that visitor signs in somewhere else, which
+ * is exactly the case this exists to detect.
+ */
+add_action( 'wp_ajax_reci_auth_state', 'reci_ajax_auth_state' );
+add_action( 'wp_ajax_nopriv_reci_auth_state', 'reci_ajax_auth_state' );
+function reci_ajax_auth_state(): void {
+	wp_send_json_success(
+		[
+			'logged_in'       => is_user_logged_in(),
+			'dashboard_nonce' => is_user_logged_in() ? wp_create_nonce( 'reci_dashboard_nonce' ) : '',
+			'rest_nonce'      => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
+		]
+	);
+}
+
 add_action( 'wp_ajax_nopriv_reci_modal_signin', 'reci_ajax_modal_signin' );
 function reci_ajax_modal_signin(): void {
 	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
@@ -454,46 +496,13 @@ function reci_ajax_modal_signin(): void {
 	}
 	wp_set_current_user( $user->ID );
 	wp_set_auth_cookie( $user->ID );
-	wp_send_json_success( [ 'user_id' => $user->ID, 'rest_nonce' => wp_create_nonce('wp_rest') ] );
-}
-
-add_action( 'wp_ajax_nopriv_reci_modal_signup', 'reci_ajax_modal_signup' );
-function reci_ajax_modal_signup(): void {
-	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
-	$email    = sanitize_email( $_POST['email'] ?? '' );
-	$password = $_POST['password'] ?? '';
-	$name     = sanitize_text_field( $_POST['display_name'] ?? '' );
-
-	if ( email_exists( $email ) ) {
-		wp_send_json_error( [ 'message' => 'An account with this email already exists.' ] );
-	}
-	// Use the same rule as sign-up and the collaborator application; this check
-	// was a bare length test, so the modal was a way around the password policy.
-	if ( function_exists( 'reci_password_error_code' ) ) {
-		$password_error = reci_password_error_code( (string) $password );
-		if ( '' !== $password_error ) {
-			$messages = function_exists( 'reci_password_error_messages' ) ? reci_password_error_messages() : [];
-			wp_send_json_error( [ 'message' => $messages[ $password_error ] ?? 'Please choose a stronger password.' ] );
-		}
-	} elseif ( strlen( $password ) < 8 ) {
-		wp_send_json_error( [ 'message' => 'Password must be at least 8 characters.' ] );
-	}
-
-	$user_id = wp_insert_user( [
-		'user_login'   => $email,
-		'user_email'   => $email,
-		'display_name' => $name,
-		'user_pass'    => $password,
-		'role'         => 'subscriber',
-	] );
-
-	if ( is_wp_error( $user_id ) ) {
-		wp_send_json_error( [ 'message' => $user_id->get_error_message() ] );
-	}
-
-	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id );
-	wp_send_json_success( [ 'user_id' => $user_id, 'rest_nonce' => wp_create_nonce('wp_rest') ] );
+	wp_send_json_success(
+		[
+			'user_id'         => $user->ID,
+			'rest_nonce'      => wp_create_nonce( 'wp_rest' ),
+			'dashboard_nonce' => wp_create_nonce( 'reci_dashboard_nonce' ),
+		]
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -520,7 +529,7 @@ function reci_dashboard_enqueue_assets(): void {
 		'restUrl'   => esc_url_raw( rest_url() ),
 	] );
 
-	if ( is_singular( 'reci_reflection' ) ) {
+	if ( reci_needs_auth_modal() ) {
 		$modal_file = get_template_directory() . '/assets/js/dashboard-reflection-modal.js';
 		$modal_uri  = get_template_directory_uri() . '/assets/js/dashboard-reflection-modal.js';
 		if ( file_exists( $modal_file ) ) {
@@ -533,41 +542,58 @@ function reci_dashboard_enqueue_assets(): void {
 // Reflection signup modal HTML
 // ---------------------------------------------------------------------------
 
+/**
+ * Should this request carry the sign-in modal?
+ *
+ * Reflections need it for the journal. Everywhere else it is there for the
+ * like and save buttons, which a signed-out visitor can now press.
+ */
+function reci_needs_auth_modal(): bool {
+	if ( is_admin() ) {
+		return false;
+	}
+
+	// Singular views are exactly where both the journal prompt and the like and
+	// save buttons live, and they are also the only place dashboard.js is
+	// enqueued. Printing the markup more widely would leave a dialog on the
+	// page with nothing able to open it.
+	return is_singular();
+}
+
 add_action( 'wp_footer', 'reci_reflection_signup_modal' );
 function reci_reflection_signup_modal(): void {
-	if ( ! is_singular( 'reci_reflection' ) ) {
+	if ( ! reci_needs_auth_modal() ) {
 		return;
 	}
 	?>
 	<div id="reci-reflection-modal" data-logged-in="<?php echo is_user_logged_in() ? '1' : '0'; ?>" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" role="dialog" aria-modal="true">
 		<div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
 			<div class="flex items-center justify-between mb-6">
-				<h2 class="text-xl font-bold font-heading text-zinc-800">Save Your Reflection</h2>
+				<h2 id="reci-modal-title" class="text-xl font-bold font-heading text-zinc-800" data-default="Save Your Reflection">Save Your Reflection</h2>
 				<button type="button" id="reci-modal-close" class="text-zinc-400 hover:text-zinc-600 text-2xl leading-none">&times;</button>
 			</div>
 
 			<div id="reci-modal-signin" class="space-y-4">
-				<p class="text-sm text-zinc-600">Sign in to save your reflection to your journal.</p>
+				<p id="reci-modal-signin-copy" class="text-sm text-zinc-600" data-default="Sign in to save your reflection to your journal.">Sign in to save your reflection to your journal.</p>
 				<form id="reci-modal-signin-form">
 					<input type="email" name="email" placeholder="Email" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
 					<input type="password" name="password" placeholder="Password" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
 					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Sign In</button>
 				</form>
-				<p class="text-xs text-center text-zinc-500">Don't have an account? <button type="button" id="reci-modal-show-signup" class="text-amber-600 hover:text-amber-700 underline">Sign Up</button></p>
+				<p class="text-xs text-center text-zinc-500">
+					<?php esc_html_e( "Don't have an account?", 'reci-media-hub' ); ?>
+					<a
+						id="reci-modal-signup-link"
+						href="<?php echo esc_url( function_exists( 'reci_get_auth_page_url' ) ? ( reci_get_auth_page_url( 'sign-up' ) ?: wp_registration_url() ) : home_url( '/sign-up/' ) ); ?>"
+						target="_blank"
+						rel="noopener"
+						class="text-amber-600 hover:text-amber-700 underline"
+					><?php esc_html_e( 'Sign Up', 'reci-media-hub' ); ?></a>
+				</p>
 			</div>
 
-			<div id="reci-modal-signup" class="space-y-4 hidden">
-				<p class="text-sm text-zinc-600">Create a free account to save your reflections.</p>
-				<form id="reci-modal-signup-form">
-					<input type="text" name="display_name" placeholder="Display Name" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<input type="email" name="email" placeholder="Email" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<input type="password" name="password" placeholder="Password (min 8 chars)" required minlength="8" class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Create Account</button>
-				</form>
-				<p class="text-xs text-center text-zinc-500">Already have an account? <button type="button" id="reci-modal-show-signin" class="text-amber-600 hover:text-amber-700 underline">Sign In</button></p>
-			</div>
 
-			<button type="button" id="reci-modal-skip" class="mt-4 w-full text-center text-sm text-zinc-400 hover:text-zinc-600 underline underline-offset-2">Continue without saving</button>
+			<button type="button" id="reci-modal-skip" class="mt-4 w-full text-center text-sm text-zinc-400 hover:text-zinc-600 underline underline-offset-2" data-default="Continue without saving">Continue without saving</button>
 		</div>
 	</div>
 	<?php
