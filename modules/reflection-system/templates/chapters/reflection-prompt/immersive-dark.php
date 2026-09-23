@@ -23,8 +23,11 @@ $args = wp_parse_args($args ?? [], [
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<p class="mt-4 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>
 		<?php endif; ?>
-		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage' ] ); ?>
-		<button class="enter-btn reci-complete-btn" style="margin-top:30px;" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
+		<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+			<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read' ] ); ?>
+			<button class="enter-btn reci-complete-btn" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+		</div>
 	</div>
 	
 	<div class="reci-reflection-success hidden flex-col items-center justify-center w-full max-w-[800px] mx-auto text-center opacity-0 transition-opacity duration-700">

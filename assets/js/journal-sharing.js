@@ -187,6 +187,53 @@
 			} );
 	}
 
+	/**
+	 * Fill the inline shared list on the journal variant.
+	 *
+	 * Same endpoint and same card as the overlay, rendered straight into the
+	 * page because on that layout there is room for it beside the writing box.
+	 */
+	function loadInlineShared() {
+		var host = document.querySelector('[data-reci-shared-inline]');
+
+		if (!host || !settings.root) {
+			return;
+		}
+
+		var list = host.querySelector('[data-reci-shared-list]');
+
+		if (!list) {
+			return;
+		}
+
+		window.fetch(settings.root + 'reci/v1/reflections/' + host.dataset.reflectionId + '/shared-journals', {
+			credentials: 'same-origin',
+			headers: { 'X-WP-Nonce': settings.nonce || '' }
+		})
+			.then(function (response) {
+				if (!response.ok) {
+					throw new Error('request failed');
+				}
+				return response.json();
+			})
+			.then(function (data) {
+				var items = data.items || [];
+
+				if (!items.length) {
+					// Approved entries can be withdrawn between the page
+					// rendering and this running, so the section removes
+					// itself rather than standing empty.
+					host.remove();
+					return;
+				}
+
+				list.replaceChildren.apply(list, items.map(renderSharedEntry));
+			})
+			.catch(function () {
+				host.remove();
+			});
+	}
+
 	function initSharedJournalOverlay() {
 		var overlay = document.getElementById( 'reci-shared-journals' );
 		var openButtons = document.querySelectorAll( '[data-reci-open-shared]' );
@@ -217,6 +264,7 @@
 	}
 
 	initSharedJournalOverlay();
+	loadInlineShared();
 
 	// Let both reflection runtimes call the same helpers after a save.
 	window.reciPatchJournalShare = patchShare;

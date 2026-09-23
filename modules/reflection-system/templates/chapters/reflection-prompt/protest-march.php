@@ -34,8 +34,11 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 		<?php if ( ! is_user_logged_in() ) : ?>
 			<p class="mb-6 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>
 		<?php endif; ?>
-		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage' ] ); ?>
-		<button class="reci-complete-btn inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-['Oswald'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
+		<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+			<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read' ] ); ?>
+			<button class="reci-complete-btn inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-['Oswald'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+		</div>
 	</div>
 	
 	<div class="reci-reflection-success hidden flex-col items-center justify-center w-full max-w-[840px] border border-[rgba(255,255,255,0.12)] bg-gradient-to-b from-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] p-[clamp(2rem,4vw,3.25rem)] text-center shadow-[0_24px_60px_rgba(0,0,0,0.2)] opacity-0 transition-opacity duration-700">

@@ -42,17 +42,32 @@ $args = wp_parse_args($args ?? [], [
 					<div id="responseFormShell" class="mt-4">
 						<label class="mb-2 block font-['Oswald'] text-xs uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 text-sm reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
-						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel' ] ); ?>
+						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'toggles' ] ); ?>
 						<div class="mt-4 flex flex-wrap gap-4">
 							<button class="inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-5 py-3 font-['Oswald'] text-xs uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
 						</div>
 						<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text"></div>
 					</div>
-					<div class="mt-8">
-						<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Your saved responses</h3>
-						<p class="text-sm leading-7 reci-reflection-soft-text">These responses are tied to your account and this reflection.</p>
-						<div id="responseList" class="mt-4 grid gap-4"></div>
+					<?php
+					// What other people chose to share on this reflection - not
+					// the reader's own entries, which live in their dashboard
+					// journal. Rendered only when there is something to read.
+					$reci_reflection_id = (int) get_the_ID();
+					$reci_shared_count  = function_exists( 'reci_get_shared_journal_count' )
+						? reci_get_shared_journal_count( $reci_reflection_id )
+						: 0;
+					?>
+					<?php if ( $reci_shared_count > 0 ) : ?>
+					<div class="mt-8" data-reci-shared-inline data-reflection-id="<?php echo esc_attr( (string) $reci_reflection_id ); ?>">
+						<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">
+							<?php esc_html_e( 'Shared reflections', 'reci-media-hub' ); ?>
+						</h3>
+						<p class="text-sm leading-7 reci-reflection-soft-text">
+							<?php esc_html_e( 'What others chose to share on this reflection. Some are anonymous.', 'reci-media-hub' ); ?>
+						</p>
+						<div data-reci-shared-list class="mt-4 grid gap-4"></div>
 					</div>
+					<?php endif; ?>
 					<div class="mt-6 flex flex-wrap gap-4">
 						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
 						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>

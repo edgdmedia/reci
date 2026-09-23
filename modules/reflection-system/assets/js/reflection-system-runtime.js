@@ -418,7 +418,10 @@
     const saveButton = byId('saveResponseBtn');
     const promptTextNode = document.querySelector('#responseFormShell')?.previousElementSibling;
     const promptText = promptTextNode ? promptTextNode.textContent.replace(/^Prompt:\s*/, '').trim() : '';
-    if (!responseList) return;
+    // Not responseList: the panel that once listed a reader's own entries has
+    // been replaced by the shared list, and writing must keep working without
+    // it. Gate on what saving genuinely needs.
+    if (!responseInput || !saveButton) return;
 
     const isLoggedIn = Boolean(config.isLoggedIn || Number(config.currentUserId || 0) > 0);
 
@@ -449,6 +452,9 @@
     }
 
     async function loadResponses() {
+      if (!responseList) {
+        return;
+      }
       if (!(window.reciIsLoggedIn || isLoggedIn) || !config.restUrl || !config.reflectionId) {
         responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">Log in to save and review your reflections.</div>';
         return;
