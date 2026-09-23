@@ -121,7 +121,7 @@ $reci_form = wp_parse_args(
 	</div>
 
 	<div data-reci-success class="<?php echo esc_attr( (string) $reci_form['success_class'] ); ?>" hidden>
-		<svg class="mb-4 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+		<svg class="m-auto mb-4 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
 		<h3 class="<?php echo esc_attr( (string) $reci_form['success_title_class'] ); ?>"><?php echo esc_html( (string) $reci_form['success_title'] ); ?></h3>
 		<p class="<?php echo esc_attr( (string) $reci_form['success_body_class'] ); ?>"><?php echo esc_html( (string) $reci_form['success_body'] ); ?></p>
 		<div class="<?php echo esc_attr( (string) $reci_form['success_row_class'] ); ?>">
