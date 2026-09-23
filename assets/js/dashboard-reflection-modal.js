@@ -27,6 +27,44 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function refreshAuthState() {
+    if (modal.classList.contains('hidden')) {
+      return;
+    }
+
+    var fd = new FormData();
+    fd.append('action', 'reci_auth_state');
+
+    fetch(reciDashboard.ajaxUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success || !data.data.logged_in) {
+          return;
+        }
+
+        window.reciIsLoggedIn = true;
+        modal.setAttribute('data-logged-in', '1');
+
+        if (data.data.dashboard_nonce) {
+          reciDashboard.nonce = data.data.dashboard_nonce;
+        }
+        if (data.data.rest_nonce) {
+          reciDashboard.restNonce = data.data.rest_nonce;
+        }
+
+        document.querySelectorAll('[data-requires-auth]').forEach(function (el) {
+          el.removeAttribute('data-requires-auth');
+        });
+
+        close(true);
+      })
+      .catch(function () { /* Offline or blocked: leave the modal as it is. */ });
+  }
+
+  // The sign-up link opens the full page in its own tab, so the moment this
+  // one regains focus is exactly when the answer may have changed.
+  window.addEventListener('focus', refreshAuthState);
+
   window.reciShowAuthModal = function (options) {
     return new Promise(function (resolve) {
       if (modal.getAttribute('data-logged-in') === '1' || window.reciIsLoggedIn) {
@@ -40,14 +78,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   };
 
-  document.getElementById('reci-modal-show-signup').addEventListener('click', function () {
-    document.getElementById('reci-modal-signin').classList.add('hidden');
-    document.getElementById('reci-modal-signup').classList.remove('hidden');
-  });
-  document.getElementById('reci-modal-show-signin').addEventListener('click', function () {
-    document.getElementById('reci-modal-signup').classList.add('hidden');
-    document.getElementById('reci-modal-signin').classList.remove('hidden');
-  });
 
   document.getElementById('reci-modal-close').addEventListener('click', function() { close(false); });
   document.getElementById('reci-modal-skip').addEventListener('click', function() { close(false); });
@@ -72,13 +102,6 @@ document.addEventListener('DOMContentLoaded', function () {
     submitAuth(fd);
   });
 
-  document.getElementById('reci-modal-signup-form').addEventListener('submit', function (e) {
-    e.preventDefault();
-    var fd = new FormData(this);
-    fd.append('action', 'reci_modal_signup');
-    fd.append('nonce', reciDashboard.nonce);
-    submitAuth(fd);
-  });
 
   function submitAuth(fd) {
     fetch(reciDashboard.ajaxUrl, { method: 'POST', body: fd })

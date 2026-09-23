@@ -466,6 +466,25 @@ function reci_ajax_mark_notification_read(): void {
 // AJAX — reflection modal signin / signup
 // ---------------------------------------------------------------------------
 
+/**
+ * Report whether this visitor is signed in.
+ *
+ * Read-only and deliberately nonce-free: the nonce printed into a signed-out
+ * page stops verifying the moment that visitor signs in somewhere else, which
+ * is exactly the case this exists to detect.
+ */
+add_action( 'wp_ajax_reci_auth_state', 'reci_ajax_auth_state' );
+add_action( 'wp_ajax_nopriv_reci_auth_state', 'reci_ajax_auth_state' );
+function reci_ajax_auth_state(): void {
+	wp_send_json_success(
+		[
+			'logged_in'       => is_user_logged_in(),
+			'dashboard_nonce' => is_user_logged_in() ? wp_create_nonce( 'reci_dashboard_nonce' ) : '',
+			'rest_nonce'      => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
+		]
+	);
+}
+
 add_action( 'wp_ajax_nopriv_reci_modal_signin', 'reci_ajax_modal_signin' );
 function reci_ajax_modal_signin(): void {
 	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
@@ -606,19 +625,18 @@ function reci_reflection_signup_modal(): void {
 					<input type="password" name="password" placeholder="Password" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
 					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Sign In</button>
 				</form>
-				<p class="text-xs text-center text-zinc-500">Don't have an account? <button type="button" id="reci-modal-show-signup" class="text-amber-600 hover:text-amber-700 underline">Sign Up</button></p>
+				<p class="text-xs text-center text-zinc-500">
+					<?php esc_html_e( "Don't have an account?", 'reci-media-hub' ); ?>
+					<a
+						id="reci-modal-signup-link"
+						href="<?php echo esc_url( function_exists( 'reci_get_auth_page_url' ) ? ( reci_get_auth_page_url( 'sign-up' ) ?: wp_registration_url() ) : home_url( '/sign-up/' ) ); ?>"
+						target="_blank"
+						rel="noopener"
+						class="text-amber-600 hover:text-amber-700 underline"
+					><?php esc_html_e( 'Sign Up', 'reci-media-hub' ); ?></a>
+				</p>
 			</div>
 
-			<div id="reci-modal-signup" class="space-y-4 hidden">
-				<p id="reci-modal-signup-copy" class="text-sm text-zinc-600" data-default="Create a free account to save your reflections.">Create a free account to save your reflections.</p>
-				<form id="reci-modal-signup-form">
-					<input type="text" name="display_name" placeholder="Display Name" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<input type="email" name="email" placeholder="Email" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<input type="password" name="password" placeholder="Password (min 8 chars)" required minlength="8" class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
-					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Create Account</button>
-				</form>
-				<p class="text-xs text-center text-zinc-500">Already have an account? <button type="button" id="reci-modal-show-signin" class="text-amber-600 hover:text-amber-700 underline">Sign In</button></p>
-			</div>
 
 			<button type="button" id="reci-modal-skip" class="mt-4 w-full text-center text-sm text-zinc-400 hover:text-zinc-600 underline underline-offset-2" data-default="Continue without saving">Continue without saving</button>
 		</div>
