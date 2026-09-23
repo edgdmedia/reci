@@ -32,21 +32,12 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 		<p class="mx-auto mb-[2rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.6rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]"><?php echo reci_reflection_format_text($args['prompt']); ?></p>
 				<?php
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
-			'style'          => 'stage',
-			'prompt'         => $args['prompt'],
-			'textarea_class' => 'reflect-input reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-[\'Merriweather\'] text-white',
-			'placeholder'    => 'Share your thoughts...',
-			'note_class'     => 'mb-6 text-sm text-white/60',
-			'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
-			'status_class'   => 'mt-4 text-sm text-white/70',
-			'button_class'   => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-[\'Oswald\'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105',
-						'success_class'       => 'flex-col items-center justify-center w-full text-center',
-			'success_title_class' => 'mb-[1.5rem] font-[\'Oswald\'] text-[clamp(2rem,4vw,3rem)] uppercase tracking-[0.04em] text-white',
-			'success_body_class'  => 'mx-auto mb-[3rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.4rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]',
-			'success_row_class'   => 'flex flex-col sm:flex-row gap-6 justify-center',
-			'restart_class'       => 'inline-flex items-center justify-center border border-white/40 px-[40px] py-[16px] font-[\'Oswald\'] text-[1.1rem] uppercase tracking-[2px] text-white/70',
-			'continue_label' => $args['button_label'],
-			'continue_href'  => $args['button_href'],
+			'prompt'              => $args['prompt'],
+			'textarea_tone'       => 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40',
+			'button_class'        => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-8 py-4 font-[\'Oswald\'] text-base uppercase tracking-[2px] text-white no-underline transition-transform hover:scale-105',
+			'tone_class'          => 'text-white/70',
+			'success_title_class' => 'mb-3 font-[\'Oswald\'] text-3xl uppercase tracking-[0.04em] text-white',
+			'success_body_class'  => 'mb-2 text-base text-[rgba(255,255,255,0.92)]',
 		] );
 		?>
 	</div>
