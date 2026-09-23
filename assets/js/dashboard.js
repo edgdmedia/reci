@@ -41,6 +41,13 @@ document.addEventListener('DOMContentLoaded', function () {
           
           const labelSpan = btn.querySelector('.bookmark-label');
           if (labelSpan) labelSpan.textContent = isBookmarked ? 'Saved' : 'Save';
+
+          // The server returns the authoritative count, so the number never
+          // drifts from what another reader would see.
+          const countSpan = btn.querySelector('.reci-bookmark-count');
+          if (countSpan && typeof data.data.count === 'number') {
+            countSpan.textContent = String(data.data.count);
+          }
         }
       });
   });
@@ -80,6 +87,11 @@ document.addEventListener('DOMContentLoaded', function () {
           
           const labelSpan = btn.querySelector('.like-label');
           if (labelSpan) labelSpan.textContent = isLiked ? 'Liked' : 'Like';
+
+          const countSpan = btn.querySelector('.reci-like-count');
+          if (countSpan && typeof data.data.count === 'number') {
+            countSpan.textContent = String(data.data.count);
+          }
         }
       });
   });

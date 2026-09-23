@@ -67,7 +67,7 @@
 
 	function buildNotice() {
 		var notice = document.createElement( 'div' );
-		notice.className = 'reci-policy-notice';
+		notice.className = 'reci-policy-notice mt-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900';
 		notice.hidden = true;
 		notice.setAttribute( 'role', 'status' );
 		notice.textContent = data.warning || '';
@@ -78,56 +78,80 @@
 		var existing = document.getElementById( 'reci-policy-dialog' );
 
 		if ( existing ) {
-			existing.hidden = false;
+			existing.classList.remove( 'hidden' );
+			existing.classList.add( 'flex' );
 			return;
 		}
 
+		// Mirrors the reflection sign-in modal in inc/admin/dashboard.php, so the
+		// two read as the same product rather than two different dialogs.
 		var overlay = document.createElement( 'div' );
 		overlay.id = 'reci-policy-dialog';
+		overlay.className = 'fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4';
 		overlay.setAttribute( 'role', 'dialog' );
 		overlay.setAttribute( 'aria-modal', 'true' );
-		overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;overflow-y:auto;background:rgba(9,8,7,0.94);padding:48px 16px;';
 
 		var panel = document.createElement( 'div' );
-		panel.style.cssText = 'max-width:720px;margin:0 auto;background:#fff;color:#18181b;border-radius:18px;padding:28px;';
+		panel.className = 'bg-white rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[80vh] overflow-y-auto';
+
+		var header = document.createElement( 'div' );
+		header.className = 'flex items-center justify-between mb-6';
 
 		var heading = document.createElement( 'h2' );
+		heading.className = 'text-xl font-bold font-heading text-zinc-800';
 		heading.textContent = data.linkLabel || 'Community guideline';
-		heading.style.cssText = 'margin:0 0 16px;font-size:1.5rem;';
-
-		var body = document.createElement( 'div' );
-		// policyHtml comes from wp_kses_post() on save, so it carries only the
-		// markup an editor is allowed to publish anywhere else on the site.
-		body.innerHTML = policyHtml;
 
 		var close = document.createElement( 'button' );
 		close.type = 'button';
-		close.textContent = 'Close';
-		close.style.cssText = 'margin-top:24px;border:1px solid currentColor;border-radius:999px;padding:8px 20px;background:none;cursor:pointer;';
-		close.addEventListener( 'click', function () {
-			overlay.hidden = true;
-		} );
+		close.className = 'text-zinc-400 hover:text-zinc-600 text-2xl leading-none';
+		close.innerHTML = '&times;';
+		close.setAttribute( 'aria-label', 'Close' );
 
+		var body = document.createElement( 'div' );
+		body.className = 'prose prose-zinc max-w-none text-sm leading-7 text-zinc-600';
+		// policyHtml comes from wp_kses_post() on save, so it carries only the
+		// markup an editor may publish anywhere else on the site.
+		body.innerHTML = policyHtml;
+
+		function hide() {
+			overlay.classList.add( 'hidden' );
+			overlay.classList.remove( 'flex' );
+		}
+
+		close.addEventListener( 'click', hide );
 		overlay.addEventListener( 'click', function ( event ) {
 			if ( event.target === overlay ) {
-				overlay.hidden = true;
+				hide();
+			}
+		} );
+		document.addEventListener( 'keydown', function ( event ) {
+			if ( 'Escape' === event.key ) {
+				hide();
 			}
 		} );
 
-		panel.appendChild( heading );
+		header.appendChild( heading );
+		header.appendChild( close );
+		panel.appendChild( header );
 		panel.appendChild( body );
-		panel.appendChild( close );
 		overlay.appendChild( panel );
 		document.body.appendChild( overlay );
+
+		overlay.classList.remove( 'hidden' );
+		overlay.classList.add( 'flex' );
 	}
 
 	function buildLink() {
-		var link = document.createElement( 'button' );
-		link.type = 'button';
-		link.className = 'reci-policy-link';
+		// A link, not a button: it sits inline under the box people are writing
+		// in, and should read as part of the sentence around it.
+		var link = document.createElement( 'a' );
+		link.href = '#';
+		link.className = 'reci-policy-link inline-block mt-2 text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700';
 		link.textContent = data.linkLabel || 'Community guideline';
-		link.style.cssText = 'display:inline-block;margin-top:8px;background:none;border:none;padding:0;text-decoration:underline;cursor:pointer;color:inherit;font:inherit;';
-		link.addEventListener( 'click', openPolicyDialog );
+		link.addEventListener( 'click', function ( event ) {
+			event.preventDefault();
+			openPolicyDialog();
+		} );
 		return link;
 	}
 

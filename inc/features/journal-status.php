@@ -54,8 +54,10 @@ function reci_journal_can_transition( string $from, string $to ): bool {
 	$allowed = [
 		'private'  => [ 'pending' ],
 		'pending'  => [ 'approved', 'rejected', 'private' ],
+		// A moderator may change their mind in either direction. Only the
+		// author can return an entry to private.
 		'approved' => [ 'rejected', 'private' ],
-		'rejected' => [ 'pending', 'private' ],
+		'rejected' => [ 'approved', 'pending', 'private' ],
 	];
 
 	return in_array( $to, $allowed[ $from ], true );

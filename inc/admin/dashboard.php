@@ -297,7 +297,22 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
  */
 function reci_render_post_actions( int $post_id = 0 ): string {
 	if ( ! $post_id ) { $post_id = get_the_ID(); }
-	if ( ! is_user_logged_in() ) { return ''; }
+	$like_count     = function_exists( 'reci_get_like_count' ) ? reci_get_like_count( $post_id ) : 0;
+	$bookmark_count = function_exists( 'reci_get_bookmark_count' ) ? reci_get_bookmark_count( $post_id ) : 0;
+
+	if ( ! is_user_logged_in() ) {
+		// A visitor cannot like or save, but the counts are worth seeing: they
+		// are the only signal that anyone else is here.
+		if ( $like_count < 1 && $bookmark_count < 1 ) {
+			return '';
+		}
+
+		return sprintf(
+			'<div class="reci-post-actions flex items-center gap-3 text-xs text-zinc-500"><span>%s</span><span>%s</span></div>',
+			esc_html( sprintf( _n( '%d like', '%d likes', $like_count, 'reci-media-hub' ), $like_count ) ),
+			esc_html( sprintf( _n( '%d save', '%d saves', $bookmark_count, 'reci-media-hub' ), $bookmark_count ) )
+		);
+	}
 
 	$user_id   = get_current_user_id();
 	$bookmarks = reci_get_user_bookmarks( $user_id );
@@ -321,6 +336,7 @@ function reci_render_post_actions( int $post_id = 0 ): string {
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_liked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>';
 	$out .= '<span class="like-label">' . ( $is_liked ? 'Liked' : 'Like' ) . '</span>';
+	$out .= '<span class="reci-like-count tabular-nums">' . esc_html( (string) $like_count ) . '</span>';
 	$out .= '</button>';
 
 	// Bookmark Button
@@ -332,6 +348,7 @@ function reci_render_post_actions( int $post_id = 0 ): string {
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_bookmarked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>';
 	$out .= '<span class="bookmark-label">' . ( $is_bookmarked ? 'Saved' : 'Save' ) . '</span>';
+	$out .= '<span class="reci-bookmark-count tabular-nums">' . esc_html( (string) $bookmark_count ) . '</span>';
 	$out .= '</button>';
 
 	$out .= '</div>';

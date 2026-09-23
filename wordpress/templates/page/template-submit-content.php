@@ -15,6 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $submit_state = reci_get_submit_experience_state();
 
+// A signed-out visitor reads the guidelines first and moves on deliberately.
+// The step is a query arg rather than a JS tab so the two halves are separately
+// linkable, and so the page still works before any script loads.
+$reci_submit_step = isset( $_GET['step'] ) ? sanitize_key( wp_unslash( $_GET['step'] ) ) : '';
+
 // A guest who just applied is not signed in yet, so their state still reads as
 // `guest`. Move them straight to the review stage rather than re-rendering the form.
 if ( 'approved_collaborator' !== $submit_state && reci_collaborator_application_just_submitted() ) {
@@ -44,6 +49,8 @@ get_header();
 			<?php endif; ?>
 
 			<?php
+			$reci_is_guest_intro = ( 'guest' === $submit_state && 'account' !== $reci_submit_step );
+
 			get_template_part(
 				'template-parts/common/guidelines-panel',
 				null,
@@ -51,11 +58,26 @@ get_header();
 					'title'       => __( 'Submission Guidelines', 'reci-media-hub' ),
 					'body'        => reci_get_submission_guidelines(),
 					// Approved collaborators have read this before and are here
-					// to work, so it starts collapsed for them alone.
+					// to work, so it starts collapsed for them alone. A visitor
+					// reading the guidelines as their whole first step gets them
+					// open and full width.
 					'collapsible' => ( 'approved_collaborator' === $submit_state ),
 				]
 			);
 			?>
+
+			<?php if ( $reci_is_guest_intro ) : ?>
+
+				<div class="max-w-4xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+					<h2 class="font-heading text-2xl font-bold text-zinc-900"><?php esc_html_e( 'Ready to contribute?', 'reci-media-hub' ); ?></h2>
+					<p class="mt-3 text-base leading-7 text-zinc-600"><?php esc_html_e( 'Creating a member account is the first step. You will complete your contributor profile next, and submission opens on this page once your application is approved.', 'reci-media-hub' ); ?></p>
+					<div class="mt-6 flex flex-wrap gap-3">
+						<a href="<?php echo esc_url( add_query_arg( 'step', 'account', get_permalink() ) ); ?>" class="btn btn-primary btn-md"><?php esc_html_e( 'Create Your Account', 'reci-media-hub' ); ?></a>
+						<a href="<?php echo esc_url( home_url( '/sign-in/' ) ); ?>" class="btn btn-outline-primary btn-md"><?php esc_html_e( 'I Already Have an Account', 'reci-media-hub' ); ?></a>
+					</div>
+				</div>
+
+			<?php else : ?>
 
 			<?php reci_render_collaborator_application_notices(); ?>
 
@@ -101,6 +123,14 @@ get_header();
 					]
 				);
 				?>
+
+			<?php endif; ?>
+
+			<?php if ( 'guest' === $submit_state && 'account' === $reci_submit_step ) : ?>
+				<p class="mt-6 text-sm text-zinc-500">
+					<a class="underline hover:text-zinc-700" href="<?php echo esc_url( get_permalink() ); ?>"><?php esc_html_e( 'Back to the submission guidelines', 'reci-media-hub' ); ?></a>
+				</p>
+			<?php endif; ?>
 
 			<?php endif; ?>
 		</div>

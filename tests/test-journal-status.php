@@ -32,8 +32,14 @@ reci_assert_same( true, reci_journal_can_transition( 'pending', 'private' ),  't
 reci_assert_same( true, reci_journal_can_transition( 'approved', 'private' ), 'transition: withdraw from approved' );
 reci_assert_same( true, reci_journal_can_transition( 'rejected', 'private' ), 'transition: withdraw from rejected' );
 
-// A rejected entry must be re-reviewed, not quietly restored.
-reci_assert_same( false, reci_journal_can_transition( 'rejected', 'approved' ), 'transition: rejected cannot skip review' );
+// A moderator may reverse either decision: a rejection is not final, and an
+// approval can be pulled back.
+reci_assert_same( true, reci_journal_can_transition( 'rejected', 'approved' ), 'transition: a rejection can be reversed' );
+reci_assert_same( true, reci_journal_can_transition( 'approved', 'rejected' ), 'transition: an approval can be pulled back' );
+
+// The author still owns the private/shared line: nothing may jump straight
+// from private to published without review.
+reci_assert_same( false, reci_journal_can_transition( 'private', 'approved' ), 'transition: private still cannot self-publish' );
 
 // Re-sharing a rejected entry goes back through the queue.
 reci_assert_same( true, reci_journal_can_transition( 'rejected', 'pending' ), 'transition: rejected can be resubmitted' );

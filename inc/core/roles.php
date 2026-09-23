@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Bump when the definitions below change, so installs re-apply them.
  */
-const RECI_ROLES_VERSION = '1.1.0';
+const RECI_ROLES_VERSION = '1.2.0';
 
 /**
  * Custom capabilities, so screens gate on intent rather than on a borrowed cap.
@@ -145,14 +145,15 @@ function reci_install_roles(): void {
 			'reci_moderate_journals',
 			'reci_view_journal_identity',
 		],
-		// Deliberately no reci_view_journal_identity: an editor is usually the
-		// author of the reflection being journalled against, and anonymity has
-		// to hold against them.
+		// Anonymity protects a contributor from other members and from the
+		// public, not from the staff who run the site. Editors moderate and
+		// answer for what is published here, so they see the author too.
 		'editor'        => [
 			'reci_approve_collaborators',
 			'reci_confirm_registrations',
 			'reci_access_admin',
 			'reci_moderate_journals',
+			'reci_view_journal_identity',
 		],
 	];
 

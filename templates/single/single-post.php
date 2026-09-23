@@ -245,17 +245,6 @@ if (!empty($post_tags) && !is_wp_error($post_tags)) : ?>
 
 					<?php if ($article_comments_enabled): ?>
 						<div class="flex flex-col gap-4">
-							<?php
-							get_template_part(
-								'template-parts/common/guidelines-panel',
-								null,
-								[
-									'title'       => __( 'Community guideline', 'reci-media-hub' ),
-									'body'        => reci_get_community_policy(),
-									'collapsible' => true,
-								]
-							);
-							?>
 							<?php comment_form([
            "title_reply" => "",
            "title_reply_before" => "",

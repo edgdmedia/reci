@@ -64,8 +64,28 @@ class Reci_Journals_List_Table extends WP_List_Table {
 	}
 
 	protected function column_user_id( $item ) {
-		$user = get_userdata( $item->user_id );
-		return $user ? esc_html( $user->display_name ) : __( 'Deleted User', 'reci-media-hub' );
+		// Goes through the identity gate rather than reading display_name
+		// directly: this screen is reachable by every role holding
+		// reci_moderate_journals, and the gate is what decides who may see an
+		// anonymous author.
+		$identity = reci_journal_author_for_display( (int) $item->id );
+		$name     = $identity['name'];
+
+		if ( $identity['is_masked'] || ! $identity['user_id'] ) {
+			return esc_html( $name );
+		}
+
+		$link = get_edit_user_link( $identity['user_id'] );
+
+		if ( ! $link ) {
+			return esc_html( $name );
+		}
+
+		$suffix = (int) ( $item->is_anonymous ?? 0 )
+			? ' <em>' . esc_html__( '(shared anonymously)', 'reci-media-hub' ) . '</em>'
+			: '';
+
+		return sprintf( '<a href="%s">%s</a>%s', esc_url( $link ), esc_html( $name ), $suffix );
 	}
 
 	protected function column_reflection_id( $item ) {
@@ -91,36 +111,53 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		$status = (string) ( $item->status ?? 'private' );
 		$label  = $labels[ $status ] ?? $status;
 
-		$anonymous = (int) ( $item->is_anonymous ?? 0 )
-			? ' <em>' . esc_html__( '(anonymous)', 'reci-media-hub' ) . '</em>'
-			: '';
+		$colours = [
+			'private'  => '#f0f0f1;color:#50575e',
+			'pending'  => '#fcf0dd;color:#8a6116',
+			'approved' => '#e4f5ea;color:#1c6b3f',
+			'rejected' => '#fbeaea;color:#8a1f1f',
+		];
 
-		return esc_html( $label ) . $anonymous;
+		return sprintf(
+			'<span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;background:%s">%s</span>',
+			esc_attr( $colours[ $status ] ?? $colours['private'] ),
+			esc_html( $label )
+		);
 	}
 
 	protected function column_response( $item ) {
 		$content = esc_html( wp_trim_words( $item->response, 15, '...' ) );
 
-		if ( ! current_user_can( 'reci_moderate_journals' ) || 'pending' !== ( $item->status ?? 'private' ) ) {
+		$status = (string) ( $item->status ?? 'private' );
+
+		// A private entry has not been shared, so there is nothing to moderate.
+		// Everything else can be moved either way: a rejection is not final and
+		// an approval can be pulled back.
+		if ( ! current_user_can( 'reci_moderate_journals' ) || 'private' === $status ) {
 			return $content;
 		}
+
+		$actions = [];
 
 		// Keys come from reci_journal_row_action_keys(): 'approve' collides with
 		// an unscoped `.approve { display: none; }` in wp-admin's common.css,
 		// which renders the link into the HTML and hides it on screen.
-		$actions = [
-			'reci-approve' => sprintf(
+		if ( 'approved' !== $status ) {
+			$actions['reci-approve'] = sprintf(
 				'<a href="%s">%s</a>',
 				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_approve&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
 				esc_html__( 'Approve', 'reci-media-hub' )
-			),
-			'reci-reject'  => sprintf(
+			);
+		}
+
+		if ( 'rejected' !== $status ) {
+			$actions['reci-reject'] = sprintf(
 				'<a href="%s" onclick="return confirm(\'%s\');">%s</a>',
 				esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=reci_journal_reject&journal_id=' . (int) $item->id ), 'reci_journal_moderate_' . (int) $item->id ) ),
 				esc_js( __( 'Reject this shared reflection?', 'reci-media-hub' ) ),
 				esc_html__( 'Reject', 'reci-media-hub' )
-			),
-		];
+			);
+		}
 
 		return $content . $this->row_actions( $actions );
 	}
@@ -144,6 +181,60 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		);
 
 		return implode( ' ', $badges );
+	}
+
+	/**
+	 * The status currently being filtered on, or '' for all.
+	 */
+	protected function current_status(): string {
+		$status = isset( $_GET['journal_status'] ) ? sanitize_key( wp_unslash( $_GET['journal_status'] ) ) : '';
+
+		return reci_journal_is_valid_status( $status ) ? $status : '';
+	}
+
+	/**
+	 * Status filter links, with a count each.
+	 *
+	 * Counts come from one grouped query rather than one per status.
+	 */
+	protected function get_views() {
+		global $wpdb;
+
+		$table = $wpdb->prefix . 'reci_journals';
+		$rows  = $wpdb->get_results( "SELECT status, COUNT(id) AS total FROM {$table} GROUP BY status" );
+
+		$counts = [];
+		$all    = 0;
+
+		foreach ( $rows as $row ) {
+			$counts[ (string) $row->status ] = (int) $row->total;
+			$all                            += (int) $row->total;
+		}
+
+		$current = $this->current_status();
+		$base    = admin_url( 'admin.php?page=reci-journals' );
+
+		$views = [
+			'all' => sprintf(
+				'<a href="%s"%s>%s <span class="count">(%d)</span></a>',
+				esc_url( $base ),
+				'' === $current ? ' class="current"' : '',
+				esc_html__( 'All', 'reci-media-hub' ),
+				$all
+			),
+		];
+
+		foreach ( RECI_JOURNAL_STATUSES as $status ) {
+			$views[ $status ] = sprintf(
+				'<a href="%s"%s>%s <span class="count">(%d)</span></a>',
+				esc_url( add_query_arg( 'journal_status', $status, $base ) ),
+				$current === $status ? ' class="current"' : '',
+				esc_html( reci_journal_status_label( $status ) ),
+				$counts[ $status ] ?? 0
+			);
+		}
+
+		return $views;
 	}
 
 	/**
@@ -254,9 +345,12 @@ class Reci_Journals_List_Table extends WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = ( $current_page - 1 ) * $per_page;
 
-		$total_items = $wpdb->get_var( "SELECT COUNT(id) FROM $table_name" );
-		
-		$query = "SELECT * FROM $table_name ORDER BY $orderby $order LIMIT %d OFFSET %d";
+		$status = $this->current_status();
+		$where  = '' !== $status ? $wpdb->prepare( 'WHERE status = %s', $status ) : '';
+
+		$total_items = (int) $wpdb->get_var( "SELECT COUNT(id) FROM $table_name $where" );
+
+		$query = "SELECT * FROM $table_name $where ORDER BY $orderby $order LIMIT %d OFFSET %d";
 		$this->items = $wpdb->get_results( $wpdb->prepare( $query, $per_page, $offset ) );
 
 		$this->set_pagination_args( [
@@ -274,9 +368,21 @@ function reci_media_hub_journals_admin_page() {
 	<div class="wrap">
 		<h1 class="wp-heading-inline"><?php esc_html_e( 'Journals', 'reci-media-hub' ); ?></h1>
 		<hr class="wp-header-end">
+		<?php
+		// views() is not called by display(); the screen has to render it.
+		$list_table->views();
+		?>
 		<form method="get">
 			<input type="hidden" name="page" value="<?php echo esc_attr( $_REQUEST['page'] ); ?>" />
-			<?php $list_table->display(); ?>
+			<?php
+			// Carry the active filter through sorting, pagination and bulk
+			// submissions, which all post this form back.
+			$reci_journal_status = isset( $_GET['journal_status'] ) ? sanitize_key( wp_unslash( $_GET['journal_status'] ) ) : '';
+			if ( '' !== $reci_journal_status ) {
+				printf( '<input type="hidden" name="journal_status" value="%s" />', esc_attr( $reci_journal_status ) );
+			}
+			$list_table->display();
+			?>
 		</form>
 	</div>
 	<?php
