@@ -10,13 +10,30 @@
 
 	var settings = window.reciJournalSharing || {};
 
+	/**
+	 * The REST nonce to send.
+	 *
+	 * A nonce is tied to the user it was minted for, so the one localised into
+	 * a signed-out page stops verifying the moment that visitor signs in
+	 * through the modal - and REST answers "Cookie check failed", which reads
+	 * like a browser problem rather than a stale token. The modal refreshes
+	 * reciDashboard.restNonce, so prefer that and fall back to our own.
+	 */
+	function restNonce() {
+		if ( window.reciDashboard && window.reciDashboard.restNonce ) {
+			return window.reciDashboard.restNonce;
+		}
+
+		return settings.nonce || '';
+	}
+
 	function patchShare( journalId, shared, anonymous ) {
 		return window.fetch( settings.root + 'reci/v1/journals/' + journalId + '/share', {
 			method: 'PATCH',
 			credentials: 'same-origin',
 			headers: {
 				'Content-Type': 'application/json',
-				'X-WP-Nonce': settings.nonce || ''
+				'X-WP-Nonce': restNonce()
 			},
 			body: JSON.stringify( { shared: shared, anonymous: anonymous } )
 		} ).then( function ( response ) {
@@ -176,7 +193,7 @@
 
 		window.fetch(settings.root + 'reci/v1/reflections/' + host.dataset.reflectionId + '/shared-journals', {
 			credentials: 'same-origin',
-			headers: { 'X-WP-Nonce': settings.nonce || '' }
+			headers: { 'X-WP-Nonce': restNonce() }
 		})
 			.then(function (response) {
 				if (!response.ok) {

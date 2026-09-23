@@ -118,6 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
           if (data.data && data.data.dashboard_nonce) {
             reciDashboard.nonce = data.data.dashboard_nonce;
           }
+          // Any other script that localised its own copy at page load is
+          // holding a nonce for the signed-out visitor.
+          if (window.reciJournalSharing && data.data.rest_nonce) {
+            window.reciJournalSharing.nonce = data.data.rest_nonce;
+          }
+          if (window.RECIReflectionConfig && data.data.rest_nonce) {
+            window.RECIReflectionConfig.nonce = data.data.rest_nonce;
+          }
+
           document.querySelectorAll('[data-requires-auth]').forEach(function (el) {
             el.removeAttribute('data-requires-auth');
           });
