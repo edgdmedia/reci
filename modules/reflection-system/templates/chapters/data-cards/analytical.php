@@ -50,10 +50,17 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 						<?php 
 							$icon = $card['icon'] ?? '';
 							$icon_url = is_array($icon) ? ($icon['url'] ?? $icon['src'] ?? '') : $icon;
-							if (!empty($icon_url) && (preg_match('/^(https?:|\/\/|\/|data:image\/)/i', $icon_url))) {
-								echo '<img src="' . esc_url($icon_url) . '" alt="" class="h-10 w-10 object-contain invert-[.7] opacity-80">';
+							// esc_url() can reject what the pattern accepted, which
+							// produced <img src=""> - a blank 40x40 box on the card.
+							// Escape first and emit only if something survived.
+							$icon_src = ( ! empty( $icon_url ) && preg_match( '/^(https?:|\/\/|\/|data:image\/)/i', $icon_url ) )
+								? esc_url( $icon_url )
+								: '';
+
+							if ( '' !== $icon_src ) {
+								echo '<img src="' . $icon_src . '" alt="" class="h-10 w-10 object-contain invert-[.7] opacity-80">';
 							} else {
-								echo esc_html($icon_url);
+								echo esc_html( $icon_url );
 							}
 						?>
 					</div>
