@@ -204,7 +204,7 @@
 
       const dataCard = event.target.closest('[data-data-card]');
       if (dataCard) {
-        const grid = dataCard.closest('#rdDataGrid') || dataCard.parentElement;
+        const grid = dataCard.closest('[data-reci-data-grid]') || dataCard.parentElement;
         if (grid) {
           grid.querySelectorAll('[data-data-card]').forEach((node) => {
             node.classList.remove('active', 'md:col-span-2');

@@ -40,7 +40,7 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 			'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
 			'status_class'   => 'mt-4 text-sm text-white/70',
 			'button_class'   => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-[\'Oswald\'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105',
-						'success_class'       => 'hidden flex-col items-center justify-center w-full text-center',
+						'success_class'       => 'flex-col items-center justify-center w-full text-center',
 			'success_title_class' => 'mb-[1.5rem] font-[\'Oswald\'] text-[clamp(2rem,4vw,3rem)] uppercase tracking-[0.04em] text-white',
 			'success_body_class'  => 'mx-auto mb-[3rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.4rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]',
 			'success_row_class'   => 'flex flex-col sm:flex-row gap-6 justify-center',

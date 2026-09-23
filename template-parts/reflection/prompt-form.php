@@ -38,7 +38,10 @@ $reci_form = wp_parse_args(
 		// The confirmation belongs to the contract, not to individual styles:
 		// three of them used to show a panel and two showed nothing, so the
 		// same action told you different things depending where you stood.
-		'success_class'    => 'mt-6 flex flex-col items-start gap-2',
+		// Visibility is the hidden attribute's job. A Tailwind `hidden` class
+		// here would set display:none from CSS, which clearing the attribute
+		// cannot undo - the form would vanish and nothing would replace it.
+		'success_class'    => 'mt-6 flex-col items-start gap-2',
 		'success_title'    => __( 'Reflection Saved', 'reci-media-hub' ),
 		'success_body'     => __( 'Your thoughts have been securely recorded in your private journal.', 'reci-media-hub' ),
 		'success_title_class' => '',

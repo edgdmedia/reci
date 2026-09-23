@@ -43,7 +43,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 			<h1 class="font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-6xl"><?php echo esc_html($args['title']); ?></h1>
 			<p class="mx-auto mt-5 max-w-[600px] text-xl leading-8 reci-reflection-muted"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 		</div>
-		<div class="mt-10 grid gap-[2px] bg-black/10 p-[2px] md:grid-cols-2" id="rdDataGrid">
+		<div class="mt-10 grid gap-[2px] bg-black/10 p-[2px] md:grid-cols-2" data-reci-data-grid>
 			<?php foreach ((array) $args['cards'] as $index => $card) : ?>
 				<article class="group rd-data-card cursor-pointer border-2 border-transparent group-[.active]:scale-[1.02] group-[.active]:shadow-2xl group-[.active]:z-10 relative p-8 transition-all duration-300" data-data-card data-card-index="<?php echo esc_attr((string) $index); ?>">
 					<div class="text-3xl">
