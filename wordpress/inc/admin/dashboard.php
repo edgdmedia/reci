@@ -13,29 +13,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Rewrite rules
 // ---------------------------------------------------------------------------
 
-/**
- * Dashboard sub-routes: slug => template file.
- *
- * These are served by rewrite rules, not by pages, so a slug here needs no
- * corresponding WP page (and `feed` could not have one — it is a reserved slug).
- */
-function reci_dashboard_route_map(): array {
-	return [
-		'feed'          => 'template-dashboard-feed.php',
-		'my-content'    => 'template-dashboard-my-content.php',
-		'submit'        => 'template-dashboard-submit.php',
-		'bookmarks'     => 'template-dashboard-bookmarks.php',
-		'notifications' => 'template-dashboard-notifications.php',
-		'journal'       => 'template-dashboard-journal.php',
-		'comments'      => 'template-dashboard-comments.php',
-		'profile'       => 'template-dashboard-profile.php',
-		'settings'      => 'template-dashboard-settings.php',
-	];
-}
-
 add_action( 'init', 'reci_dashboard_rewrite_rules' );
 function reci_dashboard_rewrite_rules(): void {
-	$pages = reci_dashboard_route_map();
+	$pages = [
+		'my-content' => 'template-dashboard-my-content.php',
+		'submit'     => 'template-dashboard-submit.php',
+		'bookmarks'  => 'template-dashboard-bookmarks.php',
+		'notifications' => 'template-dashboard-notifications.php',
+		'journal'    => 'template-dashboard-journal.php',
+		'comments'   => 'template-dashboard-comments.php',
+		'profile'    => 'template-dashboard-profile.php',
+		'settings'   => 'template-dashboard-settings.php',
+	];
 
 	foreach ( $pages as $slug => $template_file ) {
 		add_rewrite_rule(
@@ -44,21 +33,6 @@ function reci_dashboard_rewrite_rules(): void {
 			'top'
 		);
 	}
-	// Creating one: /dashboard/my-content/new/.
-	add_rewrite_rule(
-		'^dashboard/my-content/new/?$',
-		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-new-content.php',
-		'top'
-	);
-
-	// Editing one item: /dashboard/my-content/edit/<id>/. Registered after the
-	// plain routes so the longer pattern is matched first by the '/?$' anchors.
-	add_rewrite_rule(
-		'^dashboard/my-content/edit/([0-9]+)/?$',
-		'index.php?pagename=dashboard&dashboard_page=my-content&dashboard_template=template-dashboard-edit-content.php&dashboard_post=$matches[1]',
-		'top'
-	);
-
 	add_rewrite_rule( '^dashboard/?$', 'index.php?pagename=dashboard', 'top' );
 }
 
@@ -66,55 +40,6 @@ add_filter( 'query_vars', 'reci_dashboard_query_vars' );
 function reci_dashboard_query_vars( array $vars ): array {
 	$vars[] = 'dashboard_page';
 	$vars[] = 'dashboard_template';
-	$vars[] = 'dashboard_post';
-	return $vars;
-}
-
-/**
- * Flush rewrite rules when the dashboard routes change.
- *
- * Adding a route to reci_dashboard_rewrite_rules() is useless until the rules are
- * regenerated, and a theme update does not do that on its own — a stale install
- * silently loses the new route. Key a flush off the route list itself so any
- * change to it heals on the next request.
- */
-add_action( 'init', 'reci_dashboard_maybe_flush_rewrite_rules', 99 );
-function reci_dashboard_maybe_flush_rewrite_rules(): void {
-	// Version the signature as well as the route list: the edit route is not in
-	// the map, so without this a new rule outside the map would never flush.
-	$signature = md5( (string) wp_json_encode( [ 'routes' => array_keys( reci_dashboard_route_map() ), 'rules' => 3 ] ) );
-
-	if ( get_option( 'reci_dashboard_routes_version' ) === $signature ) {
-		return;
-	}
-
-	flush_rewrite_rules();
-	update_option( 'reci_dashboard_routes_version', $signature );
-}
-
-/**
- * Reclaim `/dashboard/feed/` from WordPress's feed endpoint.
- *
- * `feed` is a reserved rewrite endpoint: /dashboard/feed/ also matches core's
- * page-feed rule, (.?.+?)/(feed|rdf|rss|rss2|atom)/?$, which renders the page's
- * comments feed as RSS instead of the dashboard. Our rule is registered at 'top'
- * and wins whenever the rules are current, but this makes the route correct even
- * on an install whose rules are stale or reordered by a plugin.
- *
- * Side effect: the dashboard page has no comments feed. It is a private utility
- * page with comments closed, so there is nothing to syndicate.
- */
-add_filter( 'request', 'reci_dashboard_reclaim_feed_route' );
-function reci_dashboard_reclaim_feed_route( array $vars ): array {
-	if ( empty( $vars['feed'] ) || 'dashboard' !== ( $vars['pagename'] ?? '' ) ) {
-		return $vars;
-	}
-
-	unset( $vars['feed'], $vars['withcomments'] );
-
-	$vars['dashboard_page']     = 'feed';
-	$vars['dashboard_template'] = 'template-dashboard-feed.php';
-
 	return $vars;
 }
 
@@ -155,29 +80,13 @@ function reci_dashboard_auth_check(): void {
 	}
 }
 
-/**
- * `/submit/` is the single canonical submission route — the dashboard no longer
- * runs a separate submit experience, so send the legacy route there.
- */
-add_action( 'template_redirect', 'reci_dashboard_submit_redirect' );
-function reci_dashboard_submit_redirect(): void {
-	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
-		return;
-	}
-	if ( 'submit' !== get_query_var( 'dashboard_page' ) ) {
-		return;
-	}
-
-	wp_safe_redirect( home_url( '/submit/' ), 301 );
-	exit;
-}
-
 add_action( 'template_redirect', 'reci_dashboard_author_guard' );
 function reci_dashboard_author_guard(): void {
 	if ( get_query_var( 'pagename' ) !== 'dashboard' ) {
 		return;
 	}
-	if ( 'my-content' === get_query_var( 'dashboard_page' ) && ( ! function_exists( 'reci_user_is_collaborator' ) || ! reci_user_is_collaborator() ) ) {
+	$author_pages = [ 'my-content', 'submit' ];
+	if ( in_array( get_query_var( 'dashboard_page' ), $author_pages, true ) && ! current_user_can( 'edit_posts' ) ) {
 		global $wp_query;
 		$wp_query->set_404();
 		status_header( 404 );
@@ -213,14 +122,12 @@ function reci_get_user_personalization_preferences( int $user_id ): array {
 		'spheres'         => reci_get_user_followed_term_ids( $user_id, 'reci_followed_spheres' ),
 		'practice_focus'  => reci_get_user_followed_term_ids( $user_id, 'reci_followed_practice_focus' ),
 		'target_audience' => reci_get_user_followed_term_ids( $user_id, 'reci_followed_target_audience' ),
-		'collaborators'   => function_exists( 'reci_get_user_followed_collaborator_ids' ) ? reci_get_user_followed_collaborator_ids( $user_id ) : [],
 	];
 }
 
 function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): array {
 	$preferences = reci_get_user_personalization_preferences( $user_id );
 	$tax_query   = [ 'relation' => 'OR' ];
-	$post_ids    = [];
 
 	if ( ! empty( $preferences['topics'] ) ) {
 		$tax_query[] = [
@@ -254,40 +161,17 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
 		];
 	}
 
-	if ( count( $tax_query ) > 1 ) {
-		$taxonomy_posts = get_posts(
-			[
-				'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
-				'post_status'         => 'publish',
-				'posts_per_page'      => $limit,
-				'ignore_sticky_posts' => true,
-				'tax_query'           => $tax_query,
-				'fields'              => 'ids',
-			]
-		);
-		$post_ids = array_merge( $post_ids, array_map( 'absint', $taxonomy_posts ) );
-	}
-
-	if ( ! empty( $preferences['collaborators'] ) && function_exists( 'reci_media_hub_get_authored_content_ids' ) ) {
-		foreach ( $preferences['collaborators'] as $profile_id ) {
-			$post_ids = array_merge( $post_ids, reci_media_hub_get_authored_content_ids( (int) $profile_id, [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ] ) );
-		}
-	}
-
-	$post_ids = array_values( array_unique( array_filter( array_map( 'absint', $post_ids ) ) ) );
-	if ( empty( $post_ids ) ) {
+	if ( count( $tax_query ) === 1 ) {
 		return [];
 	}
 
 	return get_posts(
 		[
-			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection', 'reci_document' ],
+			'post_type'           => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_reflection' ],
 			'post_status'         => 'publish',
 			'posts_per_page'      => $limit,
 			'ignore_sticky_posts' => true,
-			'post__in'            => $post_ids,
-			'orderby'             => 'date',
-			'order'               => 'DESC',
+			'tax_query'           => $tax_query,
 		]
 	);
 }
@@ -297,37 +181,27 @@ function reci_get_personalized_dashboard_posts( int $user_id, int $limit = 6 ): 
  */
 function reci_render_post_actions( int $post_id = 0 ): string {
 	if ( ! $post_id ) { $post_id = get_the_ID(); }
-	$logged_in = is_user_logged_in();
+	if ( ! is_user_logged_in() ) { return ''; }
+
+	$user_id   = get_current_user_id();
+	$bookmarks = reci_get_user_bookmarks( $user_id );
+	$likes     = reci_get_user_likes( $user_id );
 
 	$is_bookmarked = false;
-	$is_liked      = false;
-
-	if ( $logged_in ) {
-		$user_id   = get_current_user_id();
-		$bookmarks = reci_get_user_bookmarks( $user_id );
-		$likes     = reci_get_user_likes( $user_id );
-
-		foreach ( $bookmarks as $b ) {
-			if ( (int) $b['post_id'] === $post_id ) { $is_bookmarked = true; break; }
-		}
-
-		$is_liked = in_array( $post_id, $likes );
+	foreach ( $bookmarks as $b ) {
+		if ( (int) $b['post_id'] === $post_id ) { $is_bookmarked = true; break; }
 	}
 
-	// A signed-out visitor sees the same controls. Clicking one opens the
-	// sign-in modal rather than doing nothing, which turns the buttons into a
-	// way in rather than a locked door.
-	$auth_attr = $logged_in ? '' : ' data-requires-auth="1"';
+	$is_liked = in_array( $post_id, $likes );
 
 	$out = '<div class="reci-post-actions flex items-center gap-2">';
 	
 	// Like Button
 	$out .= sprintf(
-		'<button class="reci-like-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-liked="%d"%s>',
+		'<button class="reci-like-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-liked="%d">',
 		$is_liked ? 'liked bg-red-50 text-red-600 border-red-200' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-red-300 hover:text-red-600',
 		$post_id,
-		$is_liked ? 1 : 0,
-		$auth_attr
+		$is_liked ? 1 : 0
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_liked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>';
 	$out .= '<span class="like-label">' . ( $is_liked ? 'Liked' : 'Like' ) . '</span>';
@@ -335,11 +209,10 @@ function reci_render_post_actions( int $post_id = 0 ): string {
 
 	// Bookmark Button
 	$out .= sprintf(
-		'<button class="reci-bookmark-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-bookmarked="%d"%s>',
+		'<button class="reci-bookmark-btn %s flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border transition-all" data-post-id="%d" data-bookmarked="%d">',
 		$is_bookmarked ? 'bookmarked bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-amber-300 hover:text-amber-700',
 		$post_id,
-		$is_bookmarked ? 1 : 0,
-		$auth_attr
+		$is_bookmarked ? 1 : 0
 	);
 	$out .= '<svg class="w-3.5 h-3.5 ' . ( $is_bookmarked ? 'fill-current' : '' ) . '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>';
 	$out .= '<span class="bookmark-label">' . ( $is_bookmarked ? 'Saved' : 'Save' ) . '</span>';
@@ -383,13 +256,7 @@ function reci_ajax_toggle_bookmark(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_bookmarks', array_values( $bookmarks ) );
-	reci_bump_engagement_count( $post_id, 'bookmark', $bookmarked ? 1 : -1 );
-	wp_send_json_success(
-		[
-			'bookmarked' => $bookmarked,
-			'count'      => reci_get_bookmark_count( $post_id ),
-		]
-	);
+	wp_send_json_success( [ 'bookmarked' => $bookmarked ] );
 }
 
 // ---------------------------------------------------------------------------
@@ -417,13 +284,7 @@ function reci_ajax_toggle_like(): void {
 	}
 
 	update_user_meta( $user_id, 'reci_likes', array_values( $likes ) );
-	reci_bump_engagement_count( $post_id, 'like', $liked ? 1 : -1 );
-	wp_send_json_success(
-		[
-			'liked' => $liked,
-			'count' => reci_get_like_count( $post_id ),
-		]
-	);
+	wp_send_json_success( [ 'liked' => $liked ] );
 }
 
 add_action( 'wp_ajax_reci_get_post_state', 'reci_ajax_get_post_state' );
@@ -466,25 +327,6 @@ function reci_ajax_mark_notification_read(): void {
 // AJAX — reflection modal signin / signup
 // ---------------------------------------------------------------------------
 
-/**
- * Report whether this visitor is signed in.
- *
- * Read-only and deliberately nonce-free: the nonce printed into a signed-out
- * page stops verifying the moment that visitor signs in somewhere else, which
- * is exactly the case this exists to detect.
- */
-add_action( 'wp_ajax_reci_auth_state', 'reci_ajax_auth_state' );
-add_action( 'wp_ajax_nopriv_reci_auth_state', 'reci_ajax_auth_state' );
-function reci_ajax_auth_state(): void {
-	wp_send_json_success(
-		[
-			'logged_in'       => is_user_logged_in(),
-			'dashboard_nonce' => is_user_logged_in() ? wp_create_nonce( 'reci_dashboard_nonce' ) : '',
-			'rest_nonce'      => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
-		]
-	);
-}
-
 add_action( 'wp_ajax_nopriv_reci_modal_signin', 'reci_ajax_modal_signin' );
 function reci_ajax_modal_signin(): void {
 	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
@@ -496,13 +338,38 @@ function reci_ajax_modal_signin(): void {
 	}
 	wp_set_current_user( $user->ID );
 	wp_set_auth_cookie( $user->ID );
-	wp_send_json_success(
-		[
-			'user_id'         => $user->ID,
-			'rest_nonce'      => wp_create_nonce( 'wp_rest' ),
-			'dashboard_nonce' => wp_create_nonce( 'reci_dashboard_nonce' ),
-		]
-	);
+	wp_send_json_success( [ 'user_id' => $user->ID, 'rest_nonce' => wp_create_nonce('wp_rest') ] );
+}
+
+add_action( 'wp_ajax_nopriv_reci_modal_signup', 'reci_ajax_modal_signup' );
+function reci_ajax_modal_signup(): void {
+	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
+	$email    = sanitize_email( $_POST['email'] ?? '' );
+	$password = $_POST['password'] ?? '';
+	$name     = sanitize_text_field( $_POST['display_name'] ?? '' );
+
+	if ( email_exists( $email ) ) {
+		wp_send_json_error( [ 'message' => 'An account with this email already exists.' ] );
+	}
+	if ( strlen( $password ) < 8 ) {
+		wp_send_json_error( [ 'message' => 'Password must be at least 8 characters.' ] );
+	}
+
+	$user_id = wp_insert_user( [
+		'user_login'   => $email,
+		'user_email'   => $email,
+		'display_name' => $name,
+		'user_pass'    => $password,
+		'role'         => 'subscriber',
+	] );
+
+	if ( is_wp_error( $user_id ) ) {
+		wp_send_json_error( [ 'message' => $user_id->get_error_message() ] );
+	}
+
+	wp_set_current_user( $user_id );
+	wp_set_auth_cookie( $user_id );
+	wp_send_json_success( [ 'user_id' => $user_id, 'rest_nonce' => wp_create_nonce('wp_rest') ] );
 }
 
 // ---------------------------------------------------------------------------
@@ -529,7 +396,7 @@ function reci_dashboard_enqueue_assets(): void {
 		'restUrl'   => esc_url_raw( rest_url() ),
 	] );
 
-	if ( reci_needs_auth_modal() ) {
+	if ( is_singular( 'reci_reflection' ) ) {
 		$modal_file = get_template_directory() . '/assets/js/dashboard-reflection-modal.js';
 		$modal_uri  = get_template_directory_uri() . '/assets/js/dashboard-reflection-modal.js';
 		if ( file_exists( $modal_file ) ) {
@@ -542,58 +409,41 @@ function reci_dashboard_enqueue_assets(): void {
 // Reflection signup modal HTML
 // ---------------------------------------------------------------------------
 
-/**
- * Should this request carry the sign-in modal?
- *
- * Reflections need it for the journal. Everywhere else it is there for the
- * like and save buttons, which a signed-out visitor can now press.
- */
-function reci_needs_auth_modal(): bool {
-	if ( is_admin() ) {
-		return false;
-	}
-
-	// Singular views are exactly where both the journal prompt and the like and
-	// save buttons live, and they are also the only place dashboard.js is
-	// enqueued. Printing the markup more widely would leave a dialog on the
-	// page with nothing able to open it.
-	return is_singular();
-}
-
 add_action( 'wp_footer', 'reci_reflection_signup_modal' );
 function reci_reflection_signup_modal(): void {
-	if ( ! reci_needs_auth_modal() ) {
+	if ( ! is_singular( 'reci_reflection' ) ) {
 		return;
 	}
 	?>
 	<div id="reci-reflection-modal" data-logged-in="<?php echo is_user_logged_in() ? '1' : '0'; ?>" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50" role="dialog" aria-modal="true">
 		<div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
 			<div class="flex items-center justify-between mb-6">
-				<h2 id="reci-modal-title" class="text-xl font-bold font-heading text-zinc-800" data-default="Save Your Reflection">Save Your Reflection</h2>
+				<h2 class="text-xl font-bold font-heading text-zinc-800">Save Your Reflection</h2>
 				<button type="button" id="reci-modal-close" class="text-zinc-400 hover:text-zinc-600 text-2xl leading-none">&times;</button>
 			</div>
 
 			<div id="reci-modal-signin" class="space-y-4">
-				<p id="reci-modal-signin-copy" class="text-sm text-zinc-600" data-default="Sign in to save your reflection to your journal.">Sign in to save your reflection to your journal.</p>
+				<p class="text-sm text-zinc-600">Sign in to save your reflection to your journal.</p>
 				<form id="reci-modal-signin-form">
 					<input type="email" name="email" placeholder="Email" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
 					<input type="password" name="password" placeholder="Password" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
 					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Sign In</button>
 				</form>
-				<p class="text-xs text-center text-zinc-500">
-					<?php esc_html_e( "Don't have an account?", 'reci-media-hub' ); ?>
-					<a
-						id="reci-modal-signup-link"
-						href="<?php echo esc_url( function_exists( 'reci_get_auth_page_url' ) ? ( reci_get_auth_page_url( 'sign-up' ) ?: wp_registration_url() ) : home_url( '/sign-up/' ) ); ?>"
-						target="_blank"
-						rel="noopener"
-						class="text-amber-600 hover:text-amber-700 underline"
-					><?php esc_html_e( 'Sign Up', 'reci-media-hub' ); ?></a>
-				</p>
+				<p class="text-xs text-center text-zinc-500">Don't have an account? <button type="button" id="reci-modal-show-signup" class="text-amber-600 hover:text-amber-700 underline">Sign Up</button></p>
 			</div>
 
+			<div id="reci-modal-signup" class="space-y-4 hidden">
+				<p class="text-sm text-zinc-600">Create a free account to save your reflections.</p>
+				<form id="reci-modal-signup-form">
+					<input type="text" name="display_name" placeholder="Display Name" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
+					<input type="email" name="email" placeholder="Email" required class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
+					<input type="password" name="password" placeholder="Password (min 8 chars)" required minlength="8" class="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm mb-3">
+					<button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg">Create Account</button>
+				</form>
+				<p class="text-xs text-center text-zinc-500">Already have an account? <button type="button" id="reci-modal-show-signin" class="text-amber-600 hover:text-amber-700 underline">Sign In</button></p>
+			</div>
 
-			<button type="button" id="reci-modal-skip" class="mt-4 w-full text-center text-sm text-zinc-400 hover:text-zinc-600 underline underline-offset-2" data-default="Continue without saving">Continue without saving</button>
+			<button type="button" id="reci-modal-skip" class="mt-4 w-full text-center text-sm text-zinc-400 hover:text-zinc-600 underline underline-offset-2">Continue without saving</button>
 		</div>
 	</div>
 	<?php

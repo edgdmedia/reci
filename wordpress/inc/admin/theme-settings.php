@@ -32,150 +32,9 @@ function reci_setting( string $key, $default = '' ) {
 	return isset( $options[ $key ] ) && $options[ $key ] !== '' ? $options[ $key ] : $default;
 }
 
-function reci_get_social_links(): array {
-	return array_filter(
-		[
-			'facebook'  => (string) reci_setting( 'social_facebook', 'https://www.facebook.com/PittCRSP' ),
-			'twitter'   => (string) reci_setting( 'social_twitter', 'https://x.com/FPittCRSP' ),
-			'instagram' => (string) reci_setting( 'social_instagram', 'https://www.instagram.com/pittcrsp/' ),
-			'youtube'   => (string) reci_setting( 'social_youtube', 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg' ),
-			'linkedin'  => (string) reci_setting( 'social_linkedin', '' ),
-		],
-		static fn( $value ) => is_string( $value ) && $value !== ''
-	);
-}
-
-function reci_theme_setting_defaults(): array {
-	$assets_dir = get_template_directory() . '/assets/images/';
-	$reci_logo  = $assets_dir . 'reci-collab.png';
-	$pitt_logo  = $assets_dir . 'pitt-logo.png';
-
-	return [
-		'branding_reci_logo'         => file_exists( $reci_logo ) ? reci_import_theme_default_image( $reci_logo, 'reci-default-logo' ) : '',
-		'branding_partner_logo'      => file_exists( $pitt_logo ) ? reci_import_theme_default_image( $pitt_logo, 'reci-default-partner-logo' ) : '',
-		'branding_hub_subtitle'      => 'Media Hub',
-		'branding_primary_color'     => '#003594',
-		'branding_accent_color'      => '#FFB81C',
-		'social_facebook'            => 'https://www.facebook.com/PittCRSP',
-		'social_twitter'             => 'https://x.com/FPittCRSP',
-		'social_instagram'           => 'https://www.instagram.com/pittcrsp/',
-		'social_youtube'             => 'https://www.youtube.com/channel/UCpH5lubAtNU0WsSIQjjHgcg',
-		'social_linkedin'            => '',
-		'email_from_address'         => '',
-		'email_from_name'            => '',
-		'email_log_retention'        => 30,
-		'footer_email'               => 'mediahub@reci.pitt.edu',
-		'footer_phone'               => '+14126480000',
-		'footer_address'             => "4200 Fifth Avenue\nPittsburgh, PA 15260",
-		'hp_today_count'             => 4,
-		'hp_quotes_count'            => 4,
-		'hp_community_count'         => 4,
-		'hp_featured_method'         => 'latest',
-		'content_articles_per_page'  => 12,
-		'content_podcasts_per_page'  => 12,
-		'content_videos_per_page'    => 12,
-	];
-}
-
-function reci_import_theme_default_image( string $file_path, string $meta_key ): int {
-	static $cache = [];
-
-	if ( isset( $cache[ $meta_key ] ) ) {
-		return $cache[ $meta_key ];
-	}
-
-	$existing_id = (int) get_option( $meta_key, 0 );
-	if ( $existing_id > 0 && get_post( $existing_id ) ) {
-		$cache[ $meta_key ] = $existing_id;
-		return $existing_id;
-	}
-
-	if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
-		return 0;
-	}
-
-	require_once ABSPATH . 'wp-admin/includes/image.php';
-	require_once ABSPATH . 'wp-admin/includes/file.php';
-
-	$file_contents = file_get_contents( $file_path );
-	if ( false === $file_contents || '' === $file_contents ) {
-		return 0;
-	}
-
-	$filename = wp_basename( $file_path );
-	$upload   = wp_upload_bits( $filename, null, $file_contents );
-	if ( ! empty( $upload['error'] ) ) {
-		return 0;
-	}
-
-	$check = wp_check_filetype( $filename );
-	$mime_type = ! empty( $check['type'] ) ? $check['type'] : 'image/png';
-	$attachment_id = wp_insert_attachment(
-		[
-			'post_mime_type' => $mime_type,
-			'post_title'     => pathinfo( $filename, PATHINFO_FILENAME ),
-			'post_status'    => 'inherit',
-		],
-		$upload['file']
-	);
-
-	if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
-		return 0;
-	}
-
-	$metadata = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
-	if ( ! is_wp_error( $metadata ) ) {
-		wp_update_attachment_metadata( $attachment_id, $metadata );
-	}
-
-	update_option( $meta_key, (int) $attachment_id, false );
-	$cache[ $meta_key ] = (int) $attachment_id;
-
-	return (int) $attachment_id;
-}
-
-function reci_seed_theme_setting_defaults(): void {
-	$options  = get_option( 'reci_theme_settings', [] );
-	$defaults = reci_theme_setting_defaults();
-	$updated  = false;
-
-	foreach ( $defaults as $key => $value ) {
-		if ( ! isset( $options[ $key ] ) || $options[ $key ] === '' ) {
-			$options[ $key ] = $value;
-			$updated = true;
-		}
-	}
-
-	if ( $updated ) {
-		update_option( 'reci_theme_settings', $options );
-	}
-}
-add_action( 'after_switch_theme', 'reci_seed_theme_setting_defaults', 20 );
-add_action( 'admin_init', 'reci_seed_theme_setting_defaults', 5 );
-
 // ---------------------------------------------------------------------------
 // Admin menu
 // ---------------------------------------------------------------------------
-
-add_action( 'admin_post_reci_regenerate_logos', 'reci_handle_regenerate_logos' );
-
-/**
- * Rebuild the intermediate sizes for the configured logos.
- */
-function reci_handle_regenerate_logos(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		wp_die( esc_html__( 'You do not have permission to do that.', 'reci-media-hub' ) );
-	}
-
-	check_admin_referer( 'reci_regenerate_logos' );
-
-	$results = function_exists( 'reci_regenerate_logo_sizes' ) ? reci_regenerate_logo_sizes() : [];
-
-	set_transient( 'reci_logo_regen_notice', $results, 60 );
-
-	wp_safe_redirect( admin_url( 'admin.php?page=reci-settings&tab=branding&logos=regenerated' ) );
-	exit;
-}
 
 add_action( 'admin_menu', 'reci_register_settings_menu' );
 
@@ -189,60 +48,6 @@ function reci_register_settings_menu(): void {
 		'dashicons-admin-generic',
 		58
 	);
-
-	// The log is a record, not a setting — it does not belong on a tab whose
-	// only other job is saving a form.
-	add_submenu_page(
-		'reci-settings',
-		'Email Log',
-		'Email Log',
-		'manage_options',
-		'reci-email-log',
-		'reci_email_log_page_html'
-	);
-}
-
-/**
- * Email log screen.
- *
- * Read-only. Retention is configured on RECI Settings -> Email.
- */
-function reci_email_log_page_html(): void {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		return;
-	}
-
-	$retention = (int) reci_setting( 'email_log_retention', 30 );
-	$table     = new Reci_Email_Log_List_Table();
-	$table->prepare_items();
-
-	echo '<div class="wrap"><h1 class="wp-heading-inline">' . esc_html__( 'Email Log', 'reci-media-hub' ) . '</h1>';
-	echo '<hr class="wp-header-end" />';
-
-	echo '<p class="description">';
-	if ( $retention > 0 ) {
-		printf(
-			/* translators: %d: number of days. */
-			esc_html__( 'Entries older than %d days are deleted automatically.', 'reci-media-hub' ),
-			$retention
-		);
-	} else {
-		esc_html_e( 'Retention is set to keep everything — no entry is deleted automatically.', 'reci-media-hub' );
-	}
-	echo ' <a href="' . esc_url( admin_url( 'admin.php?page=reci-settings&tab=email' ) ) . '">' . esc_html__( 'Change this', 'reci-media-hub' ) . '</a>. ';
-	esc_html_e( 'Sent means the transport accepted the message, not that it reached an inbox.', 'reci-media-hub' );
-	echo '</p>';
-
-	$table->views();
-
-	echo '<form method="get">';
-	echo '<input type="hidden" name="page" value="reci-email-log" />';
-	printf( '<input type="hidden" name="log_status" value="%s" />', esc_attr( isset( $_GET['log_status'] ) ? sanitize_key( wp_unslash( $_GET['log_status'] ) ) : 'any' ) );
-	$table->search_box( __( 'Search log', 'reci-media-hub' ), 'reci-email-log-search' );
-	$table->display();
-	echo '</form>';
-
-	echo '</div>';
 }
 
 // ---------------------------------------------------------------------------
@@ -267,30 +72,18 @@ function reci_register_settings(): void {
 	reci_add_field( 'branding_hub_subtitle',    'Site Subtitle',         'text',   'reci-settings-branding', 'reci_branding', 'e.g. Media Hub' );
 	reci_add_field( 'branding_primary_color',   'Primary Colour',        'color',  'reci-settings-branding', 'reci_branding' );
 	reci_add_field( 'branding_accent_color',    'Accent Colour',         'color',  'reci-settings-branding', 'reci_branding' );
-	reci_add_field( 'branding_regenerate',      'Logo Sizes',            'button', 'reci-settings-branding', 'reci_branding', 'Rebuilds the resized copies of the two logos above. Run this after changing a logo, or once after a theme update that adds a new size.', [], [ 'button_label' => 'Regenerate logo sizes', 'button_action' => 'reci_regenerate_logos' ] );
 
-	// ── 1b. Email ─────────────────────────────────────────────────────────
-	add_settings_section( 'reci_email', 'Email', '__return_false', 'reci-settings-email' );
+	// ── 2. Key Pages ─────────────────────────────────────────────────────
+	add_settings_section( 'reci_pages_sec', 'Key Pages', '__return_false', 'reci-settings-pages' );
 
-	reci_add_field( 'email_from_address', 'From Address', 'email', 'reci-settings-email', 'reci_email', 'Sender for all transactional email. Use an address on this site\'s domain so SPF and DKIM can pass.' );
-	reci_add_field( 'email_from_name',    'From Name',    'text',  'reci-settings-email', 'reci_email', 'Leave blank to use the site title.' );
+	reci_add_field( 'pages_sign_in',    'Sign In Page',         'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_sign_up',    'Sign Up Page',         'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_forgot_pw',  'Forgot Password Page', 'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_donate',     'Donate Page',          'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_reflection', 'Reflection Gallery',   'page', 'reci-settings-pages', 'reci_pages_sec' );
+	reci_add_field( 'pages_home',       'Homepage',             'page', 'reci-settings-pages', 'reci_pages_sec' );
 
-	reci_add_field( 'email_smtp_host',     'SMTP Host',     'text',   'reci-settings-email', 'reci_email', 'Leave blank to send with the server\'s own mail() — no SMTP.' );
-	reci_add_field( 'email_smtp_port',     'SMTP Port',     'number', 'reci-settings-email', 'reci_email', '587 for TLS, 465 for SSL.', [], [ 'min' => 1, 'max' => 65535 ] );
-	reci_add_field( 'email_smtp_encryption','Encryption',   'select', 'reci-settings-email', 'reci_email', '', [ 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ] );
-	reci_add_field( 'email_smtp_username', 'SMTP Username', 'text',   'reci-settings-email', 'reci_email', 'Usually the full sending address.' );
-	reci_add_field( 'email_smtp_password', 'SMTP Password', 'password', 'reci-settings-email', 'reci_email' );
-	reci_add_field( 'email_test',          'Test Delivery', 'button', 'reci-settings-email', 'reci_email', 'Sends a real message to your account address and reports the transport error if it fails.' );
-	reci_add_field( 'email_log_retention', 'Keep Log For',  'number', 'reci-settings-email', 'reci_email', 'Days. Older entries are deleted daily. Set 0 to keep everything. The log itself lives under RECI Settings &rarr; Email Log.', [], [ 'min' => 0, 'max' => 3650 ] );
-
-	// ── 1c. Community ─────────────────────────────────────────────────────
-	add_settings_section( 'reci_community', 'Community', '__return_false', 'reci-settings-community' );
-
-	reci_add_field( 'submission_guidelines', 'Submission Guidelines', 'textarea', 'reci-settings-community', 'reci_community', 'Shown at the top of the Submit Content page to everyone, including signed-out visitors. Basic HTML is allowed.' );
-	reci_add_field( 'community_policy',      'Community Guideline',   'textarea', 'reci-settings-community', 'reci_community', 'Shown when someone clicks the guideline link beside a journal or comment box. Basic HTML is allowed.' );
-	reci_add_field( 'abuse_terms',           'Flagged Terms',         'textarea', 'reci-settings-community', 'reci_community', 'One term or phrase per line. Lines starting with # are ignored. Matching never blocks a save — it warns the writer and sends shared entries and comments to the moderation queue.' );
-
-	// ── 2. Social & Platform Links ────────────────────────────────────────
+	// ── 3. Social & Platform Links ────────────────────────────────────────
 	add_settings_section( 'reci_social', 'Social & Platform Links', '__return_false', 'reci-settings-social' );
 
 	reci_add_field( 'social_facebook',  'Facebook URL',  'url', 'reci-settings-social', 'reci_social' );
@@ -299,35 +92,58 @@ function reci_register_settings(): void {
 	reci_add_field( 'social_youtube',   'YouTube URL',   'url', 'reci-settings-social', 'reci_social' );
 	reci_add_field( 'social_linkedin',  'LinkedIn URL',  'url', 'reci-settings-social', 'reci_social' );
 
-	// ── 3. Homepage Content ───────────────────────────────────────────────
-	add_settings_section( 'reci_homepage', 'Homepage Content', '__return_false', 'reci-settings-homepage' );
+	// ── 4. Authentication ─────────────────────────────────────────────────
+	add_settings_section( 'reci_auth', 'Authentication', '__return_false', 'reci-settings-auth' );
 
-	reci_add_field( 'hp_today_count',       '"Today at RECI" carousel items',   'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 4' );
-	reci_add_field( 'hp_quotes_count',      '"Quote of the Day" carousel items', 'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 4' );
-	reci_add_field( 'hp_community_count',   '"Community Pulse" carousel items',  'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 4' );
+	reci_add_field( 'auth_enable_registration', 'Enable Registration',      'checkbox', 'reci-settings-auth', 'reci_auth', 'Allow new users to self-register' );
+	reci_add_field( 'auth_google_client_id',    'Google OAuth Client ID',   'text',     'reci-settings-auth', 'reci_auth' );
+	reci_add_field( 'auth_login_redirect',      'Post-Login Redirect URL',  'url',      'reci-settings-auth', 'reci_auth', 'Leave blank to redirect to homepage' );
+
+	// ── 5. Homepage ───────────────────────────────────────────────────────
+	add_settings_section( 'reci_homepage', 'Homepage', '__return_false', 'reci-settings-homepage' );
+
+	reci_add_field( 'hp_today_count',       '"Today at RECI" carousel items',   'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 5' );
+	reci_add_field( 'hp_quotes_count',      '"Quote of the Day" carousel items', 'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 3' );
+	reci_add_field( 'hp_community_count',   '"Community Pulse" carousel items',  'number', 'reci-settings-homepage', 'reci_homepage', 'Default: 3' );
 	reci_add_field( 'hp_featured_method',   'Featured Article Selection',        'select', 'reci-settings-homepage', 'reci_homepage' );
 
-	// ── 4. Footer ─────────────────────────────────────────────────────────
+	// ── 6. About Page ─────────────────────────────────────────────────────
+	add_settings_section( 'reci_about', 'About Page Cards', '__return_false', 'reci-settings-about' );
+
+	reci_add_field( 'about_c1_title', 'Card 1 Title', 'text',     'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c1_copy',  'Card 1 Copy',  'textarea', 'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c1_icon',  'Card 1 Icon/Image',  'image',     'reci-settings-about', 'reci_about' );
+
+	reci_add_field( 'about_c2_title', 'Card 2 Title', 'text',     'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c2_copy',  'Card 2 Copy',  'textarea', 'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c2_icon',  'Card 2 Icon/Image',  'image',     'reci-settings-about', 'reci_about' );
+
+	reci_add_field( 'about_c3_title', 'Card 3 Title', 'text',     'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c3_copy',  'Card 3 Copy',  'textarea', 'reci-settings-about', 'reci_about' );
+	reci_add_field( 'about_c3_icon',  'Card 3 Icon/Image',  'image',     'reci-settings-about', 'reci_about' );
+
+	// ── 7. Footer ─────────────────────────────────────────────────────────
 	add_settings_section( 'reci_footer', 'Footer', '__return_false', 'reci-settings-footer' );
 
+	reci_add_field( 'footer_tagline',   'About / Tagline',        'textarea', 'reci-settings-footer', 'reci_footer' );
 	reci_add_field( 'footer_email',     'Contact Email',          'email',    'reci-settings-footer', 'reci_footer' );
 	reci_add_field( 'footer_phone',     'Contact Phone',          'text',     'reci-settings-footer', 'reci_footer' );
 	reci_add_field( 'footer_address',   'Physical Address',       'textarea', 'reci-settings-footer', 'reci_footer' );
 	reci_add_field( 'footer_copyright', 'Copyright Text Override','text',     'reci-settings-footer', 'reci_footer', 'Leave blank to use "© {year} RECI. All rights reserved."' );
 
-	// ── 5. Analytics ──────────────────────────────────────────────────────
+	// ── 7. Analytics ──────────────────────────────────────────────────────
 	add_settings_section( 'reci_analytics', 'Analytics', '__return_false', 'reci-settings-analytics' );
 
 	reci_add_field( 'analytics_ga4_id',   'GA4 Measurement ID',       'text', 'reci-settings-analytics', 'reci_analytics', 'e.g. G-XXXXXXXXXX' );
 	reci_add_field( 'analytics_gtm_id',   'GTM Container ID',         'text', 'reci-settings-analytics', 'reci_analytics', 'e.g. GTM-XXXXXXX' );
 	reci_add_field( 'analytics_pixel_id', 'Meta / Facebook Pixel ID', 'text', 'reci-settings-analytics', 'reci_analytics' );
 
-	// ── 6. Archive & Media Defaults ───────────────────────────────────────
-	add_settings_section( 'reci_content', 'Archive & Media Defaults', '__return_false', 'reci-settings-content' );
+	// ── 8. Content Defaults ───────────────────────────────────────────────
+	add_settings_section( 'reci_content', 'Content Defaults', '__return_false', 'reci-settings-content' );
 
 	reci_add_field( 'content_articles_per_page',  'Articles per page',  'number', 'reci-settings-content', 'reci_content', 'Default: 12' );
-	reci_add_field( 'content_podcasts_per_page',  'Podcasts per page',  'number', 'reci-settings-content', 'reci_content', 'Recommended: 12' );
-	reci_add_field( 'content_videos_per_page',    'Videos per page',    'number', 'reci-settings-content', 'reci_content', 'Recommended: 12' );
+	reci_add_field( 'content_podcasts_per_page',  'Podcasts per page',  'number', 'reci-settings-content', 'reci_content', 'Default: 12' );
+	reci_add_field( 'content_videos_per_page',    'Videos per page',    'number', 'reci-settings-content', 'reci_content', 'Default: 12' );
 	reci_add_field( 'content_fallback_thumbnail', 'Default Thumbnail',  'image',  'reci-settings-content', 'reci_content' );
 }
 
@@ -341,9 +157,7 @@ function reci_add_field(
 	string $type,
 	string $page,
 	string $section,
-	string $description = '',
-	array $choices = [],
-	array $atts = []
+	string $description = ''
 ): void {
 	add_settings_field(
 		'reci_' . $key,
@@ -355,8 +169,6 @@ function reci_add_field(
 			'key'         => $key,
 			'type'        => $type,
 			'description' => $description,
-			'choices'     => $choices,
-			'atts'        => $atts,
 			'label_for'   => 'reci_' . $key,
 		]
 	);
@@ -392,12 +204,10 @@ function reci_render_field( array $args ): void {
 
 		case 'number':
 			printf(
-				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="%s" max="%s" placeholder="%s" />',
+				'<input type="number" id="%s" name="%s" value="%s" class="small-text" min="1" max="100" placeholder="%s" />',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				esc_attr( $val ),
-				esc_attr( (string) ( $args['atts']['min'] ?? 1 ) ),
-				esc_attr( (string) ( $args['atts']['max'] ?? 100 ) ),
 				esc_attr( $desc )
 			);
 			if ( $desc ) {
@@ -434,7 +244,8 @@ function reci_render_field( array $args ): void {
 			break;
 
 		case 'select':
-			$choices = ! empty( $args['choices'] ) ? (array) $args['choices'] : [
+			// Currently only used for featured article selection method.
+			$choices = [
 				'latest'   => 'Latest post',
 				'sticky'   => 'Sticky post',
 				'manual'   => 'Manually selected post',
@@ -449,45 +260,6 @@ function reci_render_field( array $args ): void {
 				);
 			}
 			echo '</select>';
-			break;
-
-		case 'password':
-			// A wp-config constant, if present, wins over whatever is stored here.
-			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
-				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php — this field is ignored.', 'reci-media-hub' ) . '</p>';
-				break;
-			}
-			printf(
-				'<input type="password" id="%s" name="%s" value="%s" class="regular-text" autocomplete="new-password" />',
-				esc_attr( $id ),
-				esc_attr( $name ),
-				esc_attr( $val )
-			);
-			echo '<p class="description">' . wp_kses_post( __( 'Stored in the database. To keep it out of the database instead, define <code>RECI_SMTP_PASSWORD</code> in wp-config.php and it will take precedence.', 'reci-media-hub' ) ) . '</p>';
-			break;
-
-		case 'password_note':
-			// The secret is never stored in wp_options — options ride along in every
-			// database backup, migration and export. It lives in wp-config.php.
-			if ( defined( 'RECI_SMTP_PASSWORD' ) && '' !== (string) RECI_SMTP_PASSWORD ) {
-				echo '<p style="margin:0;color:#1f7a5a;font-weight:600;">' . esc_html__( 'Set in wp-config.php', 'reci-media-hub' ) . '</p>';
-			} else {
-				echo '<p style="margin:0;color:#9d2f45;font-weight:600;">' . esc_html__( 'Not set', 'reci-media-hub' ) . '</p>';
-			}
-			echo '<p class="description">' . wp_kses_post( __( 'Add <code>define( \'RECI_SMTP_PASSWORD\', \'…\' );</code> to wp-config.php. It is deliberately not stored in the database.', 'reci-media-hub' ) ) . '</p>';
-			break;
-
-		case 'button':
-			$action = (string) ( $args['button_action'] ?? 'reci_send_test_email' );
-			$url = wp_nonce_url(
-				add_query_arg( 'action', $action, admin_url( 'admin-post.php' ) ),
-				$action
-			);
-			printf(
-				'<a href="%s" class="button">%s</a>',
-				esc_url( $url ),
-				esc_html( $args['button_label'] ?? __( 'Send', 'reci-media-hub' ) )
-			);
 			break;
 
 		case 'page':
@@ -560,8 +332,7 @@ function reci_sanitize_settings( $input ): array {
 	$text_fields = [
 		'branding_hub_subtitle', 'branding_primary_color', 'branding_accent_color',
 		'analytics_ga4_id', 'analytics_gtm_id', 'analytics_pixel_id',
-		'footer_phone', 'footer_copyright',
-		'email_from_name', 'email_smtp_host', 'email_smtp_username', 'email_smtp_encryption',
+		'auth_google_client_id', 'footer_phone', 'footer_copyright',
 		'hp_featured_method',
 		'about_c1_title', 'about_c1_icon',
 		'about_c2_title', 'about_c2_icon',
@@ -569,28 +340,23 @@ function reci_sanitize_settings( $input ): array {
 	];
 	$url_fields = [
 		'social_facebook', 'social_twitter', 'social_instagram', 'social_youtube',
-		'social_linkedin',
+		'social_linkedin', 'auth_login_redirect',
 	];
-	$email_fields = [ 'footer_email', 'email_from_address' ];
-	$textarea_fields = [ 'footer_address', 'abuse_terms' ];
+	$email_fields = [ 'footer_email' ];
+	$textarea_fields = [ 'footer_tagline', 'footer_address', 'about_c1_copy', 'about_c2_copy', 'about_c3_copy' ];
 	$number_fields = [
 		'hp_today_count', 'hp_quotes_count', 'hp_community_count',
 		'content_articles_per_page', 'content_podcasts_per_page', 'content_videos_per_page',
-		'email_smtp_port', 'email_log_retention',
+	];
+	$page_fields = [
+		'pages_sign_in', 'pages_sign_up', 'pages_forgot_pw', 'pages_donate',
+		'pages_reflection', 'pages_home',
 	];
 	$image_fields = [
 		'branding_reci_logo', 'branding_partner_logo', 'content_fallback_thumbnail',
 	];
 	$checkbox_fields = [ 'auth_enable_registration' ];
-	// Not sanitize_text_field: it strips tags and encodes entities, corrupting
-	// passwords that legitimately contain < & or quotes.
-	$password_fields = [ 'email_smtp_password' ];
 
-	foreach ( $password_fields as $field ) {
-		if ( isset( $input[ $field ] ) ) {
-			$clean[ $field ] = trim( (string) $input[ $field ] );
-		}
-	}
 	foreach ( $text_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$clean[ $field ] = sanitize_text_field( $input[ $field ] );
@@ -614,9 +380,12 @@ function reci_sanitize_settings( $input ): array {
 	foreach ( $number_fields as $field ) {
 		if ( isset( $input[ $field ] ) ) {
 			$val = (int) $input[ $field ];
-			// Retention treats 0 as "keep everything", so it must survive as 0
-			// rather than being blanked and falling back to the default.
-			$clean[ $field ] = ( $val > 0 || 'email_log_retention' === $field ) ? $val : '';
+			$clean[ $field ] = $val > 0 ? $val : '';
+		}
+	}
+	foreach ( $page_fields as $field ) {
+		if ( isset( $input[ $field ] ) ) {
+			$clean[ $field ] = (int) $input[ $field ] ?: '';
 		}
 	}
 	foreach ( $image_fields as $field ) {
@@ -628,20 +397,6 @@ function reci_sanitize_settings( $input ): array {
 		$clean[ $field ] = ! empty( $input[ $field ] ) ? '1' : '0';
 	}
 
-	// The two policy bodies allow the same limited HTML as post content, so
-	// sanitize_textarea_field would strip the formatting an editor just wrote.
-	foreach ( [ 'submission_guidelines', 'community_policy' ] as $field ) {
-		if ( isset( $input[ $field ] ) ) {
-			$clean[ $field ] = wp_kses_post( $input[ $field ] );
-		}
-	}
-
-	// Keep WordPress's own moderation keywords in step with our list, so the
-	// comment path is held by core rather than by a parallel implementation.
-	if ( isset( $clean['abuse_terms'] ) ) {
-		reci_sync_moderation_keys( reci_parse_abuse_terms( $clean['abuse_terms'] ) );
-	}
-
 	return $clean;
 }
 
@@ -650,7 +405,7 @@ function reci_sanitize_settings( $input ): array {
 // ---------------------------------------------------------------------------
 
 add_action( 'admin_enqueue_scripts', function ( string $hook ) {
-	if ( $hook !== 'toplevel_page_reci-settings' ) {
+	if ( $hook !== 'appearance_page_reci-settings' ) {
 		return;
 	}
 	wp_enqueue_media();
@@ -720,13 +475,14 @@ function reci_settings_page_html(): void {
 
 	$tabs = [
 		'branding'  => 'Branding',
-		'email'     => 'Email',
-		'community' => 'Community',
+		'pages'     => 'Key Pages',
 		'social'    => 'Social Links',
-		'homepage'  => 'Homepage Content',
+		'auth'      => 'Authentication',
+		'homepage'  => 'Homepage',
+		'about'     => 'About Page',
 		'footer'    => 'Footer',
 		'analytics' => 'Analytics',
-		'content'   => 'Archive & Media Defaults',
+		'content'   => 'Content Defaults',
 	];
 
 	$active = isset( $_GET['tab'] ) && array_key_exists( $_GET['tab'], $tabs )
@@ -737,68 +493,8 @@ function reci_settings_page_html(): void {
 	$demo_notice = isset( $_GET['demo_notice'] ) ? sanitize_key( $_GET['demo_notice'] ) : '';
 
 	?>
-	<script src="https://cdn.tailwindcss.com"></script>
-	<script>
-		tailwind.config = {
-			corePlugins: {
-				preflight: false,
-			}
-		}
-	</script>
-	<style>
-		.reci-settings-shell .form-table th {
-			width: 220px;
-			padding: 20px 20px 20px 0;
-			font-size: 14px;
-			font-weight: 600;
-			color: #0f172a;
-		}
-		.reci-settings-shell .form-table td {
-			padding: 18px 0;
-		}
-		.reci-settings-shell .form-table input.regular-text,
-		.reci-settings-shell .form-table input.small-text,
-		.reci-settings-shell .form-table input[type="email"],
-		.reci-settings-shell .form-table input[type="url"],
-		.reci-settings-shell .form-table input[type="text"],
-		.reci-settings-shell .form-table input[type="number"],
-		.reci-settings-shell .form-table textarea,
-		.reci-settings-shell .form-table select {
-			min-width: 320px;
-			max-width: 100%;
-			border: 1px solid #cbd5e1;
-			border-radius: 12px;
-			padding: 10px 12px;
-			box-shadow: none;
-		}
-		.reci-settings-shell .form-table textarea {
-			min-height: 110px;
-		}
-		.reci-settings-shell .form-table .description {
-			margin-top: 8px;
-			color: #64748b;
-		}
-		.reci-settings-shell .button-primary {
-			background: #0f172a;
-			border-color: #0f172a;
-		}
-	</style>
 	<div class="wrap">
-		<div class="reci-settings-shell max-w-7xl mx-auto mt-5 rounded-3xl overflow-hidden border border-slate-200 bg-white shadow-sm">
-			<div class="bg-slate-950 text-white px-8 py-8 md:px-10">
-				<div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-					<div class="max-w-3xl">
-						<p class="text-xs font-semibold uppercase tracking-[0.22em] text-amber-300"><?php esc_html_e( 'RECI Settings', 'reci-media-hub' ); ?></p>
-						<h1 class="mt-3 text-3xl md:text-4xl font-semibold tracking-tight"><?php esc_html_e( 'Ongoing theme configuration', 'reci-media-hub' ); ?></h1>
-						<p class="mt-4 text-base leading-7 text-slate-300"><?php esc_html_e( 'Use these settings to control branding, social links, homepage behavior, footer content, analytics, and archive/media defaults after setup is complete.', 'reci-media-hub' ); ?></p>
-					</div>
-					<div class="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur">
-						<p class="text-xs uppercase tracking-[0.18em] text-slate-300"><?php esc_html_e( 'Need onboarding?', 'reci-media-hub' ); ?></p>
-						<p class="mt-2 text-sm text-white"><?php esc_html_e( 'Plugins, page checks, and starter content live in Setup.', 'reci-media-hub' ); ?></p>
-						<p class="mt-4"><a class="button button-secondary" href="<?php echo esc_url( admin_url( 'admin.php?page=reci-client-setup' ) ); ?>"><?php esc_html_e( 'Open Setup', 'reci-media-hub' ); ?></a></p>
-					</div>
-				</div>
-			</div>
+		<h1>RECI Theme Settings</h1>
 
 		<?php if ( $demo_notice === 'installed' ) : ?>
 			<div class="notice notice-success is-dismissible"><p>Demo content installed successfully.</p></div>
@@ -806,32 +502,23 @@ function reci_settings_page_html(): void {
 			<div class="notice notice-warning is-dismissible"><p>Demo content removed.</p></div>
 		<?php endif; ?>
 
-			<div class="border-b border-slate-200 bg-slate-50 px-5 md:px-6">
-				<nav class="flex flex-wrap gap-2 py-4">
-					<?php foreach ( $tabs as $slug => $label ) : ?>
-						<a href="<?php echo esc_url( admin_url( 'admin.php?page=reci-settings&tab=' . $slug ) ); ?>" class="rounded-full border px-4 py-2 text-sm font-medium transition <?php echo $active === $slug ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700'; ?>">
-							<?php echo esc_html( $label ); ?>
-						</a>
-					<?php endforeach; ?>
-				</nav>
-			</div>
+		<nav class="nav-tab-wrapper" style="margin-bottom:0;">
+			<?php foreach ( $tabs as $slug => $label ) : ?>
+				<a
+					href="<?php echo esc_url( admin_url( 'admin.php?page=reci-settings&tab=' . $slug ) ); ?>"
+					class="nav-tab <?php echo $active === $slug ? 'nav-tab-active' : ''; ?>">
+					<?php echo esc_html( $label ); ?>
+				</a>
+			<?php endforeach; ?>
+		</nav>
 
-			<div class="p-6 md:p-8 lg:p-10">
-				<form method="post" action="options.php">
-					<div class="max-w-5xl rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
-						<div class="mb-6">
-							<h2 class="text-2xl font-semibold text-slate-950"><?php echo esc_html( $tabs[ $active ] ); ?></h2>
-							<p class="mt-2 text-sm leading-6 text-slate-600"><?php esc_html_e( 'Changes here become the live source of truth for the theme wherever these settings are wired.', 'reci-media-hub' ); ?></p>
-						</div>
-						<?php
-						settings_fields( 'reci_theme_settings_group' );
-						do_settings_sections( 'reci-settings-' . $active );
-						submit_button( 'Save Settings' );
-						?>
-					</div>
-				</form>
-			</div>
-		</div>
+		<form method="post" action="options.php" style="margin-top:16px;">
+			<?php
+			settings_fields( 'reci_theme_settings_group' );
+			do_settings_sections( 'reci-settings-' . $active );
+			submit_button( 'Save Settings' );
+			?>
+		</form>
 	</div>
 	<?php
 }

@@ -9,7 +9,6 @@ if (! defined('ABSPATH')) {
 }
 
 $reci_media_hub_includes = [
-	'/inc/core/roles.php',
 	'/inc/core/theme-setup.php',
 	'/inc/core/theme-activation.php',
 	'/inc/core/template-routing.php',
@@ -28,34 +27,15 @@ $reci_media_hub_includes = [
 	'/inc/features/reflection-responses.php',
 	'/inc/features/sphere-helpers.php',
 	'/inc/features/author-profiles.php',
-	'/inc/features/collaborators.php',
-	'/inc/features/content-editing.php',
-	'/inc/features/submission-type-fields.php',
-	'/inc/features/emails.php',
 	'/inc/features/auth.php',
 	'/inc/features/notifications.php',
 	'/inc/features/live-search.php',
 	'/inc/features/listing-builder.php',
-	'/inc/features/engagement-counters.php',
-	'/inc/features/community-policy.php',
-	'/inc/features/journal-status.php',
-	'/inc/features/journal-identity.php',
-	'/inc/features/journal-sharing.php',
-	'/inc/features/journal-moderation.php',
-	'/inc/features/remote-demo-content.php',
-	'/inc/features/theme-updates.php',
 	
 	'/inc/admin/theme-settings.php',
 	'/inc/admin/dashboard.php',
-	'/inc/admin/admin-menu.php',
 	'/inc/admin/demo-content.php',
-	'/inc/admin/collaborator-import.php',
-	'/inc/admin/highlighted-works-import.php',
-	'/inc/admin/highlighted-works-promote.php',
 	'/inc/admin/theme-setup-wizard.php',
-	'/inc/admin/theme-setup-client.php',
-	'/inc/admin/class-reci-submissions-list-table.php',
-	'/inc/admin/class-reci-email-log-list-table.php',
 	'/inc/admin/class-reci-journals-list-table.php',
 	'/inc/admin/class-reci-assessments-list-table.php',
 	
@@ -79,8 +59,5 @@ $reci_media_hub_includes = [
 ];
 
 foreach ($reci_media_hub_includes as $include_path) {
-	$absolute_path = get_template_directory() . $include_path;
-	if (file_exists($absolute_path)) {
-		require_once $absolute_path;
-	}
+	require_once get_template_directory() . $include_path;
 }

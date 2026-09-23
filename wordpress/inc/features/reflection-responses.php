@@ -82,9 +82,6 @@ if (! function_exists('reci_get_journals')) {
 				'prompt'        => $row->prompt,
 				'reflection_id' => (int) $row->reflection_id,
 				'created_at'    => gmdate('Y-m-d\TH:i:sP', strtotime($row->created_at)),
-				'status'        => (string) $row->status,
-				'is_anonymous'  => (bool) (int) $row->is_anonymous,
-				'flagged_terms' => array_values( array_filter( explode( "\n", (string) $row->flagged_terms ) ) ),
 			];
 		}
 		
@@ -115,13 +112,8 @@ if (! function_exists('reci_create_journal')) {
 			return new WP_Error('missing_response', __('Prompt and response are required.', 'reci-media-hub'), ['status' => 400]);
 		}
 		
-		// A user whose default privacy is "public" previously had every entry
-		// published outright, with no review at all. Entries are now always
-		// created private, and a public default routes through the same share
-		// path as an explicit share — landing in the moderation queue.
 		$default_privacy = get_user_meta($user_id, 'reci_journal_default_privacy', true);
-		$share_by_default = ('public' === $default_privacy);
-		$is_shared       = 0;
+		$is_shared       = ($default_privacy === 'public') ? 1 : 0;
 		
 		$table = $wpdb->prefix . 'reci_journals';
 		$inserted = $wpdb->insert(
@@ -131,64 +123,35 @@ if (! function_exists('reci_create_journal')) {
 				'reflection_id' => $reflection_id,
 				'prompt'        => $prompt,
 				'response'      => $response,
-				'is_shared'     => 0,
-				'status'        => 'private',
+				'is_shared'     => $is_shared,
 				'created_at'    => current_time('mysql', true),
 			],
-			['%d', '%d', '%s', '%s', '%d', '%s', '%s']
+			['%d', '%d', '%s', '%s', '%d', '%s']
 		);
 		
 		if (! $inserted) {
 			return new WP_Error('insert_failed', __('Failed to save response.', 'reci-media-hub'), ['status' => 500]);
 		}
 		
-		$journal_id = (int) $wpdb->insert_id;
-
-		if ($share_by_default) {
-			reci_share_journal($journal_id, false);
-		}
-
-		return new WP_REST_Response(
-			[
-				'id'      => $journal_id,
-				'status'  => $share_by_default ? 'pending' : 'private',
-				'message' => $share_by_default
-					? __('Response saved and sent for review.', 'reci-media-hub')
-					: __('Response saved.', 'reci-media-hub'),
-			],
-			201
-		);
+		return new WP_REST_Response(['id' => $wpdb->insert_id, 'message' => __('Response saved.', 'reci-media-hub')], 201);
 	}
 }
 
 if (! function_exists('reci_update_journal_share')) {
-	function reci_update_journal_share(WP_REST_Request $request) {
-		$journal_id = (int) $request->get_param('id');
-		$shared     = (bool) $request->get_param('shared');
-		$anonymous  = (bool) $request->get_param('anonymous');
-
-		if (! $shared) {
-			$ok = reci_unshare_journal($journal_id);
-
-			return $ok
-				? new WP_REST_Response(['shared' => false, 'status' => 'private'], 200)
-				: new WP_Error('unshare_failed', __('Could not withdraw that entry.', 'reci-media-hub'), ['status' => 409]);
-		}
-
-		$result = reci_share_journal($journal_id, $anonymous);
-
-		if (is_wp_error($result)) {
-			return $result;
-		}
-
-		return new WP_REST_Response(
-			[
-				'shared'    => true,
-				'status'    => $result['status'],
-				'anonymous' => $anonymous,
-				'flagged'   => $result['flagged'],
-			],
-			200
+	function reci_update_journal_share(WP_REST_Request $request): WP_REST_Response {
+		global $wpdb;
+		$post_id = (int) $request->get_param('id');
+		$shared  = (bool) $request->get_param('shared');
+		
+		$table = $wpdb->prefix . 'reci_journals';
+		$wpdb->update(
+			$table,
+			['is_shared' => $shared ? 1 : 0],
+			['id' => $post_id],
+			['%d'],
+			['%d']
 		);
+		
+		return new WP_REST_Response(['shared' => $shared], 200);
 	}
 }
