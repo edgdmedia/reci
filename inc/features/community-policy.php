@@ -352,4 +352,60 @@ function reci_seed_community_defaults(): void {
 		update_option( 'reci_theme_settings', $settings );
 		reci_sync_moderation_keys( reci_parse_abuse_terms( (string) $settings['abuse_terms'] ) );
 	}
+
+	reci_repair_community_text();
+}
+
+/**
+ * Paragraphs we have shipped and then corrected.
+ *
+ * A site that never edited the guideline is still telling its members the old
+ * promise, which the code no longer keeps: anonymity now hides an author from
+ * other members, not from staff. Replacing the exact superseded sentence
+ * leaves every other edit alone - if an editor rewrote that paragraph, it will
+ * not match and will not be touched.
+ *
+ * @return array<string,array<string,string>> setting key => [ old => new ]
+ */
+function reci_superseded_community_text(): array {
+	return [
+		'community_policy' => [
+			'<p>You can share a reflection anonymously. Your name is then hidden from readers and from the author of the reflection you are responding to. Site administrators and moderators can still see it, so that abuse can be acted on.</p>' => '<p>You can share a reflection anonymously. Your name is then hidden from everyone reading the hub, including other members. The RECI team who moderate and run the site can still see it, so that abuse can be acted on.</p>',
+		],
+	];
+}
+
+/**
+ * Bring a stored guideline in line with a corrected paragraph.
+ */
+function reci_repair_community_text(): void {
+	$settings = get_option( 'reci_theme_settings', [] );
+
+	if ( ! is_array( $settings ) ) {
+		return;
+	}
+
+	$changed = false;
+
+	foreach ( reci_superseded_community_text() as $key => $replacements ) {
+		$value = (string) ( $settings[ $key ] ?? '' );
+
+		if ( '' === $value ) {
+			continue;
+		}
+
+		foreach ( $replacements as $old => $new ) {
+			if ( false === strpos( $value, $old ) ) {
+				continue;
+			}
+
+			$value            = str_replace( $old, $new, $value );
+			$settings[ $key ] = $value;
+			$changed          = true;
+		}
+	}
+
+	if ( $changed ) {
+		update_option( 'reci_theme_settings', $settings );
+	}
 }

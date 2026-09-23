@@ -63,3 +63,45 @@ reci_assert_same(
 	reci_match_flagged_terms( 'I reflected on my own experience of bias at work today.', $default_terms ),
 	'defaults: ordinary reflection is not flagged'
 );
+
+// --- Repairing a superseded paragraph ------------------------------------
+//
+// The old wording promised anonymity from the reflection's author, which the
+// code no longer keeps. The repair must fix a site that never edited the text
+// and leave an edited one completely alone.
+$repairs = reci_superseded_community_text();
+
+reci_assert_same( true, isset( $repairs['community_policy'] ), 'repair: community_policy has a replacement' );
+
+foreach ( $repairs['community_policy'] as $old => $new ) {
+	reci_assert_same( false, $old === $new, 'repair: the replacement actually differs' );
+	reci_assert_same(
+		true,
+		false !== strpos( $old, 'the author of the reflection' ),
+		'repair: targets the superseded promise'
+	);
+	reci_assert_same(
+		false,
+		false !== strpos( $new, 'the author of the reflection' ),
+		'repair: the new wording drops that promise'
+	);
+
+	// Untouched text is repaired.
+	$untouched = '<h3>Sharing anonymously</h3>' . $old;
+	reci_assert_same(
+		'<h3>Sharing anonymously</h3>' . $new,
+		str_replace( $old, $new, $untouched ),
+		'repair: untouched text is corrected'
+	);
+
+	// Edited text does not match, so it survives verbatim.
+	$edited = '<p>You can share a reflection anonymously. Our team wrote this bit ourselves.</p>';
+	reci_assert_same( $edited, str_replace( $old, $new, $edited ), 'repair: an edited paragraph is left alone' );
+}
+
+// The shipped default must already be correct, or a fresh site starts wrong.
+reci_assert_same(
+	false,
+	false !== strpos( reci_default_community_settings()['community_policy'], 'the author of the reflection' ),
+	'repair: the shipped default no longer carries the old promise'
+);

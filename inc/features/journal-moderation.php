@@ -21,6 +21,15 @@ if ( ! defined( 'ABSPATH' ) && ! function_exists( 'reci_assert' ) ) {
  * entry the author's name must never enter that row at all — masking it at
  * render time would already be too late.
  *
+ * Staff may now see anonymous authors on the moderation screens, so this is
+ * the one surface that still masks, and that is on purpose rather than left
+ * over. A notification is a push surface: it is emailed, forwarded and quoted
+ * in places nobody has to authenticate to reach, whereas the admin screens sit
+ * behind a login and a capability. The owner learns an entry arrived and
+ * follows the link; the identity is one click away for anyone entitled to it.
+ * Passing the viewer's capability in here is the change to make if that
+ * reasoning stops holding.
+ *
  * @return array{title:string,message:string}
  */
 function reci_journal_owner_notification_text( bool $is_anonymous, string $author_name, string $reflection_title ): array {
