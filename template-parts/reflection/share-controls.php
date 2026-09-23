@@ -22,6 +22,9 @@ $reci_share = wp_parse_args(
 	$args ?? [],
 	[
 		'style' => 'panel',
+		// 'all', 'toggles' or 'read'. Variants that want the read button on the
+		// same row as their own continue button render the two parts apart.
+		'show'  => 'all',
 	]
 );
 
@@ -44,7 +47,7 @@ $reci_hint_class = $reci_is_stage
 // already tell a signed-out visitor to log in. Reading what others shared
 // needs no account, and now happens in its own chapter.
 ?>
-<?php if ( is_user_logged_in() ) : ?>
+<?php if ( 'read' !== $reci_share['show'] && is_user_logged_in() ) : ?>
 <div class="<?php echo esc_attr( $reci_wrap_class ); ?>" data-reci-share-controls>
 	<label class="<?php echo esc_attr( $reci_label_class ); ?>">
 		<input type="checkbox" class="mt-1" data-reci-share />
@@ -62,3 +65,39 @@ $reci_hint_class = $reci_is_stage
 	</label>
 </div>
 <?php endif; ?>
+
+<?php
+if ( 'toggles' === $reci_share['show'] ) {
+	return;
+}
+
+// The shared reflections chapter is a stage like any other, and stages are
+// hidden until the controller activates one. Without a link into it the
+// chapter is reachable only from the menu, which is how it went unnoticed.
+$reci_shared_count = function_exists( 'reci_get_shared_journal_count' )
+	? reci_get_shared_journal_count( (int) get_the_ID() )
+	: 0;
+
+if ( $reci_shared_count < 1 ) {
+	return;
+}
+
+$reci_is_stage = 'stage' === $reci_share['style'];
+
+$reci_button_class = $reci_is_stage
+	? 'reci-open-shared inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors'
+	: 'reci-open-shared inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] reci-reflection-text';
+?>
+<button
+	type="button"
+	class="<?php echo esc_attr( $reci_button_class ); ?>"
+	data-stage-target="reci-shared-journals"
+>
+	<?php
+	printf(
+		/* translators: %d: number of shared reflections */
+		esc_html( _n( 'Read %d shared reflection', 'Read %d shared reflections', $reci_shared_count, 'reci-media-hub' ) ),
+		(int) $reci_shared_count
+	);
+	?>
+</button>

@@ -48,6 +48,17 @@ $args = wp_parse_args($args ?? [], [
 				<div data-reci-shared-list class="mt-8 grid gap-4 md:grid-cols-2"></div>
 
 				<p data-reci-shared-status class="mt-6 text-sm reci-reflection-muted"></p>
+
+				<?php
+				// Appended last, so there is no next chapter to continue to. The
+				// reader needs a deliberate way out or they are stranded here.
+				?>
+				<div class="mt-8 flex flex-wrap items-center gap-4">
+					<a
+						href="<?php echo esc_url( home_url( '/reflections/' ) ); ?>"
+						class="inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-3 font-['Oswald'] text-xs uppercase tracking-[0.1em] reci-reflection-text no-underline"
+					><?php esc_html_e( 'Return to Gallery', 'reci-media-hub' ); ?></a>
+				</div>
 			</div>
 		</div>
 	</div>

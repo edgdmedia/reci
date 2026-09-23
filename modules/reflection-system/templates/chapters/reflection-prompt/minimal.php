@@ -25,8 +25,11 @@ $args = wp_parse_args($args ?? [], [
 			<?php if ( ! is_user_logged_in() ) : ?>
 				<p class="mt-4 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>
 			<?php endif; ?>
-			<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage' ] ); ?>
-			<button class="reci-complete-btn mt-8 inline-flex items-center justify-center border border-white/60 px-8 py-3 font-['Oswald'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+			<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
+			<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read' ] ); ?>
+				<button class="reci-complete-btn inline-flex items-center justify-center border border-white/60 px-8 py-3 font-['Oswald'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
+			</div>
 		</div>
 		
 		<div class="reci-reflection-success hidden flex-col items-center justify-center w-full opacity-0 transition-opacity duration-700">

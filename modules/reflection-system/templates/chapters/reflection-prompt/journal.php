@@ -42,13 +42,14 @@ $args = wp_parse_args($args ?? [], [
 					<div id="responseFormShell" class="mt-4">
 						<label class="mb-2 block font-['Oswald'] text-xs uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
 						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 text-sm reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
-						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel' ] ); ?>
+						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'toggles' ] ); ?>
 						<div class="mt-4 flex flex-wrap gap-4">
 							<button class="inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-5 py-3 font-['Oswald'] text-xs uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
 						</div>
 						<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text"></div>
 					</div>
-					<div class="mt-6 flex flex-wrap gap-4">
+					<div class="mt-6 flex flex-wrap items-center gap-4">
+						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read' ] ); ?>
 						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
 						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
 						<?php endif; ?>
