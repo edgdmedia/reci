@@ -30,16 +30,23 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 	<div class="reci-reflection-form w-full max-w-[840px] border border-[rgba(255,255,255,0.12)] bg-gradient-to-b from-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] p-[clamp(2rem,4vw,3.25rem)] text-center shadow-[0_24px_60px_rgba(0,0,0,0.2)]">
 		<h2 class="mb-[1.75rem] font-['Oswald'] text-[clamp(2.8rem,5vw,4.2rem)] uppercase tracking-[0.04em] reci-reflection-accent">Your Reflection</h2>
 		<p class="mx-auto mb-[2rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.6rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]"><?php echo reci_reflection_format_text($args['prompt']); ?></p>
-		<textarea class="reflect-input reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-['Merriweather'] text-white" placeholder="Share your thoughts..."></textarea>
-		<?php if ( ! is_user_logged_in() ) : ?>
-			<p class="mb-6 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>
-		<?php endif; ?>
-		<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
-			<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read', 'button_class' => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-[\'Oswald\'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105' ] ); ?>
-				<button class="reci-complete-btn inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-['Oswald'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
-			</div>
+				<?php
+		get_template_part( 'template-parts/reflection/prompt-form', null, [
+			'style'          => 'stage',
+			'prompt'         => $args['prompt'],
+			'textarea_class' => 'reci-reflection-prompt__input mb-[2rem] min-h-[160px] w-full rounded-[10px] border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] p-[18px_20px] font-[\'Merriweather\'] text-white',
+			'placeholder'    => 'Share your thoughts...',
+			'note_class'     => 'mb-6 text-sm text-white/60',
+			'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
+			'status_class'   => 'mt-4 text-sm text-white/70',
+			'button_class'   => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-[50px] py-[20px] font-[\'Oswald\'] text-[1.2rem] uppercase tracking-[2px] text-white transition-transform hover:scale-105',
+			'after_save'     => 'success',
+			'continue_label' => $args['button_label'],
+			'continue_href'  => $args['button_href'],
+		] );
+		?>
 	</div>
+
 	
 	<div class="reci-reflection-success hidden flex-col items-center justify-center w-full max-w-[840px] border border-[rgba(255,255,255,0.12)] bg-gradient-to-b from-[rgba(255,255,255,0.06)] to-[rgba(255,255,255,0.03)] p-[clamp(2rem,4vw,3.25rem)] text-center shadow-[0_24px_60px_rgba(0,0,0,0.2)] opacity-0 transition-opacity duration-700">
 		<svg class="w-20 h-20 text-[var(--reflection-accent)] mb-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

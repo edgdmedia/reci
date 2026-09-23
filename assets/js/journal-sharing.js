@@ -65,7 +65,11 @@
 	 * definition of what the controls mean.
 	 */
 	function readShareIntent( fromElement ) {
-		var root = fromElement && fromElement.closest ? fromElement.closest( '.reci-stage' ) : null;
+		// Scope to the prompt form first: the toggles now live inside it, and a
+		// reflection may hold several, so the nearest one is the right one.
+		var root = fromElement && fromElement.closest
+			? ( fromElement.closest( '[data-reci-prompt]' ) || fromElement.closest( '.reci-stage' ) )
+			: null;
 		var scope = root
 			? root.querySelector( '[data-reci-share-controls]' )
 			: document.querySelector( '[data-reci-share-controls]' );

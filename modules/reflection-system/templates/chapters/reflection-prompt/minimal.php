@@ -21,15 +21,21 @@ $args = wp_parse_args($args ?? [], [
 	<div class="flex min-h-screen w-full flex-col items-center justify-center bg-[#0a0a0a] px-5 py-16 text-center text-white">
 		<div class="reci-reflection-form flex flex-col items-center justify-center w-full">
 			<h2 class="max-w-[820px] font-['Playfair_Display'] text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"><?php echo reci_reflection_format_text($args['prompt'] ?: $args['title']); ?></h2>
-			<textarea class="reflect-input reci-reflection-prompt__input mt-8 h-[150px] w-full max-w-[600px] rounded-none border border-white/20 bg-[#222] px-5 py-4 text-base text-white outline-none" placeholder="Share your thoughts..."></textarea>
-			<?php if ( ! is_user_logged_in() ) : ?>
-				<p class="mt-4 text-sm text-white/60">Log in or create a free account to record your reflections in your private journal.</p>
-			<?php endif; ?>
-			<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'toggles' ] ); ?>
-			<div class="mt-8 flex flex-wrap items-center justify-center gap-4">
-				<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'stage', 'show' => 'read', 'button_class' => 'inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors' ] ); ?>
-				<button class="reci-complete-btn inline-flex items-center justify-center border border-white/60 px-8 py-3 font-['Oswald'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors" type="button" data-complete-href="<?php echo esc_url($args['button_href']); ?>"><?php echo esc_html($args['button_label']); ?></button>
-			</div>
+			<?php
+			get_template_part( 'template-parts/reflection/prompt-form', null, [
+				'style'          => 'stage',
+				'prompt'         => $args['prompt'] ?: $args['title'],
+				'textarea_class' => 'reci-reflection-prompt__input mt-8 h-[150px] w-full max-w-[600px] rounded-none border border-white/20 bg-[#222] px-5 py-4 text-base text-white outline-none',
+				'placeholder'    => 'Share your thoughts...',
+				'note_class'     => 'mt-4 text-sm text-white/60',
+				'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
+				'status_class'   => 'mt-4 text-sm text-white/70',
+				'button_class'   => 'inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors',
+				'after_save'     => 'success',
+				'continue_label' => $args['button_label'],
+				'continue_href'  => $args['button_href'],
+			] );
+			?>
 		</div>
 		
 		<div class="reci-reflection-success hidden flex-col items-center justify-center w-full opacity-0 transition-opacity duration-700">

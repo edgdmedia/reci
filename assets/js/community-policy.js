@@ -184,7 +184,7 @@
 	}
 
 	document.addEventListener( 'DOMContentLoaded', function () {
-		[ '#reflectionResponse', '#comment', '.reflect-input' ].forEach( function ( selector ) {
+		[ '[data-reci-response]', '#comment' ].forEach( function ( selector ) {
 			document.querySelectorAll( selector ).forEach( attach );
 		} );
 	} );

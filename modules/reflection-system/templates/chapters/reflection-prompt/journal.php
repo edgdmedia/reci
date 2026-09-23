@@ -39,21 +39,22 @@ $args = wp_parse_args($args ?? [], [
 				<div class="reci-scroll-panel !justify-start rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
 					<h3 class="mb-2 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text">Save your reflection</h3>
 					<p class="text-sm leading-7 reci-reflection-soft-text">Prompt: <?php echo reci_reflection_format_text($args['prompt']); ?></p>
-					<div id="responseFormShell" class="mt-4">
-						<label class="mb-2 block font-['Oswald'] text-xs uppercase tracking-[0.08em] reci-reflection-accent" for="reflectionResponse">Your response</label>
-						<textarea id="reflectionResponse" class="min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 text-sm reci-reflection-text outline-none" placeholder="Write your response here..."></textarea>
-						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'toggles' ] ); ?>
-						<div class="mt-4 flex flex-wrap gap-4">
-							<button class="inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-5 py-3 font-['Oswald'] text-xs uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]" type="button" id="saveResponseBtn">Save reflection</button>
-						</div>
-						<div id="responseStatus" class="mt-4 hidden rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text"></div>
-					</div>
-					<div class="mt-6 flex flex-wrap items-center gap-4">
-						<?php get_template_part( 'template-parts/reflection/share-controls', null, [ 'style' => 'panel', 'show' => 'read', 'button_class' => 'reci-continue' ] ); ?>
-						<?php if (($args['transition_mode'] ?? 'button') === 'button' && !empty($args['continue_target']) && $args['continue_target'] !== '#') : ?>
-						<button class="reci-continue" type="button" data-stage-target="<?php echo esc_attr($args['continue_target']); ?>"><?php echo esc_html($args['continue_label']); ?></button>
-						<?php endif; ?>
-					</div>
+					<?php
+					get_template_part( 'template-parts/reflection/prompt-form', null, [
+						'style'           => 'panel',
+						'prompt'          => $args['prompt'],
+						'textarea_class'  => 'min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4 text-sm reci-reflection-text outline-none',
+						'note_class'      => 'mt-4 text-sm reci-reflection-soft-text',
+						'row_class'       => 'mt-4 flex flex-wrap items-center gap-4',
+						'status_class'    => 'mt-4 rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-xs reci-reflection-soft-text',
+						'button_class'    => 'inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-5 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]',
+						'after_save'      => 'inline',
+						'continue_label'  => ( ( $args['transition_mode'] ?? 'button' ) === 'button' && ! empty( $args['continue_target'] ) && $args['continue_target'] !== '#' ) ? $args['continue_label'] : '',
+						'continue_target' => $args['continue_target'],
+						'continue_class'  => 'reci-continue',
+					] );
+					?>
+					
 				</div>
 			</div>
 		</div>

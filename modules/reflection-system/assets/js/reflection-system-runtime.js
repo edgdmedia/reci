@@ -408,151 +408,129 @@
     });
   }
 
-  function initResponses() {
+  /**
+   * Saving a reflection, for every prompt style.
+   *
+   * Each style used to bring its own markup and its own handler: one keyed on
+   * #saveResponseBtn, another on .reci-complete-btn, which is why the styles
+   * behaved differently and why one of them had no button that said save.
+   * They now share template-parts/reflection/prompt-form.php, and this is the
+   * only code that saves.
+   */
+  function initPromptForms() {
     const config = window.RECIReflectionConfig || {};
-    const gate = byId('responseGate');
-    const formShell = byId('responseFormShell');
-    const status = byId('responseStatus');
-    const responseList = byId('responseList');
-    const responseInput = byId('reflectionResponse');
-    const saveButton = byId('saveResponseBtn');
-    const promptTextNode = document.querySelector('#responseFormShell')?.previousElementSibling;
-    const promptText = promptTextNode ? promptTextNode.textContent.replace(/^Prompt:\s*/, '').trim() : '';
-    // Not responseList: the panel that once listed a reader's own entries has
-    // been replaced by the shared list, and writing must keep working without
-    // it. Gate on what saving genuinely needs.
-    if (!responseInput || !saveButton) return;
 
-    const isLoggedIn = Boolean(config.isLoggedIn || Number(config.currentUserId || 0) > 0);
+    document.addEventListener('click', async (event) => {
+      const button = event.target.closest('[data-reci-save]');
+      if (!button) return;
 
-    // Writing is always enabled; the auth modal gates submission.
-    if (gate) {
-      gate.style.display = 'none';
-    }
+      const form = button.closest('[data-reci-prompt]');
+      if (!form) return;
 
-    if (formShell) {
-      formShell.style.opacity = '1';
-    }
+      event.preventDefault();
 
-    if (responseInput) {
-      responseInput.disabled = false;
-    }
+      const input = form.querySelector('[data-reci-response]');
+      const status = form.querySelector('[data-reci-status]');
+      const response = (input?.value || '').trim();
 
-    if (saveButton) {
-      saveButton.disabled = false;
-    }
+      const say = (message) => {
+        if (!status) return;
+        status.textContent = message;
+        status.hidden = false;
+      };
 
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
-
-    async function loadResponses() {
-      if (!responseList) {
-        return;
-      }
-      if (!(window.reciIsLoggedIn || isLoggedIn) || !config.restUrl || !config.reflectionId) {
-        responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">Log in to save and review your reflections.</div>';
-        return;
-      }
-      const url = new URL(config.restUrl);
-      url.searchParams.set('reflection_id', config.reflectionId);
-      const res = await fetch(url.toString(), {
-        credentials: 'same-origin',
-        headers: { 'X-WP-Nonce': (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce }
-      });
-      const data = await res.json();
-      const items = Array.isArray(data.items) ? data.items : [];
-      if (!items.length) {
-        responseList.innerHTML = '<div class="rounded-[18px] bg-[var(--reflection-card)] px-4 py-4 text-sm text-[var(--reflection-soft-text)]">No saved responses yet for this reflection.</div>';
-        return;
-      }
-      responseList.innerHTML = items.map((item) => `
-        <article class="rounded-[18px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-4">
-          <strong>${escapeHtml(item.prompt)}</strong>
-          <p class="mt-2 text-sm leading-7 text-[var(--reflection-soft-text)]">${escapeHtml(item.raw_response)}</p>
-          <time class="mt-3 block text-xs text-[var(--reflection-muted)]" datetime="${item.created_at}">${new Date(item.created_at).toLocaleString()}</time>
-        </article>
-      `).join('');
-    }
-
-    saveButton?.addEventListener('click', async () => {
-      const response = (responseInput?.value || '').trim();
       if (!response) {
-        if (status) {
-          status.textContent = 'Write a response before saving.';
-          status.style.display = 'block';
-        }
+        say('Write something first.');
         return;
       }
 
-      // Writing is allowed without an account; submitting requires one.
-      const loggedInNow = Boolean(window.reciIsLoggedIn || isLoggedIn);
-      if (!loggedInNow && window.reciShowAuthModal) {
-        const authed = await window.reciShowAuthModal();
-        if (!authed) return;
+      // Writing is always open; the account is only needed to keep it.
+      if (typeof window.reciShowAuthModal === 'function') {
+        const signedIn = await window.reciShowAuthModal();
+        if (!signedIn) {
+          say('Your reflection was not saved. Sign in to keep it.');
+          return;
+        }
       }
 
-      const nonce = (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce;
-      if (!config.restUrl || !nonce) {
-        if (status) {
-          status.textContent = 'Unable to save right now.';
-          status.style.display = 'block';
-        }
+      const restUrl = config.restUrl || (window.reciDashboard && window.reciDashboard.restUrl + 'reci/v1/journals');
+      if (!restUrl) {
+        say('Saving is unavailable right now.');
         return;
       }
 
-      saveButton.disabled = true;
-      if (status) {
-        status.textContent = 'Saving...';
-        status.style.display = 'block';
-      }
+      button.disabled = true;
+      say('Saving...');
+
       try {
-        const res = await fetch(config.restUrl, {
+        const res = await fetch(restUrl, {
           method: 'POST',
           credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
-            'X-WP-Nonce': nonce,
+            'X-WP-Nonce': (window.reciDashboard && window.reciDashboard.restNonce) || config.nonce || ''
           },
           body: JSON.stringify({
-            reflection_id: config.reflectionId,
-            prompt: promptText,
-            response,
-          }),
+            reflection_id: form.dataset.reflectionId,
+            prompt: form.dataset.prompt,
+            response
+          })
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Unable to save your response.');
-        // The controls are scoped to this chapter, not looked up by id: a
-        // reflection may hold several prompt chapters.
+
         const intent = window.reciReadShareIntent
-          ? window.reciReadShareIntent(responseInput || saveButton)
+          ? window.reciReadShareIntent(button)
           : { share: false, anonymous: false };
-        if (responseInput) responseInput.value = '';
+
+        let message = 'Reflection saved to your journal.';
+
         if (intent.share && data.id && window.reciPatchJournalShare) {
           try {
             await window.reciPatchJournalShare(data.id, true, intent.anonymous);
             if (intent.reset) intent.reset();
-            if (status) status.textContent = 'Response saved and sent for review.';
+            message = 'Saved and sent for review.';
           } catch (shareError) {
-            if (status) status.textContent = 'Response saved privately. Sharing failed — try again from your dashboard.';
+            message = 'Saved privately. Sharing failed — try again from your dashboard.';
           }
-        } else if (status) {
-          status.textContent = 'Response saved to your account.';
         }
-        await loadResponses();
+
+        if (input) input.value = '';
+
+        // Styles that end on a success panel swap to it; the rest stay put and
+        // simply report.
+        if (form.dataset.afterSave === 'success') {
+          const stage = form.closest('.reci-stage') || document;
+          const shell = stage.querySelector('.reci-reflection-form');
+          const success = stage.querySelector('.reci-reflection-success');
+
+          if (shell && success) {
+            shell.classList.add('hidden');
+            success.classList.remove('hidden');
+            window.setTimeout(() => success.classList.remove('opacity-0'), 50);
+
+            const restart = success.querySelector('.reci-restart-btn');
+            if (restart) restart.addEventListener('click', () => window.location.reload());
+            return;
+          }
+        }
+
+        say(message);
       } catch (error) {
-        if (status) status.textContent = error.message || 'Something went wrong.';
+        say(error.message || 'Something went wrong.');
       } finally {
-        saveButton.disabled = false;
+        button.disabled = false;
       }
     });
 
-    loadResponses();
+    // A continue button that leaves the reflection entirely.
+    document.addEventListener('click', (event) => {
+      const link = event.target.closest('[data-reci-continue-href]');
+      if (!link) return;
+      event.preventDefault();
+      window.location.href = link.getAttribute('data-reci-continue-href');
+    });
   }
 
   let booted = false;
@@ -563,7 +541,7 @@
     initMenuOverlay();
     initTimelineWorld();
     initLightbox();
-    initResponses();
+    initPromptForms();
   }
 
   if (document.readyState === 'loading') {
