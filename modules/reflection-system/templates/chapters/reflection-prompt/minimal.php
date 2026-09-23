@@ -31,21 +31,15 @@ $args = wp_parse_args($args ?? [], [
 				'row_class'      => 'mt-8 flex flex-wrap items-center justify-center gap-4',
 				'status_class'   => 'mt-4 text-sm text-white/70',
 				'button_class'   => 'inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors',
-				'after_save'     => 'success',
+								'success_class'       => 'hidden flex-col items-center justify-center w-full text-center',
+				'success_title_class' => 'text-3xl font-[\'Playfair_Display\'] text-white mb-4',
+				'success_body_class'  => 'text-white/60 text-base mb-10 max-w-md mx-auto',
+				'success_row_class'   => 'flex flex-col sm:flex-row gap-4 justify-center',
+				'restart_class'       => 'inline-flex items-center justify-center border border-white/20 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white/60 hover:border-white/60 hover:text-white transition-colors',
 				'continue_label' => $args['button_label'],
 				'continue_href'  => $args['button_href'],
 			] );
 			?>
-		</div>
-		
-		<div class="reci-reflection-success hidden flex-col items-center justify-center w-full opacity-0 transition-opacity duration-700">
-			<svg class="w-16 h-16 text-white mb-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-			<h3 class="text-3xl font-['Playfair_Display'] text-white mb-4">Reflection Saved</h3>
-			<p class="text-white/60 text-base mb-10 max-w-md mx-auto">Your thoughts have been securely recorded in your private journal.</p>
-			<div class="flex flex-col sm:flex-row gap-4 justify-center">
-				<a href="/reflections" class="inline-flex items-center justify-center border border-white/60 px-8 py-3 font-['Oswald'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors">Return to Gallery</a>
-				<button class="reci-restart-btn inline-flex items-center justify-center border border-white/20 px-8 py-3 font-['Oswald'] text-xs uppercase tracking-[0.14em] text-white/60 no-underline hover:border-white/60 hover:text-white transition-colors" type="button">Start Over</button>
-			</div>
 		</div>
 	</div>
 </section>

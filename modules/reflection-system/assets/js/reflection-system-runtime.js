@@ -498,22 +498,18 @@
 
         if (input) input.value = '';
 
-        // Styles that end on a success panel swap to it; the rest stay put and
-        // simply report.
-        if (form.dataset.afterSave === 'success') {
-          const stage = form.closest('.reci-stage') || document;
-          const shell = stage.querySelector('.reci-reflection-form');
-          const success = stage.querySelector('.reci-reflection-success');
+        // Every style confirms the same way: the writing half swaps for the
+        // confirmation, which the shared form renders in that style's own
+        // palette. This used to differ - three styles showed a panel and two
+        // showed a line of text, so the same action told you different things.
+        const body = form.querySelector('[data-reci-form-body]');
+        const success = form.querySelector('[data-reci-success]');
 
-          if (shell && success) {
-            shell.classList.add('hidden');
-            success.classList.remove('hidden');
-            window.setTimeout(() => success.classList.remove('opacity-0'), 50);
-
-            const restart = success.querySelector('.reci-restart-btn');
-            if (restart) restart.addEventListener('click', () => window.location.reload());
-            return;
-          }
+        if (body && success) {
+          if (status) status.textContent = message;
+          body.hidden = true;
+          success.hidden = false;
+          return;
         }
 
         say(message);
@@ -522,6 +518,29 @@
       } finally {
         button.disabled = false;
       }
+    });
+
+    document.addEventListener('click', (event) => {
+      const restart = event.target.closest('[data-reci-restart]');
+      if (!restart) return;
+
+      const form = restart.closest('[data-reci-prompt]');
+      if (!form) return;
+
+      event.preventDefault();
+
+      // Back to the writing half in place: a reload would lose the reader's
+      // position in the reflection.
+      const body = form.querySelector('[data-reci-form-body]');
+      const success = form.querySelector('[data-reci-success]');
+      const status = form.querySelector('[data-reci-status]');
+
+      if (success) success.hidden = true;
+      if (body) body.hidden = false;
+      if (status) status.hidden = true;
+
+      const input = form.querySelector('[data-reci-response]');
+      if (input) input.focus();
     });
 
     // A continue button that leaves the reflection entirely.

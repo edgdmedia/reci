@@ -31,13 +31,22 @@ $reci_form = wp_parse_args(
 		'note_class'       => 'mt-4 text-sm',
 		'save_label'       => __( 'Save reflection', 'reci-media-hub' ),
 		'placeholder'      => __( 'Write your response here...', 'reci-media-hub' ),
-		// 'inline' leaves the reader where they are; 'success' swaps the form
-		// for the style's own success panel.
-		'after_save'       => 'inline',
 		'continue_label'   => '',
 		'continue_href'    => '',
 		'continue_target'  => '',
 		'continue_class'   => '',
+		// The confirmation belongs to the contract, not to individual styles:
+		// three of them used to show a panel and two showed nothing, so the
+		// same action told you different things depending where you stood.
+		'success_class'    => 'mt-6 flex flex-col items-start gap-2',
+		'success_title'    => __( 'Reflection Saved', 'reci-media-hub' ),
+		'success_body'     => __( 'Your thoughts have been securely recorded in your private journal.', 'reci-media-hub' ),
+		'success_title_class' => '',
+		'success_body_class'  => '',
+		'success_row_class'   => 'mt-6 flex flex-col sm:flex-row gap-4',
+		'restart_label'    => __( 'Start Over', 'reci-media-hub' ),
+		'restart_class'    => '',
+		'gallery_label'    => __( 'Return to Gallery', 'reci-media-hub' ),
 	]
 );
 ?>
@@ -46,8 +55,8 @@ $reci_form = wp_parse_args(
 	data-reci-prompt
 	data-reflection-id="<?php echo esc_attr( (string) get_the_ID() ); ?>"
 	data-prompt="<?php echo esc_attr( (string) $reci_form['prompt'] ); ?>"
-	data-after-save="<?php echo esc_attr( (string) $reci_form['after_save'] ); ?>"
 >
+	<div data-reci-form-body>
 	<textarea
 		data-reci-response
 		class="<?php echo esc_attr( (string) $reci_form['textarea_class'] ); ?>"
@@ -106,4 +115,15 @@ $reci_form = wp_parse_args(
 	</div>
 
 	<p data-reci-status class="<?php echo esc_attr( (string) $reci_form['status_class'] ); ?>" hidden></p>
+	</div>
+
+	<div data-reci-success class="<?php echo esc_attr( (string) $reci_form['success_class'] ); ?>" hidden>
+		<svg class="mb-4 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+		<h3 class="<?php echo esc_attr( (string) $reci_form['success_title_class'] ); ?>"><?php echo esc_html( (string) $reci_form['success_title'] ); ?></h3>
+		<p class="<?php echo esc_attr( (string) $reci_form['success_body_class'] ); ?>"><?php echo esc_html( (string) $reci_form['success_body'] ); ?></p>
+		<div class="<?php echo esc_attr( (string) $reci_form['success_row_class'] ); ?>">
+			<a href="<?php echo esc_url( home_url( '/reflections/' ) ); ?>" class="<?php echo esc_attr( (string) $reci_form['button_class'] ); ?> no-underline"><?php echo esc_html( (string) $reci_form['gallery_label'] ); ?></a>
+			<button type="button" data-reci-restart class="<?php echo esc_attr( (string) ( $reci_form['restart_class'] ?: $reci_form['button_class'] ) ); ?>"><?php echo esc_html( (string) $reci_form['restart_label'] ); ?></button>
+		</div>
+	</div>
 </div>
