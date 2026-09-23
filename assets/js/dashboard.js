@@ -5,11 +5,45 @@
  */
 
 document.addEventListener('DOMContentLoaded', function () {
+
+  /**
+   * Ask a signed-out visitor to join, then repeat their click.
+   *
+   * The button keeps its normal handler: this clears the flag on success and
+   * re-dispatches, so the toggle runs through exactly the same path a
+   * signed-in visitor takes. No loop, because the flag is gone by then.
+   */
+  function promptSignIn(btn, copy) {
+    if (typeof window.reciShowAuthModal !== 'function') {
+      return;
+    }
+
+    window.reciShowAuthModal(copy).then(function (signedIn) {
+      if (!signedIn) {
+        return;
+      }
+
+      btn.removeAttribute('data-requires-auth');
+      btn.click();
+    });
+  }
+
   
   // Bookmark Toggles
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.reci-bookmark-btn');
     if (!btn) return;
+
+    if (btn.hasAttribute('data-requires-auth')) {
+      e.preventDefault();
+      promptSignIn(btn, {
+        title: 'Save This',
+        signinText: 'Sign in to keep this in your saved items.',
+        signupText: 'Create a free account to keep the things you find here.',
+        skipText: 'Not now'
+      });
+      return;
+    }
 
     e.preventDefault();
     const postId = btn.getAttribute('data-post-id');
@@ -41,13 +75,6 @@ document.addEventListener('DOMContentLoaded', function () {
           
           const labelSpan = btn.querySelector('.bookmark-label');
           if (labelSpan) labelSpan.textContent = isBookmarked ? 'Saved' : 'Save';
-
-          // The server returns the authoritative count, so the number never
-          // drifts from what another reader would see.
-          const countSpan = btn.querySelector('.reci-bookmark-count');
-          if (countSpan && typeof data.data.count === 'number') {
-            countSpan.textContent = String(data.data.count);
-          }
         }
       });
   });
@@ -56,6 +83,17 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.reci-like-btn');
     if (!btn) return;
+
+    if (btn.hasAttribute('data-requires-auth')) {
+      e.preventDefault();
+      promptSignIn(btn, {
+        title: 'Like This',
+        signinText: 'Sign in to like this and find it again later.',
+        signupText: 'Create a free account to like the work you value here.',
+        skipText: 'Not now'
+      });
+      return;
+    }
 
     e.preventDefault();
     const postId = btn.getAttribute('data-post-id');
@@ -87,11 +125,6 @@ document.addEventListener('DOMContentLoaded', function () {
           
           const labelSpan = btn.querySelector('.like-label');
           if (labelSpan) labelSpan.textContent = isLiked ? 'Liked' : 'Like';
-
-          const countSpan = btn.querySelector('.reci-like-count');
-          if (countSpan && typeof data.data.count === 'number') {
-            countSpan.textContent = String(data.data.count);
-          }
         }
       });
   });

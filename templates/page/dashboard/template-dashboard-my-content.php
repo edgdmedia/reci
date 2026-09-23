@@ -108,6 +108,7 @@ get_header('dashboard');
 							<th class="pb-3 pr-4 font-medium">Type</th>
 							<th class="pb-3 pr-4 font-medium">Status</th>
 							<th class="pb-3 pr-4 font-medium">Date</th>
+							<th class="pb-3 pr-4 font-medium" title="How many members liked or saved this">Likes / Saves</th>
 							<th class="pb-3 font-medium">Actions</th>
 						</tr>
 					</thead>
@@ -134,6 +135,18 @@ get_header('dashboard');
 								</span>
 							</td>
 							<td class="py-3 pr-4 text-zinc-500"><?php echo esc_html( get_the_modified_date() ); ?></td>
+							<td class="py-3 pr-4 text-zinc-600 tabular-nums">
+								<?php
+								// Engagement is the author's own feedback, not a
+								// public scoreboard, so it lives here rather than
+								// on the post.
+								printf(
+									'%d / %d',
+									function_exists( 'reci_get_like_count' ) ? reci_get_like_count( get_the_ID() ) : 0,
+									function_exists( 'reci_get_bookmark_count' ) ? reci_get_bookmark_count( get_the_ID() ) : 0
+								);
+								?>
+							</td>
 							<td class="py-3">
 								<div class="flex items-center gap-3">
 									<?php if ( $can_edit ) : ?>

@@ -151,3 +151,67 @@ function reci_backfill_engagement_counts(): int {
 
 	return count( $tally );
 }
+
+// ---------------------------------------------------------------------------
+// Admin columns
+// ---------------------------------------------------------------------------
+
+/**
+ * Post types that carry like and save buttons on the front end.
+ *
+ * @return array<int,string>
+ */
+function reci_engagement_post_types(): array {
+	return [ 'post', 'reci_podcast', 'reci_video', 'reci_course', 'reci_document' ];
+}
+
+add_action( 'admin_init', 'reci_register_engagement_columns' );
+function reci_register_engagement_columns(): void {
+	foreach ( reci_engagement_post_types() as $post_type ) {
+		add_filter( "manage_{$post_type}_posts_columns", 'reci_add_engagement_column' );
+		add_action( "manage_{$post_type}_posts_custom_column", 'reci_render_engagement_column', 10, 2 );
+	}
+}
+
+/**
+ * Add the column, before the date so it is not pushed off the edge.
+ *
+ * @param array<string,string> $columns
+ *
+ * @return array<string,string>
+ */
+function reci_add_engagement_column( array $columns ): array {
+	$date = $columns['date'] ?? null;
+	unset( $columns['date'] );
+
+	$columns['reci_engagement'] = __( 'Likes / Saves', 'reci-media-hub' );
+
+	if ( null !== $date ) {
+		$columns['date'] = $date;
+	}
+
+	return $columns;
+}
+
+/**
+ * Render the counts.
+ */
+function reci_render_engagement_column( string $column, int $post_id ): void {
+	if ( 'reci_engagement' !== $column ) {
+		return;
+	}
+
+	printf(
+		'<span style="font-variant-numeric:tabular-nums">%d / %d</span>',
+		reci_get_like_count( $post_id ),
+		reci_get_bookmark_count( $post_id )
+	);
+}
+
+/*
+ * Deliberately not sortable. Ordering by a meta key drops every post that has
+ * no such meta row, and a post nobody has liked yet has none - so sorting the
+ * column would quietly hide most of the list. Making it sortable safely means
+ * writing a zero for every post on publish, which is a bigger change than the
+ * column is worth.
+ */

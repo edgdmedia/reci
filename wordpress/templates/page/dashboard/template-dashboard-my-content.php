@@ -17,7 +17,7 @@ $search        = sanitize_text_field( $_GET['s'] ?? '' );
 
 $args = [
 	'author'         => $current_user->ID,
-	'post_type'      => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_quote', 'reci_course', 'reci_testimonial', 'reci_glossary_term' ],
+	'post_type'      => [ 'post', 'reci_podcast', 'reci_video', 'reci_event', 'reci_course', 'reci_document' ],
 	'post_status'    => [ 'publish', 'pending', 'draft' ],
 	'posts_per_page' => 20,
 	'paged'          => $paged,
@@ -37,21 +37,53 @@ $content_query = new WP_Query( $args );
 
 get_header('dashboard');
 ?>
-<main class="layout-page">
+<main class="layout-page bg-slate-50">
 	<div class="flex flex-col lg:flex-row min-h-screen">
 		<?php get_template_part( 'template-parts/dashboard/sidebar' ); ?>
 		<div class="flex-1 p-6 lg:p-10">
-			<div class="flex items-center justify-between mb-8">
-				<h1 class="text-2xl font-bold font-heading text-zinc-800">My Content</h1>
-				<a href="<?php echo esc_url( home_url( '/dashboard/submit/' ) ); ?>" class="inline-flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors">
-					+ Submit New
-				</a>
-			</div>
+			<?php
+			get_template_part(
+				'template-parts/dashboard/page-header',
+				null,
+				[
+					'title'    => 'My Content',
+					'subtitle' => 'Everything you have written, and where each piece stands.',
+					// Writing and cataloguing are different jobs, so both are
+					// offered rather than picking one by capability.
+					'action'   => sprintf(
+						'<a href="%s" class="btn btn-primary btn-md">%s</a> <a href="%s" class="btn btn-outline-primary btn-md">%s</a>',
+						esc_url( home_url( '/dashboard/my-content/new/' ) ),
+						esc_html__( 'Write new post', 'reci-media-hub' ),
+						esc_url( home_url( '/submit/' ) ),
+						esc_html__( 'Submit existing work', 'reci-media-hub' )
+					),
+				]
+			);
+			?>
+			<?php
+			$edited_messages = [
+				'1'            => __( 'Your changes have been saved.', 'reci-media-hub' ),
+				'resubmitted'  => __( 'Your changes have been saved and sent for review. The piece will return to the site once staff approve it.', 'reci-media-hub' ),
+				'trashed'      => __( 'That submission has been moved to the trash.', 'reci-media-hub' ),
+			];
+			$edited_code = isset( $_GET['edited'] ) ? sanitize_key( wp_unslash( $_GET['edited'] ) ) : '';
+			$listing_error = isset( $_GET['edit_error'] ) ? sanitize_key( wp_unslash( $_GET['edit_error'] ) ) : '';
+			?>
+			<?php if ( isset( $edited_messages[ $edited_code ] ) ) : ?>
+				<div class="mb-6 rounded-2xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800" role="status">
+					<?php echo esc_html( $edited_messages[ $edited_code ] ); ?>
+				</div>
+			<?php elseif ( '' !== $listing_error ) : ?>
+				<div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800" role="alert">
+					<?php esc_html_e( 'That action could not be completed.', 'reci-media-hub' ); ?>
+				</div>
+			<?php endif; ?>
+
 
 			<form method="get" class="flex flex-wrap gap-3 mb-6">
 				<select name="type" class="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm">
 					<option value="">All Types</option>
-					<?php foreach ( [ 'post' => 'Articles', 'reci_podcast' => 'Podcasts', 'reci_video' => 'Videos', 'reci_event' => 'Events', 'reci_quote' => 'Quotes', 'reci_course' => 'Courses', 'reci_testimonial' => 'Testimonials', 'reci_glossary_term' => 'Glossary' ] as $val => $label ) : ?>
+					<?php foreach ( [ 'post' => 'Articles', 'reci_podcast' => 'Podcasts', 'reci_video' => 'Videos', 'reci_event' => 'Events', 'reci_course' => 'Courses', 'reci_document' => 'Resources' ] as $val => $label ) : ?>
 					<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $filter_type, $val ); ?>><?php echo esc_html( $label ); ?></option>
 					<?php endforeach; ?>
 				</select>
@@ -66,7 +98,7 @@ get_header('dashboard');
 			</form>
 
 			<?php if ( ! $content_query->have_posts() ) : ?>
-			<p class="text-zinc-500">No content found. Submit your first piece to get started.</p>
+			<p class="text-zinc-500">No contributions found yet. Submit your first piece to get started.</p>
 			<?php else : ?>
 			<div class="overflow-x-auto">
 				<table class="w-full text-sm">
@@ -76,14 +108,22 @@ get_header('dashboard');
 							<th class="pb-3 pr-4 font-medium">Type</th>
 							<th class="pb-3 pr-4 font-medium">Status</th>
 							<th class="pb-3 pr-4 font-medium">Date</th>
+							<th class="pb-3 pr-4 font-medium" title="How many members liked or saved this">Likes / Saves</th>
 							<th class="pb-3 font-medium">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 						<?php while ( $content_query->have_posts() ) : $content_query->the_post(); ?>
 						<tr class="border-b border-zinc-100 hover:bg-zinc-50">
+							<?php
+							// get_edit_post_link() is a wp-admin URL and returns nothing for a
+							// collaborator anyway — they are Subscribers. Point at the dashboard
+							// editor instead, which is the only surface they can reach.
+							$can_edit = reci_user_can_edit_submission( get_the_ID() );
+							$row_url  = $can_edit ? reci_submission_edit_url( get_the_ID() ) : get_permalink();
+							?>
 							<td class="py-3 pr-4">
-								<a href="<?php echo esc_url( get_edit_post_link() ?: get_permalink() ); ?>" class="font-medium text-zinc-800 hover:text-amber-700">
+								<a href="<?php echo esc_url( $row_url ); ?>" class="font-medium text-zinc-800 hover:text-amber-700">
 									<?php echo esc_html( get_the_title() ?: '(untitled)' ); ?>
 								</a>
 							</td>
@@ -95,8 +135,25 @@ get_header('dashboard');
 								</span>
 							</td>
 							<td class="py-3 pr-4 text-zinc-500"><?php echo esc_html( get_the_modified_date() ); ?></td>
+							<td class="py-3 pr-4 text-zinc-600 tabular-nums">
+								<?php
+								// Engagement is the author's own feedback, not a
+								// public scoreboard, so it lives here rather than
+								// on the post.
+								printf(
+									'%d / %d',
+									function_exists( 'reci_get_like_count' ) ? reci_get_like_count( get_the_ID() ) : 0,
+									function_exists( 'reci_get_bookmark_count' ) ? reci_get_bookmark_count( get_the_ID() ) : 0
+								);
+								?>
+							</td>
 							<td class="py-3">
-								<a href="<?php echo esc_url( get_edit_post_link() ?: get_permalink() ); ?>" class="text-amber-600 hover:text-amber-700 text-xs font-medium"><?php echo get_edit_post_link() ? 'Edit' : 'View'; ?></a>
+								<div class="flex items-center gap-3">
+									<?php if ( $can_edit ) : ?>
+										<a href="<?php echo esc_url( reci_submission_edit_url( get_the_ID() ) ); ?>" class="text-amber-600 hover:text-amber-700 text-xs font-medium">Edit</a>
+									<?php endif; ?>
+									<a href="<?php echo esc_url( get_permalink() ); ?>" class="text-zinc-500 hover:text-zinc-700 text-xs font-medium">View</a>
+								</div>
 							</td>
 						</tr>
 						<?php endwhile; wp_reset_postdata(); ?>
