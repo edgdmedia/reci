@@ -505,51 +505,6 @@ function reci_ajax_modal_signin(): void {
 	);
 }
 
-add_action( 'wp_ajax_nopriv_reci_modal_signup', 'reci_ajax_modal_signup' );
-function reci_ajax_modal_signup(): void {
-	check_ajax_referer( 'reci_dashboard_nonce', 'nonce' );
-	$email    = sanitize_email( $_POST['email'] ?? '' );
-	$password = $_POST['password'] ?? '';
-	$name     = sanitize_text_field( $_POST['display_name'] ?? '' );
-
-	if ( email_exists( $email ) ) {
-		wp_send_json_error( [ 'message' => 'An account with this email already exists.' ] );
-	}
-	// Use the same rule as sign-up and the collaborator application; this check
-	// was a bare length test, so the modal was a way around the password policy.
-	if ( function_exists( 'reci_password_error_code' ) ) {
-		$password_error = reci_password_error_code( (string) $password );
-		if ( '' !== $password_error ) {
-			$messages = function_exists( 'reci_password_error_messages' ) ? reci_password_error_messages() : [];
-			wp_send_json_error( [ 'message' => $messages[ $password_error ] ?? 'Please choose a stronger password.' ] );
-		}
-	} elseif ( strlen( $password ) < 8 ) {
-		wp_send_json_error( [ 'message' => 'Password must be at least 8 characters.' ] );
-	}
-
-	$user_id = wp_insert_user( [
-		'user_login'   => $email,
-		'user_email'   => $email,
-		'display_name' => $name,
-		'user_pass'    => $password,
-		'role'         => 'subscriber',
-	] );
-
-	if ( is_wp_error( $user_id ) ) {
-		wp_send_json_error( [ 'message' => $user_id->get_error_message() ] );
-	}
-
-	wp_set_current_user( $user_id );
-	wp_set_auth_cookie( $user_id );
-	wp_send_json_success(
-		[
-			'user_id'         => $user_id,
-			'rest_nonce'      => wp_create_nonce( 'wp_rest' ),
-			'dashboard_nonce' => wp_create_nonce( 'reci_dashboard_nonce' ),
-		]
-	);
-}
-
 // ---------------------------------------------------------------------------
 // Enqueue dashboard JS
 // ---------------------------------------------------------------------------
