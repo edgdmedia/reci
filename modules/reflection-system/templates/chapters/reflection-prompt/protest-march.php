@@ -47,6 +47,8 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 				<?php
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'prompt'              => $args['prompt'],
+			'continue_label'      => $args['continue_label'] ?? '',
+			'continue_target'     => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? ( $args['continue_target'] ?? '' ) : '',
 			'align'         => 'center',
 			'form_class'    => 'mx-auto max-w-[640px]',
 			'textarea_tone'       => 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40',

@@ -37,6 +37,8 @@ $args = wp_parse_args($args ?? [], [
 				<?php
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'prompt'              => $args['prompt'],
+			'continue_label'      => $args['continue_label'] ?? '',
+			'continue_target'     => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? ( $args['continue_target'] ?? '' ) : '',
 			'align'         => 'center',
 			'form_class'    => 'mx-auto max-w-[640px] px-4',
 			'textarea_tone'       => 'border-white/20 bg-white/5 text-white placeholder:text-white/40',

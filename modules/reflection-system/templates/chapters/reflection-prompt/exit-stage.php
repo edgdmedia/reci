@@ -44,6 +44,8 @@ $args = wp_parse_args($args ?? [], [
 					<?php
 					get_template_part( 'template-parts/reflection/prompt-form', null, [
 						'prompt'              => $args['prompt'],
+						'continue_label'      => $args['continue_label'] ?? '',
+						'continue_target'     => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? ( $args['continue_target'] ?? '' ) : '',
 						'textarea_tone'       => 'border-[color:var(--reflection-border)] bg-transparent reci-reflection-text',
 						'button_class'        => 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] bg-transparent px-6 py-3 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] reci-reflection-text no-underline hover:bg-[var(--reflection-card-strong)]',
 						'tone_class'          => 'reci-reflection-soft-text',

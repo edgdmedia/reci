@@ -35,6 +35,11 @@ $reci_form = wp_parse_args(
 		// Centred styles need their controls centred and their writing box
 		// reined in; left-aligned panel styles do not.
 		'align'         => 'left',
+		// A prompt is not always the last chapter. When the author points this
+		// one at a following chapter, the third action carries the reader on
+		// instead of dropping them back to the gallery.
+		'continue_label'  => '',
+		'continue_target' => '',
 		'form_class'    => '',
 		'success_title_class' => '',
 		'success_body_class'  => '',
@@ -95,10 +100,22 @@ $reci_shared_count = function_exists( 'reci_get_shared_journal_count' )
 				><?php esc_html_e( 'Shared Reflections', 'reci-media-hub' ); ?></button>
 			<?php endif; ?>
 
-			<a
-				href="<?php echo esc_url( home_url( '/reflections/' ) ); ?>"
-				class="<?php echo esc_attr( (string) $reci_form['button_class'] ); ?> no-underline"
-			><?php esc_html_e( 'Back to Gallery', 'reci-media-hub' ); ?></a>
+			<?php
+			$reci_next = (string) $reci_form['continue_target'];
+			$reci_next = ( '' !== $reci_next && '#' !== $reci_next ) ? $reci_next : '';
+			?>
+			<?php if ( '' !== $reci_next ) : ?>
+				<button
+					type="button"
+					data-stage-target="<?php echo esc_attr( $reci_next ); ?>"
+					class="<?php echo esc_attr( (string) $reci_form['button_class'] ); ?>"
+				><?php echo esc_html( (string) $reci_form['continue_label'] ?: __( 'Continue', 'reci-media-hub' ) ); ?></button>
+			<?php else : ?>
+				<a
+					href="<?php echo esc_url( home_url( '/reflections/' ) ); ?>"
+					class="<?php echo esc_attr( (string) $reci_form['button_class'] ); ?> no-underline"
+				><?php esc_html_e( 'Back to Gallery', 'reci-media-hub' ); ?></a>
+			<?php endif; ?>
 		</div>
 
 		<p data-reci-status class="mt-4 text-sm <?php echo esc_attr( (string) $reci_form['tone_class'] ); ?>" hidden></p>

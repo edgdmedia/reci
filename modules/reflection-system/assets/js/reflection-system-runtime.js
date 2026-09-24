@@ -34,6 +34,15 @@
       event.preventDefault();
       let target = trigger.getAttribute('data-stage-target') || '';
       
+      // The render service always prefixes a continue target with "stage-",
+      // but only prefixes a chapter id when the author left it blank. So a
+      // target naming an author-set id never matches it literally. Try both
+      // spellings before falling back.
+      if (target && !document.getElementById(target)) {
+        const alt = target.startsWith('stage-') ? target.slice(6) : 'stage-' + target;
+        if (document.getElementById(alt)) target = alt;
+      }
+
       // If the target is empty or broken, auto-advance to the next chronological chapter
       if (!target || !document.getElementById(target)) {
         const currentStage = trigger.closest('.reci-stage');
