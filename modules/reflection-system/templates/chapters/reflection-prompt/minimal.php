@@ -39,6 +39,8 @@ $args = wp_parse_args($args ?? [], [
 			<?php
 			get_template_part( 'template-parts/reflection/prompt-form', null, [
 				'prompt'              => $args['prompt'],
+				'align'         => 'center',
+				'form_class'    => 'mx-auto max-w-[640px] px-4',
 				'textarea_tone'       => 'border-white/20 bg-[#222] text-white placeholder:text-white/40',
 				'button_class'        => 'inline-flex items-center justify-center border border-white/60 px-8 py-3 font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white no-underline hover:bg-white hover:text-black transition-colors',
 				'tone_class'          => 'text-white/70',

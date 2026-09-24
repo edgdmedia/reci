@@ -32,20 +32,25 @@ $reci_form = wp_parse_args(
 		'tone_class'    => 'reci-reflection-soft-text',
 		'save_label'    => __( 'Save reflection', 'reci-media-hub' ),
 		'placeholder'   => __( 'Write your response here...', 'reci-media-hub' ),
+		// Centred styles need their controls centred and their writing box
+		// reined in; left-aligned panel styles do not.
+		'align'         => 'left',
+		'form_class'    => '',
 		'success_title_class' => '',
 		'success_body_class'  => '',
 	]
 );
 
 $reci_textarea_base = 'block w-full rounded-[18px] border p-4 text-base leading-7 outline-none';
-$reci_row_base      = 'mt-5 flex flex-wrap items-center gap-3';
+$reci_is_center     = 'center' === $reci_form['align'];
+$reci_row_base      = 'mt-5 flex flex-wrap items-center gap-3' . ( $reci_is_center ? ' justify-center' : '' );
 
 $reci_shared_count = function_exists( 'reci_get_shared_journal_count' )
 	? reci_get_shared_journal_count( (int) get_the_ID() )
 	: 0;
 ?>
 <div
-	class="reci-prompt mt-6 w-full"
+	class="reci-prompt mt-6 w-full <?php echo esc_attr( (string) $reci_form['form_class'] ); ?>"
 	data-reci-prompt
 	data-reflection-id="<?php echo esc_attr( (string) get_the_ID() ); ?>"
 	data-prompt="<?php echo esc_attr( (string) $reci_form['prompt'] ); ?>"
@@ -70,6 +75,7 @@ $reci_shared_count = function_exists( 'reci_get_shared_journal_count' )
 			null,
 			[
 				'tone_class' => $reci_form['tone_class'],
+			'align'      => $reci_form['align'],
 			]
 		);
 		?>
@@ -98,7 +104,7 @@ $reci_shared_count = function_exists( 'reci_get_shared_journal_count' )
 		<p data-reci-status class="mt-4 text-sm <?php echo esc_attr( (string) $reci_form['tone_class'] ); ?>" hidden></p>
 	</div>
 
-	<div data-reci-success class="flex-col items-start" hidden>
+	<div data-reci-success class="flex-col <?php echo $reci_is_center ? 'items-center text-center' : 'items-start'; ?>" hidden>
 		<svg class="m-auto mb-4 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
 		<h3 class="<?php echo esc_attr( (string) $reci_form['success_title_class'] ); ?>"><?php esc_html_e( 'Reflection Saved', 'reci-media-hub' ); ?></h3>
 		<p class="<?php echo esc_attr( (string) $reci_form['success_body_class'] ); ?>"><?php esc_html_e( 'Your thoughts have been securely recorded in your private journal.', 'reci-media-hub' ); ?></p>

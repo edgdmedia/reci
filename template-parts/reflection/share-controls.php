@@ -25,18 +25,19 @@ $reci_share = wp_parse_args(
 	$args ?? [],
 	[
 		'tone_class' => 'reci-reflection-soft-text',
+		'align'      => 'left',
 	]
 );
 
 $reci_info = static function ( string $text ): void {
 	printf(
-		'<button type="button" class="reci-info" aria-label="%1$s" title="%2$s"><span aria-hidden="true">i</span><span class="screen-reader-text">%2$s</span></button>',
+		'<button type="button" class="reci-info" aria-label="%1$s" title="%2$s"><span aria-hidden="true">i</span><span class="reci-sr-only">%2$s</span></button>',
 		esc_attr__( 'More information', 'reci-media-hub' ),
 		esc_attr( $text )
 	);
 };
 ?>
-<div class="reci-share-controls mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm <?php echo esc_attr( (string) $reci_share['tone_class'] ); ?>" data-reci-share-controls>
+<div class="reci-share-controls mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm <?php echo 'center' === $reci_share['align'] ? 'justify-center ' : ''; ?><?php echo esc_attr( (string) $reci_share['tone_class'] ); ?>" data-reci-share-controls>
 	<label class="inline-flex items-center gap-2">
 		<input type="checkbox" data-reci-share />
 		<span><?php esc_html_e( 'Share this reflection', 'reci-media-hub' ); ?></span>
@@ -72,4 +73,19 @@ $reci_info = static function ( string $text ): void {
 }
 .reci-info:hover,
 .reci-info:focus-visible { opacity: 1; }
+
+/* Defined here rather than borrowed from the theme: reflection pages do not
+   load the stylesheet that carries screen-reader-text, so the text meant for
+   assistive tech was simply printed on the page. */
+.reci-sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
 </style>

@@ -43,11 +43,12 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 			'card_body_class'  => 'text-sm leading-7 text-white/70',
 		] );
 		?>
-		<h2 class="mb-[1.75rem] font-['Oswald'] text-[clamp(2.8rem,5vw,4.2rem)] uppercase tracking-[0.04em] reci-reflection-accent">Your Reflection</h2>
 		<p class="mx-auto mb-[2rem] max-w-[38rem] text-[clamp(1.15rem,2vw,1.6rem)] leading-[1.65] text-[rgba(255,255,255,0.92)]"><?php echo reci_reflection_format_text($args['prompt']); ?></p>
 				<?php
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'prompt'              => $args['prompt'],
+			'align'         => 'center',
+			'form_class'    => 'mx-auto max-w-[640px]',
 			'textarea_tone'       => 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40',
 			'button_class'        => 'inline-flex items-center justify-center border border-white/60 bg-transparent px-8 py-4 font-[\'Oswald\'] text-base uppercase tracking-[2px] text-white no-underline transition-colors hover:bg-white hover:text-black',
 			'tone_class'          => 'text-white/70',
