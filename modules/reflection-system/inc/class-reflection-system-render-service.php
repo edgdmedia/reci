@@ -280,6 +280,15 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 				$hotspot_ring = $is_override ? ($props['color_hotspot_ring'] ?? '') : '';
 				$hotspot_ring = $hotspot_ring ?: ($global_settings['color_hotspot_ring'] ?? '');
 
+				// A style that sets its own background but no surface used to keep
+				// the theme's dark default for cards and panels. On a light
+				// background that produced dark cards carrying text coloured for
+				// the light one - headings at 1.02:1, effectively invisible.
+				// Surface follows the background unless the style names its own.
+				if ($surface === '' && $bg !== '') {
+					$surface = $bg;
+				}
+
 				if ($bg !== '') $style .= '--reflection-bg: ' . esc_attr($bg) . ';';
 				if ($heading !== '') $style .= '--reflection-heading: ' . esc_attr($heading) . ';';
 				if ($body !== '') $style .= '--reflection-body: ' . esc_attr($body) . ';';

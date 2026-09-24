@@ -316,7 +316,8 @@ if (! function_exists('reci_reflection_system_styles')) {
 					'primary' => '#2A4494',
 					'bg' => '#f4f4f4',
 					'heading' => '#111111',
-					'body' => '#a0a0a0',
+					// Was #a0a0a0, which is 2.38:1 on this background.
+					'body' => '#3f3f46',
 					'accent' => '#2A4494',
 				],
 				'chapters' => [
