@@ -45,7 +45,7 @@ $args = wp_parse_args($args ?? [], [
 					get_template_part( 'template-parts/reflection/prompt-form', null, [
 						'prompt'              => $args['prompt'],
 						'textarea_tone'       => 'border-[color:var(--reflection-border)] bg-transparent reci-reflection-text',
-						'button_class'        => 'inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-3 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)] no-underline',
+						'button_class'        => 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] bg-transparent px-6 py-3 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] reci-reflection-text no-underline hover:bg-[var(--reflection-card-strong)]',
 						'tone_class'          => 'reci-reflection-soft-text',
 						'success_title_class' => 'mb-3 font-[\'Playfair_Display\'] text-3xl font-semibold reci-reflection-text',
 						'success_body_class'  => 'mb-2 text-base leading-8 reci-reflection-soft-text',

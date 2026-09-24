@@ -34,7 +34,7 @@ if (! empty($args['section_attributes']) && is_array($args['section_attributes']
 		get_template_part( 'template-parts/reflection/prompt-form', null, [
 			'prompt'              => $args['prompt'],
 			'textarea_tone'       => 'border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.08)] text-white placeholder:text-white/40',
-			'button_class'        => 'inline-flex items-center justify-center bg-[var(--reflection-accent)] px-8 py-4 font-[\'Oswald\'] text-base uppercase tracking-[2px] text-white no-underline transition-transform hover:scale-105',
+			'button_class'        => 'inline-flex items-center justify-center border border-white/60 bg-transparent px-8 py-4 font-[\'Oswald\'] text-base uppercase tracking-[2px] text-white no-underline transition-colors hover:bg-white hover:text-black',
 			'tone_class'          => 'text-white/70',
 			'success_title_class' => 'mb-3 font-[\'Oswald\'] text-3xl uppercase tracking-[0.04em] text-white',
 			'success_body_class'  => 'mb-2 text-base text-[rgba(255,255,255,0.92)]',
