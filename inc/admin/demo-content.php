@@ -2725,7 +2725,7 @@ function reci_demo_black_wall_street_blueprint( array $img = [] ): array {
 			[
 				'id'      => 'bws-prosperity-stats',
 				'family'  => 'data-cards',
-				'variant' => 'analytical',
+				'variant' => 'analytical-light',
 				'props'   => [
 					'id'              => 'bws-prosperity-stats',
 					'title'           => 'A Self-Made Economy',

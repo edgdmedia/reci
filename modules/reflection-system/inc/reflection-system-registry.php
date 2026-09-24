@@ -323,7 +323,7 @@ if (! function_exists('reci_reflection_system_styles')) {
 				'chapters' => [
 					[
 						'family' => 'hero',
-						'variant' => 'analytical',
+						'variant' => 'analytical-light',
 						'props' => [
 							'id' => 'rd-hero',
 							'use_background_image' => '1',
@@ -337,7 +337,7 @@ if (! function_exists('reci_reflection_system_styles')) {
 					],
 					[
 						'family' => 'data-cards',
-						'variant' => 'analytical',
+						'variant' => 'analytical-light',
 						'props' => [
 							'id' => 'rd-analysis',
 							'title' => 'The Data',
@@ -692,9 +692,8 @@ if (! function_exists('reci_reflection_system_registry')) {
 				'label' => 'Data Cards',
 				'kind' => 'chapter',
 				'loader' => 'modules/reflection-system/templates/chapters/chapter-data-cards',
-				'default_variant' => 'analytical',
+				'default_variant' => 'analytical-dark',
 				'variants' => [
-					'analytical' => 'Analytical (Inherit)',
 					'analytical-light' => 'Analytical (Light Card)',
 					'analytical-dark' => 'Analytical (Dark Card)',
 				],
