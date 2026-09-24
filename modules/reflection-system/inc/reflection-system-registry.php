@@ -303,8 +303,6 @@ if (! function_exists('reci_reflection_system_styles')) {
 						'props' => [
 							'id' => 'bc-reflect',
 							'prompt' => 'What does breaking chains mean to you in your own life?',
-							'button_label' => 'Submit Reflection',
-							'button_href' => '/reflections/'
 						]
 					]
 				]
@@ -526,8 +524,11 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
 					'prompt' => ['type' => 'textarea', 'label' => 'Prompt', 'required' => true],
-					'button_label' => ['type' => 'text', 'label' => 'Button label'],
-					'button_href' => ['type' => 'text', 'label' => 'Button href'],
+					'intro' => ['type' => 'textarea', 'label' => 'Intro'],
+					'cards' => ['type' => 'repeater', 'label' => 'Cards', 'itemFields' => [
+						'title' => ['type' => 'text', 'label' => 'Card title'],
+						'body' => ['type' => 'textarea', 'label' => 'Card body'],
+					]],
 				]),
 			],
 			// Appended automatically by the render service when a reflection has

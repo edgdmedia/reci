@@ -20,7 +20,22 @@ $args = wp_parse_args($args ?? [], [
 <section class="reci-stage" id="<?php echo esc_attr($args['id']); ?>" data-stage="<?php echo esc_attr($args['id']); ?>" data-reflection-id="<?php echo esc_attr(get_the_ID()); ?>" data-prompt="<?php echo esc_attr($args['prompt'] ?: $args['title']); ?>">
 	<div class="flex min-h-screen w-full flex-col items-center justify-center bg-[#0a0a0a] px-5 py-16 text-center text-white">
 		<div class="reci-reflection-form flex flex-col items-center justify-center w-full">
-			<h2 class="max-w-[820px] font-['Playfair_Display'] text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"><?php echo reci_reflection_format_text($args['prompt'] ?: $args['title']); ?></h2>
+						<?php
+			get_template_part( 'template-parts/reflection/prompt-intro', null, [
+				'eyebrow'          => $args['eyebrow'] ?? '',
+				'title'            => $args['title'] ?? '',
+				'intro'            => $args['intro'] ?? '',
+				'cards'            => $args['cards'] ?? [],
+				'eyebrow_class'    => 'font-[\'Oswald\'] text-xs uppercase tracking-[0.14em] text-white/60',
+				'title_class'      => 'mt-3 max-w-[820px] font-[\'Playfair_Display\'] text-2xl leading-tight text-white sm:text-3xl',
+				'intro_class'      => 'mt-4 max-w-[640px] text-base leading-8 text-white/70',
+				'cards_class'      => 'mt-6 grid w-full max-w-[820px] gap-4 md:grid-cols-2',
+				'card_class'       => 'border border-white/15 bg-white/5 p-5 text-left',
+				'card_title_class' => 'mb-2 font-[\'Playfair_Display\'] text-xl text-white',
+				'card_body_class'  => 'text-sm leading-7 text-white/70',
+			] );
+			?>
+			<h2 class="max-w-[820px] font-['Playfair_Display'] text-3xl leading-tight text-white sm:text-4xl lg:text-5xl"><?php echo reci_reflection_format_text($args['prompt']); ?></h2>
 			<?php
 			get_template_part( 'template-parts/reflection/prompt-form', null, [
 				'prompt'              => $args['prompt'],

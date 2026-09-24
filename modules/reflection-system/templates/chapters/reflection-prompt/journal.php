@@ -26,14 +26,21 @@ $args = wp_parse_args($args ?? [], [
 			<div class="reci-stage-grid lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-start">
 				<div class="flex max-h-[70vh] flex-col rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">
 					<div class="reci-scroll-panel !justify-start">
-						<div class="font-['Oswald'] text-xs uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
-						<h2 class="mt-3 font-['Playfair_Display'] text-3xl font-semibold leading-tight reci-reflection-text sm:text-4xl"><?php echo esc_html($args['title']); ?></h2>
-						<p class="mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8"><?php echo reci_reflection_format_text($args['intro']); ?></p>
-						<div class="mt-6 grid gap-4 md:grid-cols-2">
-							<?php foreach ((array) $args['cards'] as $card) : ?>
-								<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5"><h3 class="mb-2 font-['Playfair_Display'] text-xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3><p class="text-sm leading-7 reci-reflection-soft-text"><?php echo reci_reflection_format_text($card['body']); ?></p></article>
-							<?php endforeach; ?>
-						</div>
+						<?php
+						get_template_part( 'template-parts/reflection/prompt-intro', null, [
+							'eyebrow'          => $args['eyebrow'] ?? '',
+							'title'            => $args['title'] ?? '',
+							'intro'            => $args['intro'] ?? '',
+							'cards'            => $args['cards'] ?? [],
+							'eyebrow_class'    => 'font-[\'Oswald\'] text-xs uppercase tracking-[0.12em] reci-reflection-accent',
+							'title_class'      => 'mt-3 font-[\'Playfair_Display\'] text-3xl font-semibold leading-tight reci-reflection-text sm:text-4xl',
+							'intro_class'      => 'mt-4 text-sm leading-7 reci-reflection-soft-text sm:text-base sm:leading-8',
+							'cards_class'      => 'mt-6 grid gap-4 md:grid-cols-2',
+							'card_class'       => 'rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5',
+							'card_title_class' => 'mb-2 font-[\'Playfair_Display\'] text-xl font-semibold reci-reflection-text',
+							'card_body_class'  => 'text-sm leading-7 reci-reflection-soft-text',
+						] );
+						?>
 					</div>
 				</div>
 				<div class="reci-scroll-panel !justify-start rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] p-6">

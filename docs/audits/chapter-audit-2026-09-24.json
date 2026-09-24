@@ -1,0 +1,937 @@
+[
+    {
+        "family": "hero",
+        "label": "Hero",
+        "editableFields": [
+            "eyebrow",
+            "title",
+            "title_accent",
+            "subtitle",
+            "body",
+            "foreground_image",
+            "caption",
+            "use_background_image",
+            "background_image",
+            "overlay_intensity",
+            "overlay_color",
+            "align_horizontal",
+            "align_vertical",
+            "actions"
+        ],
+        "variantsDecl": [
+            "documentary",
+            "narrative",
+            "testimonial",
+            "analytical",
+            "immersive-dark",
+            "protest-march",
+            "protest-march-dark"
+        ],
+        "variantsDisk": [
+            "analytical",
+            "default",
+            "documentary",
+            "immersive-dark",
+            "narrative",
+            "protest-march-dark",
+            "protest-march",
+            "testimonial"
+        ],
+        "dir": "modules/reflection-system/templates/heroes",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [
+            "overlay_intensity",
+            "align_horizontal",
+            "align_vertical"
+        ],
+        "readNotField": [
+            "overlay_rgb",
+            "overlay_opacity",
+            "align_h_class",
+            "align_v_class",
+            "align_text_class"
+        ],
+        "variantGaps": {
+            "analytical": [
+                "subtitle",
+                "caption",
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "default": [
+                "use_background_image",
+                "background_image",
+                "overlay_rgb",
+                "overlay_opacity",
+                "align_h_class",
+                "align_v_class",
+                "align_text_class",
+                "eyebrow",
+                "title",
+                "body",
+                "actions",
+                "subtitle",
+                "caption",
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "documentary": [
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "immersive-dark": [
+                "overlay_rgb",
+                "align_h_class",
+                "align_v_class"
+            ],
+            "narrative": [
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "protest-march-dark": [
+                "align_h_class",
+                "align_v_class",
+                "align_text_class",
+                "caption",
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "protest-march": [
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ],
+            "testimonial": [
+                "overlay_color",
+                "foreground_image",
+                "title_accent"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "title_accent",
+            "subtitle",
+            "actions",
+            "body",
+            "transition_mode",
+            "continue_target",
+            "eyebrow",
+            "use_background_image",
+            "background_image",
+            "override_colors",
+            "color_bg",
+            "color_heading",
+            "color_body",
+            "color_accent",
+            "overlay_rgb",
+            "overlay_opacity"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance",
+            "immersive-dark:breaking-chains",
+            "protest-march:march-toward-justice",
+            "protest-march-dark:march-toward-justice",
+            "analytical-light:racial-disparities"
+        ],
+        "propsNoField": [
+            "override_colors",
+            "color_bg",
+            "color_heading",
+            "color_body",
+            "color_accent",
+            "overlay_rgb",
+            "overlay_opacity"
+        ]
+    },
+    {
+        "family": "feature-split",
+        "label": "Feature Split",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "body",
+            "note",
+            "caption",
+            "image",
+            "image_alt",
+            "media_side"
+        ],
+        "variantsDecl": [
+            "documentary"
+        ],
+        "variantsDisk": [
+            "documentary",
+            "immersive-dark"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/feature-split",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "immersive-dark"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [
+            "actions"
+        ],
+        "variantGaps": {
+            "immersive-dark": [
+                "actions"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "body",
+            "continue_target",
+            "continue_label",
+            "transition_mode"
+        ],
+        "contentVariants": [
+            "immersive-dark:breaking-chains"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "documentary-dossier",
+        "label": "Documentary Dossier",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "intro",
+            "sections"
+        ],
+        "variantsDecl": [
+            "archival"
+        ],
+        "variantsDisk": [
+            "archival"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/documentary-dossier",
+        "declNoFile": [],
+        "fileNoDecl": [],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": [],
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "timeline-world",
+        "label": "Timeline World",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "items"
+        ],
+        "variantsDecl": [
+            "horizontal",
+            "documentary",
+            "march-history"
+        ],
+        "variantsDisk": [
+            "default",
+            "documentary",
+            "horizontal"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/timeline-world",
+        "declNoFile": [
+            "march-history"
+        ],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [
+            "title"
+        ],
+        "variantGaps": {
+            "default": [
+                "eyebrow",
+                "title",
+                "items"
+            ],
+            "horizontal": [
+                "title"
+            ]
+        },
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "panel-explorer",
+        "label": "Panel Explorer",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "intro",
+            "items"
+        ],
+        "variantsDecl": [
+            "documentary"
+        ],
+        "variantsDisk": [
+            "default",
+            "documentary"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/panel-explorer",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "eyebrow",
+                "title",
+                "intro",
+                "items"
+            ]
+        },
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "reflection-prompt",
+        "label": "Reflection Prompt",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "prompt",
+            "button_label",
+            "button_href"
+        ],
+        "variantsDecl": [
+            "journal",
+            "exit-stage",
+            "minimal",
+            "immersive-dark",
+            "protest-march"
+        ],
+        "variantsDisk": [
+            "default",
+            "exit-stage",
+            "immersive-dark",
+            "journal",
+            "minimal",
+            "protest-march"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/reflection-prompt",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [
+            "button_label",
+            "button_href"
+        ],
+        "readNotField": [
+            "intro",
+            "cards"
+        ],
+        "variantGaps": {
+            "default": [
+                "eyebrow",
+                "title",
+                "intro",
+                "cards",
+                "prompt"
+            ],
+            "immersive-dark": [
+                "eyebrow",
+                "title",
+                "intro",
+                "cards"
+            ],
+            "minimal": [
+                "eyebrow",
+                "intro",
+                "cards"
+            ],
+            "protest-march": [
+                "eyebrow",
+                "title",
+                "intro",
+                "cards"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "prompt",
+            "button_label",
+            "button_href",
+            "override_colors",
+            "color_bg",
+            "color_body",
+            "color_accent"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance",
+            "immersive-dark:breaking-chains",
+            "protest-march:march-toward-justice"
+        ],
+        "propsNoField": [
+            "override_colors",
+            "color_bg",
+            "color_body",
+            "color_accent"
+        ]
+    },
+    {
+        "family": "shared-journals",
+        "label": "Shared Reflections",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "intro"
+        ],
+        "variantsDecl": [
+            "default"
+        ],
+        "variantsDisk": [
+            "default"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/shared-journals",
+        "declNoFile": [],
+        "fileNoDecl": [],
+        "fieldNeverRead": [],
+        "readNotField": [
+            "reflection_id"
+        ],
+        "variantGaps": [],
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "quote",
+        "label": "Quote",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "quote",
+            "attribution",
+            "text_size",
+            "align_horizontal",
+            "align_vertical",
+            "background_image",
+            "button_label"
+        ],
+        "variantsDecl": [
+            "immersive-dark",
+            "default",
+            "editorial",
+            "cinematic"
+        ],
+        "variantsDisk": [
+            "cinematic",
+            "default",
+            "editorial",
+            "immersive-dark"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/quote",
+        "declNoFile": [],
+        "fileNoDecl": [],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "background_image",
+                "align_horizontal",
+                "align_vertical",
+                "eyebrow",
+                "text_size",
+                "button_label"
+            ]
+        },
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "about",
+        "label": "About",
+        "editableFields": [
+            "id",
+            "eyebrow",
+            "title",
+            "intro",
+            "items"
+        ],
+        "variantsDecl": [
+            "documentary"
+        ],
+        "variantsDisk": [
+            "default",
+            "documentary"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/about",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "eyebrow",
+                "title",
+                "intro",
+                "items"
+            ]
+        },
+        "contentProps": [],
+        "contentVariants": [],
+        "propsNoField": []
+    },
+    {
+        "family": "hotspot-stage",
+        "label": "Hotspot Stage",
+        "editableFields": [
+            "id",
+            "instruction",
+            "background_image",
+            "hotspots"
+        ],
+        "variantsDecl": [
+            "story",
+            "immersive-dark"
+        ],
+        "variantsDisk": [
+            "default",
+            "immersive-dark",
+            "story"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/hotspot-stage",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "instruction",
+                "background_image",
+                "hotspots"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "background_image",
+            "instruction",
+            "hotspots",
+            "transition_mode",
+            "continue_label",
+            "continue_target"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "progressive-text",
+        "label": "Progressive Text",
+        "editableFields": [
+            "id",
+            "title",
+            "paragraphs",
+            "prompt",
+            "button_label"
+        ],
+        "variantsDecl": [
+            "narrative",
+            "immersive-dark"
+        ],
+        "variantsDisk": [
+            "default",
+            "immersive-dark",
+            "narrative"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/progressive-text",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "title",
+                "paragraphs",
+                "prompt",
+                "button_label"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "paragraphs",
+            "prompt",
+            "button_label",
+            "continue_label",
+            "continue_target"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "threshold-message",
+        "label": "Threshold Message",
+        "editableFields": [
+            "id",
+            "title",
+            "body"
+        ],
+        "variantsDecl": [
+            "threshold",
+            "immersive-dark"
+        ],
+        "variantsDisk": [
+            "default",
+            "immersive-dark",
+            "threshold"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/threshold-message",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [
+            "message",
+            "button_label"
+        ],
+        "variantGaps": {
+            "default": [
+                "title",
+                "message",
+                "button_label",
+                "body"
+            ],
+            "threshold": [
+                "message"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "body",
+            "continue_label",
+            "continue_target",
+            "transition_mode"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance",
+            "immersive-dark:breaking-chains"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "horizontal-panels",
+        "label": "Horizontal Panels",
+        "editableFields": [
+            "id",
+            "items"
+        ],
+        "variantsDecl": [
+            "quote-march",
+            "immersive-dark"
+        ],
+        "variantsDisk": [
+            "default",
+            "immersive-dark",
+            "quote-march"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/horizontal-panels",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "items"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "items",
+            "button_label",
+            "continue_target"
+        ],
+        "contentVariants": [
+            "immersive-dark:voices-of-resistance"
+        ],
+        "propsNoField": [
+            "button_label"
+        ]
+    },
+    {
+        "family": "step-sequence",
+        "label": "Step Sequence",
+        "editableFields": [
+            "id",
+            "backdrop",
+            "title",
+            "body",
+            "button_label",
+            "dark"
+        ],
+        "variantsDecl": [
+            "march-history"
+        ],
+        "variantsDisk": [
+            "default",
+            "march-history"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/step-sequence",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [
+            "dark"
+        ],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "backdrop",
+                "title",
+                "body",
+                "button_label"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "override_colors",
+            "color_bg",
+            "color_body",
+            "color_accent",
+            "backdrop",
+            "title",
+            "body",
+            "button_label",
+            "continue_target",
+            "dark"
+        ],
+        "contentVariants": [
+            "march-history:march-toward-justice"
+        ],
+        "propsNoField": [
+            "override_colors",
+            "color_bg",
+            "color_body",
+            "color_accent"
+        ]
+    },
+    {
+        "family": "data-cards",
+        "label": "Data Cards",
+        "editableFields": [
+            "id",
+            "title",
+            "intro",
+            "cards",
+            "footer_text"
+        ],
+        "variantsDecl": [
+            "analytical-light",
+            "analytical-dark"
+        ],
+        "variantsDisk": [
+            "analytical-dark",
+            "analytical-light",
+            "analytical",
+            "default"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/data-cards",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "analytical",
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "analytical-dark": [
+                "title",
+                "intro",
+                "cards",
+                "footer_text"
+            ],
+            "analytical-light": [
+                "title",
+                "intro",
+                "cards",
+                "footer_text"
+            ],
+            "default": [
+                "title",
+                "intro",
+                "cards",
+                "footer_text"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "cards"
+        ],
+        "contentVariants": [
+            "analytical-light:racial-disparities"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "drag-reveal",
+        "label": "Drag Reveal",
+        "editableFields": [
+            "id",
+            "text",
+            "instruction"
+        ],
+        "variantsDecl": [
+            "chain"
+        ],
+        "variantsDisk": [
+            "chain",
+            "default"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/drag-reveal",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "text",
+                "instruction"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "text",
+            "instruction",
+            "continue_target",
+            "continue_label",
+            "transition_mode"
+        ],
+        "contentVariants": [
+            "chain:breaking-chains"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "word-shift",
+        "label": "Word Shift",
+        "editableFields": [
+            "id",
+            "title",
+            "html"
+        ],
+        "variantsDecl": [
+            "liberation"
+        ],
+        "variantsDisk": [
+            "default",
+            "liberation"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/word-shift",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "title",
+                "html"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "title",
+            "html",
+            "continue_target",
+            "continue_label",
+            "transition_mode"
+        ],
+        "contentVariants": [
+            "liberation:breaking-chains"
+        ],
+        "propsNoField": []
+    },
+    {
+        "family": "parallax-stage",
+        "label": "Parallax Stage",
+        "editableFields": [
+            "id",
+            "layers",
+            "text",
+            "button_label"
+        ],
+        "variantsDecl": [
+            "crowd"
+        ],
+        "variantsDisk": [
+            "crowd",
+            "default"
+        ],
+        "dir": "modules/reflection-system/templates/chapters/parallax-stage",
+        "declNoFile": [],
+        "fileNoDecl": [
+            "default"
+        ],
+        "fieldNeverRead": [],
+        "readNotField": [],
+        "variantGaps": {
+            "default": [
+                "layers",
+                "text",
+                "button_label"
+            ]
+        },
+        "contentProps": [
+            "id",
+            "override_colors",
+            "color_bg",
+            "color_accent",
+            "text",
+            "button_label",
+            "continue_target",
+            "layers"
+        ],
+        "contentVariants": [
+            "crowd:march-toward-justice"
+        ],
+        "propsNoField": [
+            "override_colors",
+            "color_bg",
+            "color_accent"
+        ]
+    }
+]
