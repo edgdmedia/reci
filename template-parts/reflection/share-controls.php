@@ -30,10 +30,17 @@ $reci_share = wp_parse_args(
 );
 
 $reci_info = static function ( string $text ): void {
+	// Native popover: opens on click, closes on click-away or Escape, with no
+	// script of our own. The title attribute stays for hover, and the text is
+	// in the popover itself so assistive tech reads it either way.
+	$id = 'reci-info-' . wp_unique_id();
+
 	printf(
-		'<button type="button" class="reci-info" aria-label="%1$s" title="%2$s"><span aria-hidden="true">i</span><span class="reci-sr-only">%2$s</span></button>',
+		'<button type="button" class="reci-info" popovertarget="%1$s" aria-label="%2$s" title="%3$s"><span aria-hidden="true">i</span></button>'
+		. '<span id="%1$s" popover class="reci-info-bubble">%3$s</span>',
+		esc_attr( $id ),
 		esc_attr__( 'More information', 'reci-media-hub' ),
-		esc_attr( $text )
+		esc_html( $text )
 	);
 };
 ?>
@@ -77,6 +84,20 @@ $reci_info = static function ( string $text ): void {
 /* Defined here rather than borrowed from the theme: reflection pages do not
    load the stylesheet that carries screen-reader-text, so the text meant for
    assistive tech was simply printed on the page. */
+.reci-info-bubble {
+	max-width: 22rem;
+	margin: 0;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid rgba(255, 255, 255, 0.18);
+	border-radius: 12px;
+	background: #1b1b1b;
+	color: #f4f4f4;
+	font-size: 0.8rem;
+	line-height: 1.5;
+	box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.reci-info-bubble:not(:popover-open) { display: none; }
+
 .reci-sr-only {
 	position: absolute;
 	width: 1px;
