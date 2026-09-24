@@ -32,10 +32,15 @@ for (const slug of slugs) {
     };
     const parse = (s) => (s.match(/\d+(\.\d+)?/g) || []).slice(0, 3).map(Number);
     // Walk up for the first painted background, the way the eye does.
+    // A background image cannot be sampled this way, and guessing produced
+    // false failures on every hero - text over a photograph measured against
+    // the white behind it. Those are reported separately, not as failures.
     const bgOf = (el) => {
       let n = el;
       while (n) {
-        const b = getComputedStyle(n).backgroundColor;
+        const cs = getComputedStyle(n);
+        if (cs.backgroundImage && cs.backgroundImage !== 'none') return null;
+        const b = cs.backgroundColor;
         if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return parse(b);
         n = n.parentElement;
       }
@@ -43,26 +48,31 @@ for (const slug of slugs) {
     };
 
     const out = [];
+    let skipped = 0;
     document.querySelectorAll('.reci-stage *').forEach((el) => {
       const text = Array.from(el.childNodes).filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join('');
       if (text.length < 3) return;
       const cs = getComputedStyle(el);
       if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return;
 
+      const bg = bgOf(el);
+      if (bg === null) { skipped++; return; }
+
       const L1 = lum(parse(cs.color));
-      const L2 = lum(bgOf(el));
+      const L2 = lum(bg);
       const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
       if (ratio < min) {
         out.push({ stage: el.closest('.reci-stage')?.id, text: text.slice(0, 40), color: cs.color, ratio: +ratio.toFixed(2) });
       }
     });
-    return out;
+    return { out, skipped };
   }, MIN);
 
-  total += fails.length;
-  console.log(`${slug}: ${fails.length} below ${MIN}:1`);
-  fails.slice(0, 6).forEach((f) => console.log(`    ${f.ratio}:1  ${f.stage}  ${f.color}  "${f.text}"`));
-  if (fails.length > 6) console.log(`    ... and ${fails.length - 6} more`);
+  const { out: list, skipped } = fails;
+  total += list.length;
+  console.log(`${slug}: ${list.length} below ${MIN}:1 (${skipped} over images, not measurable)`);
+  list.slice(0, 6).forEach((f) => console.log(`    ${f.ratio}:1  ${f.stage}  ${f.color}  "${f.text}"`));
+  if (list.length > 6) console.log(`    ... and ${list.length - 6} more`);
 }
 
 await browser.close();

@@ -32,7 +32,14 @@ if ($uses_new_system) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <?php wp_head(); ?>
     </head>
-    <body <?php body_class('single-reci-reflection immersive-reflection-page reci-reflection-system-page'); ?>>
+    <?php
+        // Names the style on the body so a style's own stylesheet can scope its
+        // palette to it. All four are enqueued on every reflection, because a
+        // reflection may borrow a chapter from another style - but only one
+        // style's palette should win.
+        $reci_style_slug = sanitize_html_class( (string) ( $normalized['settings']['global_style'] ?? 'immersive-dark' ) );
+    ?>
+    <body <?php body_class( 'single-reci-reflection immersive-reflection-page reci-reflection-system-page reci-style-' . $reci_style_slug ); ?>>
     <?php wp_body_open(); ?>
     <script>window.RECIReflectionConfig = <?php echo wp_json_encode($reflection_config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;</script>
     <?php
