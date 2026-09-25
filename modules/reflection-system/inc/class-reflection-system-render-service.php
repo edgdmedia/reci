@@ -243,73 +243,32 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 				$section_attrs = is_array($props['section_attributes'] ?? null) ? $props['section_attributes'] : [];
 				$section_attrs['data-chapter-id'] = $cid;
 				
-				// Handle local color overrides with fallback to global settings
-				$is_override = !empty($props['override_colors']) || !empty($props['__overrideColors']);
+				// A chapter may carry its own palette. Where it does not name a
+				// colour, the blueprint's global setting stands, and the resolver
+				// fills what neither names - cards, borders, the hotspot ring.
 				$style = '';
-				
-				$bg = $is_override ? ($props['color_bg'] ?? $props['__color_bg'] ?? '') : '';
-				$bg = $bg ?: ($global_settings['color_bg'] ?? '');
-				
-				$heading = $is_override ? ($props['color_heading'] ?? $props['__color_heading'] ?? '') : '';
-				$heading = $heading ?: ($global_settings['color_heading'] ?? '');
-				
-				$body = $is_override ? ($props['color_body'] ?? $props['__color_body'] ?? '') : '';
-				$body = $body ?: ($global_settings['color_body'] ?? '');
-				
-				$primary = $is_override ? ($props['color_primary'] ?? $props['__color_primary'] ?? '') : '';
-				$primary = $primary ?: ($global_settings['color_primary'] ?? '');
-				
-				$accent = $is_override ? ($props['color_accent'] ?? $props['__color_accent'] ?? '') : '';
-				$accent = $accent ?: ($global_settings['color_accent'] ?? '');
-				
-				$surface = $is_override ? ($props['color_surface'] ?? $props['__color_surface'] ?? '') : '';
-				$surface = $surface ?: ($global_settings['color_surface'] ?? '');
-				
-				$surface_text = $is_override ? ($props['color_surface_text'] ?? $props['__color_surface_text'] ?? '') : '';
-				$surface_text = $surface_text ?: ($global_settings['color_surface_text'] ?? '');
-				
-				$muted = $is_override ? ($props['color_muted'] ?? $props['__color_muted'] ?? '') : '';
-				$muted = $muted ?: ($global_settings['color_muted'] ?? '');
-				$text = $is_override ? ($props['color_text'] ?? '') : '';
-				$text = $text ?: ($global_settings['color_text'] ?? '');
-				$soft_text = $is_override ? ($props['color_soft_text'] ?? '') : '';
-				$soft_text = $soft_text ?: ($global_settings['color_soft_text'] ?? '');
-				$card = $is_override ? ($props['color_card'] ?? '') : '';
-				$card = $card ?: ($global_settings['color_card'] ?? '');
-				$card_strong = $is_override ? ($props['color_card_strong'] ?? '') : '';
-				$card_strong = $card_strong ?: ($global_settings['color_card_strong'] ?? '');
-				$border = $is_override ? ($props['color_border'] ?? '') : '';
-				$border = $border ?: ($global_settings['color_border'] ?? '');
-				$border_soft = $is_override ? ($props['color_border_soft'] ?? '') : '';
-				$border_soft = $border_soft ?: ($global_settings['color_border_soft'] ?? '');
-				$hotspot_ring = $is_override ? ($props['color_hotspot_ring'] ?? '') : '';
-				$hotspot_ring = $hotspot_ring ?: ($global_settings['color_hotspot_ring'] ?? '');
+				$is_override = ! empty($props['override_colors']);
 
-				// A style that sets its own background but no surface used to keep
-				// the theme's dark default for cards and panels. On a light
-				// background that produced dark cards carrying text coloured for
-				// the light one - headings at 1.02:1, effectively invisible.
-				// Surface follows the background unless the style names its own.
-				if ($surface === '' && $bg !== '') {
-					$surface = $bg;
+				$colors = [];
+				foreach (array_keys(reci_reflection_palette_keys()) as $color_key) {
+					$value = $is_override ? trim((string) ($props[$color_key] ?? '')) : '';
+					if ('' === $value) {
+						$value = trim((string) ($global_settings[$color_key] ?? ''));
+					}
+					if ('' !== $value) {
+						$colors[$color_key] = $value;
+					}
 				}
 
-				if ($bg !== '') $style .= '--reflection-bg: ' . esc_attr($bg) . ';';
-				if ($heading !== '') $style .= '--reflection-heading: ' . esc_attr($heading) . ';';
-				if ($body !== '') $style .= '--reflection-body: ' . esc_attr($body) . ';';
-				if ($primary !== '') $style .= '--reflection-primary: ' . esc_attr($primary) . ';';
-				if ($accent !== '') $style .= '--reflection-accent: ' . esc_attr($accent) . ';';
-				if ($surface !== '') $style .= '--reflection-surface: ' . esc_attr($surface) . ';';
-				if ($surface_text !== '') $style .= '--reflection-surface-text: ' . esc_attr($surface_text) . ';';
-				if ($muted !== '') $style .= '--reflection-muted: ' . esc_attr($muted) . ';';
-				if ($text !== '') $style .= '--reflection-text: ' . esc_attr($text) . ';';
-				if ($soft_text !== '') $style .= '--reflection-soft-text: ' . esc_attr($soft_text) . ';';
-				if ($card !== '') $style .= '--reflection-card: ' . esc_attr($card) . ';';
-				if ($card_strong !== '') $style .= '--reflection-card-strong: ' . esc_attr($card_strong) . ';';
-				if ($border !== '') $style .= '--reflection-border: ' . esc_attr($border) . ';';
-				if ($border_soft !== '') $style .= '--reflection-border-soft: ' . esc_attr($border_soft) . ';';
-				if ($hotspot_ring !== '') $style .= '--reflection-hotspot-ring: ' . esc_attr($hotspot_ring) . ';';
-				
+				$style .= reci_reflection_palette_css($colors);
+
+				// A chapter that sets its own background may be lighter or
+				// darker than the page, so its cards and borders have to
+				// follow it rather than inherit the page's derived defaults.
+				if ($is_override) {
+					$style .= reci_reflection_palette_defaults_css($colors);
+				}
+
 				if ($style !== '') {
 					$section_attrs['style'] = (isset($section_attrs['style']) ? $section_attrs['style'] . ' ' : '') . $style;
 				}

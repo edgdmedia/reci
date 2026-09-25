@@ -38,6 +38,12 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ): string {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
 if ( ! function_exists( 'esc_html__' ) ) {
 	function esc_html__( string $text, string $domain = '' ): string {
 		return $text;

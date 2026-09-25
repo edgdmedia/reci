@@ -43,14 +43,22 @@ if ($uses_new_system) {
     <?php wp_body_open(); ?>
     <script>window.RECIReflectionConfig = <?php echo wp_json_encode($reflection_config, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;</script>
     <?php
-        $settings = $normalized['settings'] ?? [];
-        $style = '';
-        if (!empty($settings['color_bg'])) $style .= '--reflection-bg: ' . esc_attr($settings['color_bg']) . ';';
-        if (!empty($settings['color_heading'])) $style .= '--reflection-heading: ' . esc_attr($settings['color_heading']) . ';';
-        if (!empty($settings['color_body'])) $style .= '--reflection-body: ' . esc_attr($settings['color_body']) . ';';
-        if (!empty($settings['color_primary'])) $style .= '--reflection-primary: ' . esc_attr($settings['color_primary']) . ';';
-        if (!empty($settings['color_accent'])) $style .= '--reflection-accent: ' . esc_attr($settings['color_accent']) . ';';
+        $settings = is_array($normalized['settings'] ?? null) ? $normalized['settings'] : [];
+        $style = reci_reflection_palette_css($settings);
+
+        // A style names five colours; the templates read fifteen. Cards,
+        // borders and the hotspot ring are declared by three stylesheets and
+        // were undefined for every other style, so 93 uses of
+        // var(--reflection-card) and friends resolved to nothing. These fill
+        // that gap from the background, and :where() carries no specificity,
+        // so a stylesheet or an inline colour still wins.
+        $palette_defaults = reci_reflection_palette_defaults_css($settings);
+        if ($palette_defaults !== '') :
     ?>
+    <style id="reci-reflection-palette-defaults">
+        :where(.reci-reflection-page) { <?php echo $palette_defaults; ?> }
+    </style>
+    <?php endif; ?>
     <div class="reci-reflection-page" <?php if ($style) echo 'style="' . $style . '"'; ?>>
         <button id="reciSystemBack" type="button" class="fixed bottom-5 left-5 z-[60] hidden rounded-full border border-[color:var(--reflection-border-soft)] bg-black/45 px-4 py-3 font-['Oswald'] text-sm uppercase tracking-[0.12em] text-white">← Back</button>
         <?php if (($settings['global_style'] ?? 'immersive-dark') === 'breaking-chains') : ?>

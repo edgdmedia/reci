@@ -807,6 +807,218 @@ if (! function_exists('reci_reflection_system_component_definition')) {
 }
 
 
+if (! function_exists('reci_reflection_color_is_dark')) {
+	/**
+	 * Whether a colour is dark enough to want light text on it.
+	 *
+	 * Unreadable input counts as dark, which is the safer assumption for a
+	 * system whose styles are mostly dark.
+	 */
+	function reci_reflection_color_is_dark(string $color): bool {
+		$hex = ltrim(trim($color), '#');
+		if (strlen($hex) === 3) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if (strlen($hex) !== 6 || ! ctype_xdigit($hex)) {
+			return true;
+		}
+
+		$luminance = (
+			0.299 * hexdec(substr($hex, 0, 2))
+			+ 0.587 * hexdec(substr($hex, 2, 2))
+			+ 0.114 * hexdec(substr($hex, 4, 2))
+		) / 255;
+
+		return $luminance < 0.5;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_keys')) {
+	/**
+	 * Every colour the reflection system understands, in the order it is
+	 * written out, mapped to its CSS custom property.
+	 *
+	 * @return array<string,string>
+	 */
+	function reci_reflection_palette_keys(): array {
+		return [
+			'color_bg' => '--reflection-bg',
+			'color_heading' => '--reflection-heading',
+			'color_body' => '--reflection-body',
+			'color_primary' => '--reflection-primary',
+			'color_accent' => '--reflection-accent',
+			'color_surface' => '--reflection-surface',
+			'color_surface_text' => '--reflection-surface-text',
+			'color_muted' => '--reflection-muted',
+			'color_text' => '--reflection-text',
+			'color_soft_text' => '--reflection-soft-text',
+			'color_card' => '--reflection-card',
+			'color_card_strong' => '--reflection-card-strong',
+			'color_border' => '--reflection-border',
+			'color_border_soft' => '--reflection-border-soft',
+			'color_hotspot_ring' => '--reflection-hotspot-ring',
+		];
+	}
+}
+
+if (! function_exists('reci_reflection_resolve_palette')) {
+	/**
+	 * Fill in the colours a style does not name for itself.
+	 *
+	 * A style declares five colours - background, heading, body, primary,
+	 * accent - and the builder's panel edits eight. The templates read
+	 * fifteen. The remaining seven are cards, borders and the hotspot ring:
+	 * tints of the foreground over the background, which is exactly the kind
+	 * of thing worth deriving rather than asking anyone to pick.
+	 *
+	 * Only documentary, immersive-dark and breaking-chains ship a stylesheet
+	 * that declares them. For voices-of-resistance, march-toward-justice and
+	 * racial-disparities they were simply undefined, so 93 uses of
+	 * var(--reflection-card) and friends resolved to nothing - no card, no
+	 * border, no ring. On the light style that is the difference between a
+	 * bordered card and a blank rectangle.
+	 *
+	 * Anything already set is left alone, so a style, a global setting or a
+	 * per-chapter override always wins.
+	 *
+	 * @param array<string,mixed> $colors Any subset of the palette keys.
+	 * @return array<string,string> The same colours, with the gaps filled.
+	 */
+	function reci_reflection_resolve_palette(array $colors, bool $derive = true): array {
+		$resolved = [];
+		foreach (reci_reflection_palette_keys() as $key => $_property) {
+			$value = trim((string) ($colors[$key] ?? ''));
+			if ('' !== $value) {
+				$resolved[$key] = $value;
+			}
+		}
+
+		$bg = $resolved['color_bg'] ?? '';
+		if ('' === $bg) {
+			// Nothing to derive from. The stylesheets answer, as they do now.
+			return $resolved;
+		}
+
+		// A surface with no colour of its own sits on the background. This one
+		// is stated rather than derived, because it has to beat the
+		// stylesheets: a style that sets a light background but no surface
+		// used to keep the theme's dark default for cards and panels, which
+		// put light-palette text on a dark card at 1.02:1.
+		if (! isset($resolved['color_surface'])) {
+			$resolved['color_surface'] = $bg;
+		}
+
+		if (! $derive) {
+			return $resolved;
+		}
+
+		$dark = reci_reflection_color_is_dark($bg);
+		// Tints of the foreground, laid over the background.
+		$tint = $dark ? '255,255,255' : '17,17,17';
+
+		$derived = [
+			// A card is the background lifted slightly toward the foreground.
+			'color_card' => 'rgba(' . $tint . ',' . ($dark ? '0.04' : '0.03') . ')',
+			'color_card_strong' => 'rgba(' . $tint . ',' . ($dark ? '0.08' : '0.06') . ')',
+			'color_border' => 'rgba(' . $tint . ',' . ($dark ? '0.18' : '0.14') . ')',
+			'color_border_soft' => 'rgba(' . $tint . ',' . ($dark ? '0.10' : '0.08') . ')',
+		];
+
+		// Body text carries the styles' running copy; heading carries titles.
+		// Where a style names them, the rest follow rather than guess.
+		$heading = $resolved['color_heading'] ?? '';
+		$body = $resolved['color_body'] ?? '';
+
+		if ('' !== $heading) {
+			$derived['color_text'] = $heading;
+			$derived['color_surface_text'] = $heading;
+		}
+		if ('' !== $body) {
+			$derived['color_soft_text'] = $body;
+			$derived['color_muted'] = $body;
+		}
+
+		// The hotspot ring is the accent, held back so it reads as a hint.
+		$accent = $resolved['color_accent'] ?? '';
+		if ('' !== $accent && preg_match('/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i', $accent)) {
+			$hex = ltrim($accent, '#');
+			if (strlen($hex) === 3) {
+				$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+			}
+			$derived['color_hotspot_ring'] = sprintf(
+				'rgba(%d,%d,%d,0.35)',
+				hexdec(substr($hex, 0, 2)),
+				hexdec(substr($hex, 2, 2)),
+				hexdec(substr($hex, 4, 2))
+			);
+		}
+
+		foreach ($derived as $key => $value) {
+			if (! isset($resolved[$key])) {
+				$resolved[$key] = $value;
+			}
+		}
+
+		return $resolved;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_declarations')) {
+	/**
+	 * Turn palette keys into CSS custom property declarations.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_declarations(array $colors): string {
+		$css = '';
+		foreach (reci_reflection_palette_keys() as $key => $property) {
+			$value = trim((string) ($colors[$key] ?? ''));
+			if ('' !== $value) {
+				$css .= $property . ': ' . esc_attr($value) . ';';
+			}
+		}
+
+		return $css;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_css')) {
+	/**
+	 * The colours actually named, for an inline style attribute.
+	 *
+	 * Only what a style, a global setting or a chapter override states. What
+	 * nobody states belongs in reci_reflection_palette_defaults_css(), at a
+	 * specificity the stylesheets can beat.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_css(array $colors): string {
+		return reci_reflection_palette_declarations(reci_reflection_resolve_palette($colors, false));
+	}
+}
+
+if (! function_exists('reci_reflection_palette_defaults_css')) {
+	/**
+	 * The colours nobody named, derived from the ones they did.
+	 *
+	 * Written into a :where() rule, which carries no specificity, so a style's
+	 * own stylesheet and any inline colour both beat it. It fills gaps and
+	 * never overrules.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_defaults_css(array $colors): string {
+		$stated = reci_reflection_resolve_palette($colors, false);
+		$filled = reci_reflection_resolve_palette($colors, true);
+
+		foreach (array_keys($stated) as $key) {
+			unset($filled[$key]);
+		}
+
+		return reci_reflection_palette_declarations($filled);
+	}
+}
+
 if (! function_exists('reci_reflection_system_known_prop_keys')) {
 	/**
 	 * The prop keys the builder's editing form knows about for a family.
