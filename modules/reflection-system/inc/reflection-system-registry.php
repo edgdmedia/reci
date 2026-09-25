@@ -71,6 +71,28 @@ if (! function_exists('reci_reflection_system_with_transition_fields')) {
 	}
 }
 
+if (! function_exists('reci_reflection_system_without_fields')) {
+	/**
+	 * Drop shared fields a family does not render.
+	 *
+	 * The menu and transition helpers add the same controls to every family,
+	 * which is right for most of them. Where a family renders no such element
+	 * the control would sit in the builder doing nothing, and a control that
+	 * does nothing is worse than no control.
+	 *
+	 * @param array<string,array<string,mixed>> $fields
+	 * @param array<int,string> $drop
+	 * @return array<string,array<string,mixed>>
+	 */
+	function reci_reflection_system_without_fields(array $fields, array $drop): array {
+		foreach ($drop as $key) {
+			unset($fields[$key]);
+		}
+
+		return $fields;
+	}
+}
+
 if (! function_exists('reci_reflection_system_styles')) {
 	/**
 	 * @return array<string,array<string,mixed>>
@@ -377,14 +399,17 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'protest-march' => 'Protest March',
 					'protest-march-dark' => 'Protest March Dark',
 				],
-				'fields' => reci_reflection_system_with_transition_fields([
+				// continue_label is dropped: a hero navigates through its actions, and
+				// no hero template reads it. continue_target stays, because the runtime
+				// uses it for scroll transitions.
+				'fields' => reci_reflection_system_without_fields(reci_reflection_system_with_transition_fields([
 					'id' => ['type' => 'text', 'label' => 'Section ID'],
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
-					'title_accent' => ['type' => 'text', 'label' => 'Title (highlighted line, accent color)', 'show_if' => ['variant' => 'immersive-dark']],
+					'title_accent' => ['type' => 'text', 'label' => 'Title (highlighted line, accent color)'],
 					'subtitle' => ['type' => 'text', 'label' => 'Subtitle'],
 					'body' => ['type' => 'textarea', 'label' => 'Body'],
-					'foreground_image' => ['type' => 'media', 'label' => 'Foreground image', 'show_if' => ['variant' => ['immersive-dark']]],
+					'foreground_image' => ['type' => 'media', 'label' => 'Foreground image'],
 					'caption' => ['type' => 'textarea', 'label' => 'Caption'],
 					'use_background_image' => ['type' => 'select', 'label' => 'Enable background image?', 'options' => ['0' => 'No', '1' => 'Yes']],
 					'background_image' => ['type' => 'media', 'label' => 'Background image', 'show_if' => ['use_background_image' => '1']],
@@ -393,7 +418,7 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'align_horizontal' => ['type' => 'select', 'label' => 'Horizontal align', 'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'], 'default' => 'center'],
 					'align_vertical' => ['type' => 'select', 'label' => 'Vertical align', 'options' => ['top' => 'Top', 'center' => 'Center', 'bottom' => 'Bottom'], 'default' => 'center'],
 					'actions' => ['type' => 'repeater', 'label' => 'Actions', 'itemFields' => ['label' => ['type' => 'text', 'label' => 'Label'], 'href' => ['type' => 'chapter-target', 'label' => 'Target'], 'class' => ['type' => 'text', 'label' => 'Classes']]],
-				]),
+				]), ['continue_label']),
 			],
 			'feature-split' => [
 				'label' => 'Feature Split',

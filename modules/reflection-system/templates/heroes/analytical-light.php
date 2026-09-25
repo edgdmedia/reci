@@ -18,7 +18,9 @@ $args = wp_parse_args(
 	[
 		'id' => 'top',
 		'eyebrow' => '',
+		'foreground_image' => '',
 		'title' => '',
+		'title_accent' => '',
 		'subtitle' => '',
 		'body' => '',
 		'caption' => '',
@@ -48,11 +50,14 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 		<?php endif; ?>
 		<div class="relative z-10 flex flex-col min-h-screen px-5 py-24 sm:px-6 lg:px-12 xl:px-20 <?php echo esc_attr($args['align_h_class']); ?> <?php echo esc_attr($args['align_v_class']); ?> <?php echo esc_attr($args['align_text_class']); ?>">
 			<div class="w-full max-w-3xl">
+				<?php if (! empty($args['foreground_image'])) : ?>
+					<img src="<?php echo esc_url($args['foreground_image']); ?>" alt="" class="mb-6 max-h-[200px] w-auto" />
+				<?php endif; ?>
 				<?php if ($args['eyebrow']) : ?>
 					<div class="font-mono text-xs font-medium uppercase tracking-[0.22em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 				<?php endif; ?>
 				<?php if ($args['title']) : ?>
-					<h1 class="mt-4 font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-[4rem]"><?php echo esc_html($args['title']); ?></h1>
+					<h1 class="mt-4 font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-[4rem]"><?php echo esc_html($args['title']); ?><?php if (! empty($args['title_accent'])) : ?><br><span style="color: var(--reflection-accent);"><?php echo esc_html($args['title_accent']); ?></span><?php endif; ?></h1>
 				<?php endif; ?>
 				<?php if ($args['subtitle']) : ?>
 					<div class="mt-4 max-w-[68rem] text-xl leading-8 text-[var(--reflection-body)]"><?php echo esc_html($args['subtitle']); ?></div>

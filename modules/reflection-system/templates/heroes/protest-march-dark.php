@@ -14,7 +14,9 @@ $args = wp_parse_args(
 	[
 		'id' => 'top',
 		'eyebrow' => '',
+		'foreground_image' => '',
 		'title' => '',
+		'title_accent' => '',
 		'subtitle' => '',
 		'body' => '',
 		'caption' => '',
@@ -44,11 +46,14 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 			<div class="absolute inset-0" style="background: rgba(<?php echo esc_attr($args['overlay_rgb']); ?>, <?php echo esc_attr($args['overlay_opacity']); ?>);"></div>
 		<?php endif; ?>
 		<div class="relative z-10 w-full max-w-[900px] px-0 sm:px-7">
+			<?php if (! empty($args['foreground_image'])) : ?>
+				<img src="<?php echo esc_url($args['foreground_image']); ?>" alt="" class="mb-6 max-h-[200px] w-auto" />
+			<?php endif; ?>
 			<?php if ($args['eyebrow']) : ?>
 				<div class="font-['Oswald'] text-3xl uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 			<?php endif; ?>
 			<?php if ($args['title']) : ?>
-				<h2 class="mb-6 font-['Oswald'] text-[clamp(2.4rem,4vw,3.5rem)] uppercase tracking-[0.04em] reci-reflection-accent"><?php echo esc_html($args['title']); ?></h2>
+				<h2 class="mb-6 font-['Oswald'] text-[clamp(2.4rem,4vw,3.5rem)] uppercase tracking-[0.04em] reci-reflection-accent"><?php echo esc_html($args['title']); ?><?php if (! empty($args['title_accent'])) : ?><br><span style="color: var(--reflection-accent);"><?php echo esc_html($args['title_accent']); ?></span><?php endif; ?></h2>
 			<?php endif; ?>
 			<?php if ($args['subtitle']) : ?>
 				<div class="mx-auto mb-11 max-w-[760px] text-[1.15rem] leading-[1.85] text-[rgba(255,255,255,0.9)]"><?php echo wp_kses_post(nl2br($args['subtitle'])); ?></div>

@@ -14,7 +14,9 @@ $args = wp_parse_args(
 	[
 		'id' => 'top',
 		'eyebrow' => '',
+		'foreground_image' => '',
 		'title' => '',
+		'title_accent' => '',
 		'subtitle' => '',
 		'body' => '',
 		'use_background_image' => '0',
@@ -44,11 +46,14 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 		<?php endif; ?>
 		<div class="relative z-10 flex min-h-screen <?php echo esc_attr($args['align_v_class']); ?> px-5 py-20 sm:px-6 lg:px-12 xl:px-20 <?php echo esc_attr($args['align_h_class']); ?>">
 			<div class="max-w-[56rem] <?php echo esc_attr($args['align_text_class']); ?>">
-				<?php if ($args['eyebrow']) : ?>
+				<?php if (! empty($args['foreground_image'])) : ?>
+				<img src="<?php echo esc_url($args['foreground_image']); ?>" alt="" class="mb-6 max-h-[200px] w-auto" />
+			<?php endif; ?>
+			<?php if ($args['eyebrow']) : ?>
 					<div class="font-['Oswald'] text-sm uppercase tracking-[0.18em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 				<?php endif; ?>
 				<?php if ($args['title']) : ?>
-					<h1 class="mt-4 font-['Playfair_Display'] text-5xl font-semibold leading-[0.92] reci-reflection-text sm:text-7xl lg:text-[6.5rem]"><?php echo esc_html($args['title']); ?></h1>
+					<h1 class="mt-4 font-['Playfair_Display'] text-5xl font-semibold leading-[0.92] reci-reflection-text sm:text-7xl lg:text-[6.5rem]"><?php echo esc_html($args['title']); ?><?php if (! empty($args['title_accent'])) : ?><br><span style="color: var(--reflection-accent);"><?php echo esc_html($args['title_accent']); ?></span><?php endif; ?></h1>
 				<?php endif; ?>
 				<?php if ($args['subtitle']) : ?>
 					<p class="mt-6 max-w-[38rem] text-xl leading-8 reci-reflection-soft-text sm:text-2xl sm:leading-10"><?php echo esc_html($args['subtitle']); ?></p>

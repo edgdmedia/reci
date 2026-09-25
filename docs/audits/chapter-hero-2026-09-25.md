@@ -103,6 +103,35 @@ which has no specificity: the controls win, and the legacy
 `chapter-threshold-intro` template - which emits no such classes - stays
 centred.
 
+### Second pass
+
+`title_accent` and `foreground_image` rendered in `immersive-dark` alone,
+though both are ordinary optional props: a variant that ignores them drops
+author content silently, and swapping style would appear to delete the
+subtitle's accent line or the logo. Both now render in all eight variants,
+in each one's own idiom - the accent as a second title line in the accent
+colour, the foreground image above the text - and their `show_if` variant
+restrictions are lifted.
+
+`continue_label` was a declared field no hero template reads; heroes
+navigate through `actions`. Dropped via a new
+`reci_reflection_system_without_fields()` helper, since the control came
+from the shared transition helper. `continue_target` stays: the runtime
+reads it for scroll transitions.
+
+### Reconciliation, completed
+
+The first pass of layer 4 missed the two hero chapters in
+`inc/admin/demo-content.php`, because the grep used single-space formatting
+and that file uses two. Both were checked on the second pass:
+
+- `bws-title` (immersive-dark) - nothing outstanding.
+- `wh-title` (documentary) - carries `overlay_rgb: 47,50,52` and
+  `overlay_opacity: 0.62`, so it was rendering under a black 0.72 wash like
+  racial-disparities. The same overlay fix corrects it. It also sets
+  `color_text` and `color_soft_text`, two of the seven the builder cannot
+  reach, so it depends on the palette work as well.
+
 ### Left alone
 
 The duplicated `'align_text_class' => 'text-left'` default appears in several
