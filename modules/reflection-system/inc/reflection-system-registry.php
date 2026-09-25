@@ -843,6 +843,135 @@ if (! function_exists('reci_reflection_system_component_definition')) {
 }
 
 
+if (! function_exists('reci_reflection_system_known_prop_keys')) {
+	/**
+	 * The prop keys the builder's editing form knows about for a family.
+	 *
+	 * Anything outside this set is a prop the builder cannot represent, so it
+	 * cannot be the author's intent to clear it.
+	 *
+	 * @return array<string,true>
+	 */
+	function reci_reflection_system_known_prop_keys(string $family): array {
+		$definition = reci_reflection_system_component_definition($family);
+		$fields     = is_array($definition['fields'] ?? null) ? $definition['fields'] : [];
+
+		$known = [];
+		foreach (array_keys($fields) as $key) {
+			$known[(string) $key] = true;
+		}
+
+		return $known;
+	}
+}
+
+if (! function_exists('reci_reflection_system_preserve_unknown_props')) {
+	/**
+	 * Carry forward props the builder cannot edit.
+	 *
+	 * The builder composes each chapter's props from the fields the registry
+	 * declares for its family, so a prop that is rendered but never declared
+	 * is absent from the posted JSON and would be lost on the first save -
+	 * silently, and for every author who so much as opens the chapter. That is
+	 * how We Humans lost its reflection intro and its six cards when its style
+	 * was swapped and swapped back.
+	 *
+	 * A declared field stays authoritative: clearing it in the builder really
+	 * does clear it. Only undeclared props are restored from what was stored.
+	 *
+	 * @param array<string,mixed> $incoming Normalized blueprint being saved.
+	 * @param array<string,mixed> $stored   Normalized blueprint currently held.
+	 * @return array<string,mixed>
+	 */
+	function reci_reflection_system_preserve_unknown_props(array $incoming, array $stored): array {
+		$stored_chapters = is_array($stored['chapters'] ?? null) ? $stored['chapters'] : [];
+		if (! $stored_chapters || ! is_array($incoming['chapters'] ?? null)) {
+			return $incoming;
+		}
+
+		// Index by id so a reorder still matches. Chapters with no id fall back
+		// to their position, which is the best that can be said about them.
+		$by_id = [];
+		foreach ($stored_chapters as $index => $chapter) {
+			if (! is_array($chapter)) {
+				continue;
+			}
+			$id  = (string) ($chapter['id'] ?? '');
+			$key = '' !== $id ? 'id:' . $id : 'pos:' . $index;
+			$by_id[$key] = $chapter;
+		}
+
+		foreach ($incoming['chapters'] as $index => $chapter) {
+			if (! is_array($chapter)) {
+				continue;
+			}
+
+			$id  = (string) ($chapter['id'] ?? '');
+			$key = '' !== $id ? 'id:' . $id : 'pos:' . $index;
+			$was = $by_id[$key] ?? null;
+
+			if (! is_array($was)) {
+				continue;
+			}
+
+			// A different family in the same slot is a replaced chapter, not an
+			// edited one, so its old props are not ours to resurrect.
+			if ((string) ($was['family'] ?? '') !== (string) ($chapter['family'] ?? '')) {
+				continue;
+			}
+
+			$old_props = is_array($was['props'] ?? null) ? $was['props'] : [];
+			if (! $old_props) {
+				continue;
+			}
+
+			$new_props = is_array($chapter['props'] ?? null) ? $chapter['props'] : [];
+			$known     = reci_reflection_system_known_prop_keys((string) ($chapter['family'] ?? ''));
+
+			foreach ($old_props as $prop_key => $prop_value) {
+				$prop_key = (string) $prop_key;
+
+				if (isset($known[$prop_key]) || array_key_exists($prop_key, $new_props)) {
+					continue;
+				}
+
+				$new_props[$prop_key] = $prop_value;
+			}
+
+			$incoming['chapters'][$index]['props'] = $new_props;
+		}
+
+		return $incoming;
+	}
+}
+
+if (! function_exists('reci_reflection_system_merge_saved_blueprint')) {
+	/**
+	 * Normalize a posted blueprint for storage against what the post already
+	 * holds. Both save paths go through here.
+	 *
+	 * @param array<string,mixed> $decoded
+	 * @return array<string,mixed>
+	 */
+	function reci_reflection_system_merge_saved_blueprint(array $decoded, int $post_id): array {
+		$normalized = reci_reflection_system_normalize_blueprint($decoded);
+
+		$raw = get_post_meta($post_id, '_reci_reflection_blueprint', true);
+		if (is_string($raw) && '' !== $raw) {
+			$raw = json_decode($raw, true);
+		}
+
+		if (is_array($raw)) {
+			$normalized = reci_reflection_system_preserve_unknown_props(
+				$normalized,
+				reci_reflection_system_normalize_blueprint($raw)
+			);
+		}
+
+		return $normalized;
+	}
+}
+
 if (! function_exists('reci_reflection_blueprint_uses_new_system')) {
 	function reci_reflection_blueprint_uses_new_system(int $post_id): bool {
 		if ($post_id <= 0) {
