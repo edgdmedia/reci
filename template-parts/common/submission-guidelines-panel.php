@@ -58,21 +58,26 @@ if ( '' === $reci_guidelines ) {
 
 <style>
 /* Scoped to the panel: the body is editor-written HTML, so it is styled here
-   rather than requiring classes in the settings field. */
+   rather than requiring classes in the settings field.
+
+   Body copy matches an article on this site - 20px/28px Roboto at #2B2B2B,
+   measured from a rendered post rather than guessed. The panel used to set
+   13.5px, which read as small print next to everything around it. */
 .reci-guide-panel__body > h3 {
 	font-family: 'Alternate Gothic ATF', 'Arial Narrow', Arial, sans-serif;
-	font-size: 16px;
+	font-size: 22px;
 	letter-spacing: 0.02em;
 	color: #B45309;
-	margin: 24px 0 8px;
+	margin: 32px 0 10px;
 }
 .reci-guide-panel__body > h3:first-child {
 	margin-top: 0;
 }
 .reci-guide-panel__body > p {
-	font-size: 13.5px;
-	line-height: 1.7;
-	color: #52525B;
-	margin: 0 0 4px;
+	font-family: 'Roboto', 'SF Pro Display', 'Segoe UI', sans-serif;
+	font-size: 20px;
+	line-height: 28px;
+	color: #2B2B2B;
+	margin: 0 0 12px;
 }
 </style>

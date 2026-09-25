@@ -14,7 +14,9 @@ $args = wp_parse_args(
 	[
 		'id' => 'top',
 		'eyebrow' => '',
+		'foreground_image' => '',
 		'title' => '',
+		'title_accent' => '',
 		'subtitle' => '',
 		'body' => '',
 		'use_background_image' => '0',
@@ -43,11 +45,14 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 			<div class="absolute inset-0" style="background: rgba(<?php echo esc_attr($args['overlay_rgb']); ?>, <?php echo esc_attr($args['overlay_opacity']); ?>); -webkit-mask-image: linear-gradient(to right, black 50%, transparent 100%); mask-image: linear-gradient(to right, black 50%, transparent 100%);"></div>
 		<?php endif; ?>
 		<div class="relative z-10 flex min-h-screen flex-col <?php echo esc_attr($args['align_v_class']); ?> gap-4 px-5 pb-10 pt-24 sm:px-6 lg:px-20 lg:pb-16 <?php echo esc_attr($args['align_h_class']); ?> <?php echo esc_attr($args['align_text_class']); ?>">
+			<?php if (! empty($args['foreground_image'])) : ?>
+				<img src="<?php echo esc_url($args['foreground_image']); ?>" alt="" class="mb-6 max-h-[200px] w-auto" />
+			<?php endif; ?>
 			<?php if ($args['eyebrow']) : ?>
 				<div class="font-['Oswald'] text-3xl uppercase tracking-[0.12em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 			<?php endif; ?>
 			<?php if ($args['title']) : ?>
-				<h1 class="max-w-[10ch] font-['Oswald'] uppercase text-[#111] text-5xl font-semibold leading-[0.95] sm:text-7xl lg:text-[7rem]"><?php echo esc_html($args['title']); ?></h1>
+				<h1 class="max-w-[10ch] font-['Oswald'] uppercase text-[#111] text-5xl font-semibold leading-[0.95] sm:text-7xl lg:text-[7rem]"><?php echo esc_html($args['title']); ?><?php if (! empty($args['title_accent'])) : ?><br><span style="color: var(--reflection-accent);"><?php echo esc_html($args['title_accent']); ?></span><?php endif; ?></h1>
 			<?php endif; ?>
 			<?php if ($args['subtitle']) : ?>
 				<div class="max-w-[68rem] text-xl leading-8 text-[#111] sm:text-2xl"><?php echo esc_html($args['subtitle']); ?></div>

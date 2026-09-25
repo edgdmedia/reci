@@ -357,7 +357,7 @@ if (! class_exists('RECI_Reflection_Builder')) {
                 wp_send_json_error(['message' => 'Reflection system unavailable.']);
             }
 
-            $normalized = reci_reflection_system_normalize_blueprint($decoded);
+            $normalized = reci_reflection_system_merge_saved_blueprint($decoded, $post_id);
             update_post_meta($post_id, '_reci_reflection_blueprint', wp_slash(wp_json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
 
             if (class_exists('RECI_Reflection_Content_Service')) {
@@ -399,7 +399,7 @@ if (! class_exists('RECI_Reflection_Builder')) {
                 return;
             }
 
-            $normalized = reci_reflection_system_normalize_blueprint($decoded);
+            $normalized = reci_reflection_system_merge_saved_blueprint($decoded, $post_id);
             update_post_meta($post_id, '_reci_reflection_blueprint', wp_slash(wp_json_encode($normalized, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)));
         }
     }

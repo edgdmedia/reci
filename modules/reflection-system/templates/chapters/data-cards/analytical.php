@@ -28,7 +28,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 			color: var(--reflection-accent);
 		}
 		.<?php echo esc_attr($scope_class); ?> .rd-bar-track {
-			background-color: var(--reflection-heading);
+			background-color: var(--reflection-heading, var(--reflection-text, #ffffff));
 			opacity: 0.1;
 		}
 		.<?php echo esc_attr($scope_class); ?> .rd-bar-fill {
@@ -40,7 +40,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 	</style>
 	<div class="mx-auto w-full max-w-[1240px] px-5 sm:px-6 lg:px-12 xl:px-16">
 		<div class="text-center">
-			<h1 class="font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading)] sm:text-6xl"><?php echo esc_html($args['title']); ?></h1>
+			<h1 class="font-['Space_Grotesk'] text-5xl font-bold leading-none text-[var(--reflection-heading, var(--reflection-text, #ffffff))] sm:text-6xl"><?php echo esc_html($args['title']); ?></h1>
 			<p class="mx-auto mt-5 max-w-[600px] text-xl leading-8 reci-reflection-muted"><?php echo reci_reflection_format_text($args['intro']); ?></p>
 		</div>
 		<div class="mt-10 grid gap-[2px] bg-black/10 p-[2px] md:grid-cols-2" data-reci-data-grid>
@@ -50,20 +50,35 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 						<?php 
 							$icon = $card['icon'] ?? '';
 							$icon_url = is_array($icon) ? ($icon['url'] ?? $icon['src'] ?? '') : $icon;
-							if (!empty($icon_url) && (preg_match('/^(https?:|\/\/|\/|data:image\/)/i', $icon_url))) {
-								echo '<img src="' . esc_url($icon_url) . '" alt="" class="h-10 w-10 object-contain invert-[.7] opacity-80">';
-							} else {
-								echo esc_html($icon_url);
+							// esc_url() strips data: URIs - it is not an allowed
+							// protocol - so an inline SVG icon escaped away to ''.
+							// Validate that shape here and pass it through; anything
+							// else goes to esc_url() as before.
+							$icon_src = '';
+
+							if ( ! empty( $icon_url ) ) {
+								if ( preg_match( '#^data:image/(png|jpe?g|gif|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$#', $icon_url ) ) {
+									$icon_src = $icon_url;
+								} elseif ( preg_match( '#^(https?:|//|/)#i', $icon_url ) ) {
+									$icon_src = esc_url( $icon_url );
+								}
+							}
+
+							if ( '' !== $icon_src ) {
+								echo '<img src="' . esc_attr( $icon_src ) . '" alt="" class="h-10 w-10 object-contain invert-[.7] opacity-80">';
+							} elseif ( '' === $icon_src && ! preg_match( '#^data:#i', (string) $icon_url ) ) {
+								// An emoji or glyph, which is a legitimate icon.
+								echo esc_html( $icon_url );
 							}
 						?>
 					</div>
-					<div class="mt-5 font-mono text-sm uppercase tracking-[0.08em] text-[var(--reflection-muted)] group-[.active]:text-[var(--reflection-accent)]"><?php echo esc_html($card['eyebrow'] ?? ''); ?></div>
-					<div class="mt-3 flex items-baseline gap-3 text-5xl font-bold text-[var(--reflection-heading)]"><span><?php echo esc_html($card['stat'] ?? ''); ?></span><span class="text-base font-normal text-[var(--reflection-muted)]"><?php echo esc_html($card['unit'] ?? ''); ?></span></div>
-					<p class="mt-4 text-base leading-7 text-[var(--reflection-body)]"><?php echo reci_reflection_format_text($card['summary'] ?? ''); ?></p>
-					<div class="rd-card-detail mt-5 hidden group-[.active]:block border-t border-[var(--reflection-heading)]/20 pt-5 text-sm leading-7 text-[var(--reflection-body)]">
+					<div class="mt-5 font-mono text-sm uppercase tracking-[0.08em] text-[var(--reflection-muted, #b8b8b8)] group-[.active]:text-[var(--reflection-accent)]"><?php echo esc_html($card['eyebrow'] ?? ''); ?></div>
+					<div class="mt-3 flex items-baseline gap-3 text-5xl font-bold text-[var(--reflection-heading, var(--reflection-text, #ffffff))]"><span><?php echo esc_html($card['stat'] ?? ''); ?></span><span class="text-base font-normal text-[var(--reflection-muted, #b8b8b8)]"><?php echo esc_html($card['unit'] ?? ''); ?></span></div>
+					<p class="mt-4 text-base leading-7 text-[var(--reflection-body, var(--reflection-soft-text, #e0e0e0))]"><?php echo reci_reflection_format_text($card['summary'] ?? ''); ?></p>
+					<div class="rd-card-detail mt-5 hidden group-[.active]:block border-t border-[var(--reflection-heading, var(--reflection-text, #ffffff))]/20 pt-5 text-sm leading-7 text-[var(--reflection-body, var(--reflection-soft-text, #e0e0e0))]">
 						<?php if (! empty($card['toggle'])) : ?>
 							<div class="mb-4 flex gap-3 font-mono text-xs uppercase tracking-[0.08em]">
-								<button type="button" class="rd-toggle-btn border border-[var(--reflection-heading)]/20 px-3 py-2 text-[var(--reflection-heading)] transition" data-toggle-solution><?php echo esc_html($card['toggle']); ?></button>
+								<button type="button" class="rd-toggle-btn border border-[var(--reflection-heading, var(--reflection-text, #ffffff))]/20 px-3 py-2 text-[var(--reflection-heading, var(--reflection-text, #ffffff))] transition" data-toggle-solution><?php echo esc_html($card['toggle']); ?></button>
 							</div>
 						<?php endif; ?>
 						<div class="rd-view-problem">
@@ -72,7 +87,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 								<div class="mt-5 grid gap-3">
 									<?php foreach ($card['bars'] as $bar) : ?>
 										<div class="flex items-center gap-3 text-xs">
-											<div class="w-20 shrink-0 text-[var(--reflection-body)]"><?php echo esc_html($bar['label']); ?></div>
+											<div class="w-20 shrink-0 text-[var(--reflection-body, var(--reflection-soft-text, #e0e0e0))]"><?php echo esc_html($bar['label']); ?></div>
 											<div class="h-2 flex-1 rounded-full relative overflow-hidden">
 												<div class="absolute inset-0 rd-bar-track"></div>
 												<div class="h-2 rounded-full relative z-10 <?php echo ! empty($bar['alert']) ? 'rd-bar-fill-alert' : 'rd-bar-fill'; ?>" style="width: <?php echo esc_attr($bar['width']); ?>;"></div>
@@ -98,7 +113,7 @@ $continue_target = ltrim($args['continue_target'] ?? '', '#');
 				<?php 
 					$continue_label = !empty($args['continue_label']) ? $args['continue_label'] : 'Continue';
 				?>
-				<button type="button" class="inline-flex items-center justify-center border border-[var(--reflection-heading)] px-8 py-3 font-mono text-sm uppercase tracking-[0.12em] text-[var(--reflection-heading)] transition hover:bg-[var(--reflection-heading)] hover:text-[var(--reflection-bg)]" data-stage-target="<?php echo esc_attr($continue_target); ?>">
+				<button type="button" class="inline-flex items-center justify-center border border-[var(--reflection-heading, var(--reflection-text, #ffffff))] px-8 py-3 font-mono text-sm uppercase tracking-[0.12em] text-[var(--reflection-heading, var(--reflection-text, #ffffff))] transition hover:bg-[var(--reflection-heading, var(--reflection-text, #ffffff))] hover:text-[var(--reflection-bg)]" data-stage-target="<?php echo esc_attr($continue_target); ?>">
 					<?php echo esc_html($continue_label); ?>
 				</button>
 			<?php endif; ?>

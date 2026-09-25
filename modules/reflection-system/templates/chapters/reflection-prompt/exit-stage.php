@@ -24,40 +24,33 @@ $args = wp_parse_args($args ?? [], [
 	<div class="reci-stage-shell">
 		<div class="reci-stage-body justify-center">
 			<div class="mx-auto flex w-full max-w-[1040px] flex-col items-center rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-gradient-to-b from-[var(--reflection-card-strong)] to-[var(--reflection-card)] px-6 py-10 text-center sm:px-8 lg:px-12 lg:py-14">
-				<?php if ($args['eyebrow']) : ?>
-					<div class="font-['Oswald'] text-sm uppercase tracking-[0.14em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
-				<?php endif; ?>
-				<h2 class="mt-4 max-w-[16ch] font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4.5rem]"><?php echo esc_html($args['title']); ?></h2>
-				<p class="mt-5 max-w-[44rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9"><?php echo reci_reflection_format_text($args['intro']); ?></p>
-				<?php if ($args['cards']) : ?>
-					<div class="mt-8 grid w-full gap-4 md:grid-cols-2">
-						<?php foreach ((array) $args['cards'] as $card) : ?>
-							<article class="rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5 text-left">
-								<h3 class="mb-3 font-['Playfair_Display'] text-2xl font-semibold reci-reflection-text"><?php echo esc_html($card['title']); ?></h3>
-								<p class="text-base leading-8 reci-reflection-soft-text"><?php echo reci_reflection_format_text($card['body']); ?></p>
-							</article>
-						<?php endforeach; ?>
-					</div>
-				<?php endif; ?>
+				<?php
+				get_template_part( 'template-parts/reflection/prompt-intro', null, [
+					'eyebrow'          => $args['eyebrow'] ?? '',
+					'title'            => $args['title'] ?? '',
+					'intro'            => $args['intro'] ?? '',
+					'cards'            => $args['cards'] ?? [],
+					'eyebrow_class'    => 'font-[\'Oswald\'] text-sm uppercase tracking-[0.14em] reci-reflection-accent',
+					'title_class'      => 'mt-4 max-w-[16ch] font-[\'Playfair_Display\'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-5xl lg:text-[4.5rem]',
+					'intro_class'      => 'mt-5 max-w-[44rem] text-base leading-8 reci-reflection-soft-text sm:text-lg sm:leading-9',
+					'cards_class'      => 'mt-8 grid w-full gap-4 md:grid-cols-2',
+					'card_class'       => 'rounded-3xl border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-card)] p-5 text-left',
+					'card_title_class' => 'mb-3 font-[\'Playfair_Display\'] text-2xl font-semibold reci-reflection-text',
+					'card_body_class'  => 'text-base leading-8 reci-reflection-soft-text',
+				] );
+				?>
 				<div class="mt-8 w-full max-w-[42rem] rounded-[24px] border border-[color:var(--reflection-border)] bg-[var(--reflection-card)] p-6 text-left">
 					<label class="mb-3 block font-['Oswald'] text-sm uppercase tracking-[0.12em] reci-reflection-accent"><?php echo reci_reflection_format_text($args['prompt'] ?: 'Your reflection'); ?></label>
 					<?php
 					get_template_part( 'template-parts/reflection/prompt-form', null, [
-						'style'           => 'panel',
-						'prompt'          => $args['prompt'],
-						'textarea_class'  => 'min-h-[180px] w-full rounded-[18px] border border-[color:var(--reflection-border)] bg-transparent p-4 reci-reflection-text outline-none',
-						'note_class'      => 'mt-4 text-sm reci-reflection-soft-text',
-						'row_class'       => 'mt-4 flex flex-wrap items-center gap-4',
-						'status_class'    => 'mt-4 rounded-[18px] bg-[var(--reflection-card-strong)] px-4 py-4 text-sm reci-reflection-soft-text',
-						'button_class'    => 'inline-flex items-center justify-center rounded-full bg-[var(--reflection-accent)] px-6 py-4 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] text-[var(--reflection-accent-contrast)]',
-												'success_class'       => 'flex-col items-start w-full reci-reflection-text',
+						'prompt'              => $args['prompt'],
+						'continue_label'      => $args['continue_label'] ?? '',
+						'continue_target'     => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? ( $args['continue_target'] ?? '' ) : '',
+						'textarea_tone'       => 'border-[color:var(--reflection-border)] bg-transparent reci-reflection-text',
+						'button_class'        => 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] bg-transparent px-6 py-3 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] reci-reflection-text no-underline hover:bg-[var(--reflection-card-strong)]',
+						'tone_class'          => 'reci-reflection-soft-text',
 						'success_title_class' => 'mb-3 font-[\'Playfair_Display\'] text-3xl font-semibold reci-reflection-text',
-						'success_body_class'  => 'mb-6 text-base leading-8 reci-reflection-soft-text',
-						'success_row_class'   => 'flex flex-col sm:flex-row gap-4',
-						'restart_class'       => 'inline-flex items-center justify-center rounded-full border border-[color:var(--reflection-border)] px-6 py-4 font-[\'Oswald\'] text-sm uppercase tracking-[0.1em] reci-reflection-text',
-						'continue_label'  => ( ( $args['transition_mode'] ?? 'button' ) === 'button' ) ? $args['continue_label'] : '',
-						'continue_target' => $args['continue_target'],
-						'continue_class'  => 'reci-continue',
+						'success_body_class'  => 'mb-2 text-base leading-8 reci-reflection-soft-text',
 					] );
 					?>
 				</div>

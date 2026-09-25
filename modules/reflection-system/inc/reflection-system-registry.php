@@ -71,6 +71,28 @@ if (! function_exists('reci_reflection_system_with_transition_fields')) {
 	}
 }
 
+if (! function_exists('reci_reflection_system_without_fields')) {
+	/**
+	 * Drop shared fields a family does not render.
+	 *
+	 * The menu and transition helpers add the same controls to every family,
+	 * which is right for most of them. Where a family renders no such element
+	 * the control would sit in the builder doing nothing, and a control that
+	 * does nothing is worse than no control.
+	 *
+	 * @param array<string,array<string,mixed>> $fields
+	 * @param array<int,string> $drop
+	 * @return array<string,array<string,mixed>>
+	 */
+	function reci_reflection_system_without_fields(array $fields, array $drop): array {
+		foreach ($drop as $key) {
+			unset($fields[$key]);
+		}
+
+		return $fields;
+	}
+}
+
 if (! function_exists('reci_reflection_system_styles')) {
 	/**
 	 * @return array<string,array<string,mixed>>
@@ -158,44 +180,6 @@ if (! function_exists('reci_reflection_system_styles')) {
 							'id' => 'vor-reflect',
 							'prompt' => '"What does courage mean to you in the context of social justice?"'
 						]
-					]
-				]
-			],
-			'breaking-chains' => [
-				'label' => 'Breaking Chains',
-				'base_variant' => 'immersive-dark',
-				'colors' => [
-					'primary' => '#111111',
-					'bg' => '#0a0a0a',
-					'heading' => '#e0e0e0',
-					'body' => '#e0e0e0',
-					'accent' => '#D4AF37',
-				],
-				'chapters' => [
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-						'props' => ['id' => 'bc-title', 'title' => 'Breaking Chains', 'subtitle' => 'Liberation is not merely the absence of physical chains. It is the transformation of consciousness.', 'actions' => [['label' => 'Scroll Down to Begin', 'href' => 'bc-chain-stage']]]
-					],
-					[
-						'family' => 'drag-reveal',
-						'variant' => 'chain',
-						'props' => ['id' => 'bc-chain-stage', 'text' => 'Historically, systems of oppression have relied on more than physical force...', 'instruction' => 'Drag Down to Break']
-					],
-					[
-						'family' => 'word-shift',
-						'variant' => 'liberation',
-						'props' => ['id' => 'word-shift', 'title' => 'Internal Narratives', 'html' => "The process of liberation requires <span class=\"shift-word\" data-shift=\"CONSCIENTIZATION\">awakening</span>... a shift from feeling <span class=\"shift-word\" data-shift=\"POWERFUL\">powerless</span> to recognizing one's own <span class=\"shift-word\" data-shift=\"AGENCY\">fate</span>.", 'continue_label' => 'Continue →', 'continue_target' => 'bc-hands']
-					],
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-				'props' => ['id' => 'bc-hands', 'title' => 'Unity', 'subtitle' => 'When people come together, they build the collective power necessary for change.', 'foreground_image' => trailingslashit(get_template_directory_uri()) . 'demo-content/images/site/theme/hands-unity.png', 'actions' => [['label' => 'Step Forward', 'href' => 'bc-freedom']]]
-					],
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-						'props' => ['id' => 'bc-freedom', 'title' => 'Freedom', 'subtitle' => 'A world where all people can live fully, freely, and with dignity.', 'actions' => [['label' => 'Return to Gallery', 'href' => '/reflections/']]]
 					]
 				]
 			],
@@ -303,32 +287,31 @@ if (! function_exists('reci_reflection_system_styles')) {
 						'props' => [
 							'id' => 'bc-reflect',
 							'prompt' => 'What does breaking chains mean to you in your own life?',
-							'button_label' => 'Submit Reflection',
-							'button_href' => '/reflections/'
 						]
 					]
 				]
 			],
 			'racial-disparities' => [
 				'label' => 'Racial Disparities',
-				'base_variant' => 'analytical',
+				'base_variant' => 'analytical-light',
 				'colors' => [
 					'primary' => '#2A4494',
 					'bg' => '#f4f4f4',
 					'heading' => '#111111',
-					'body' => '#a0a0a0',
+					// Was #a0a0a0, which is 2.38:1 on this background.
+					'body' => '#3f3f46',
 					'accent' => '#2A4494',
 				],
 				'chapters' => [
 					[
 						'family' => 'hero',
-						'variant' => 'analytical',
+						'variant' => 'analytical-light',
 						'props' => [
 							'id' => 'rd-hero',
 							'use_background_image' => '1',
 							'background_image' => trailingslashit(get_stylesheet_directory_uri()) . 'assets/images/site/reflections/racial-disparities/pexels-anna-nekrashevich-8058540.jpg',
-							'overlay_rgb' => '255,255,255',
-							'overlay_opacity' => 0.70,
+							'overlay_color' => '#ffffff',
+							'overlay_intensity' => 70,
 							'title' => 'The Data Gap',
 							'body' => 'Racial disparities are not just numbers. They are structural realities that affect lives. Tap a domain to examine the evidence.',
 							'actions' => [['label' => 'View Data', 'href' => 'rd-analysis']]
@@ -336,7 +319,7 @@ if (! function_exists('reci_reflection_system_styles')) {
 					],
 					[
 						'family' => 'data-cards',
-						'variant' => 'analytical',
+						'variant' => 'analytical-light',
 						'props' => [
 							'id' => 'rd-analysis',
 							'title' => 'The Data',
@@ -410,27 +393,32 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'documentary' => 'Documentary',
 					'narrative' => 'Narrative',
 					'testimonial' => 'Testimonial',
-					'analytical' => 'Analytical',
+					'analytical-light' => 'Analytical (Light Card)',
+					'analytical-dark' => 'Analytical (Dark Card)',
 					'immersive-dark' => 'Immersive Dark',
 					'protest-march' => 'Protest March',
 					'protest-march-dark' => 'Protest March Dark',
 				],
-				'fields' => reci_reflection_system_with_transition_fields([
+				// continue_label is dropped: a hero navigates through its actions, and
+				// no hero template reads it. continue_target stays, because the runtime
+				// uses it for scroll transitions.
+				'fields' => reci_reflection_system_without_fields(reci_reflection_system_with_transition_fields([
+					'id' => ['type' => 'text', 'label' => 'Section ID'],
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
-					'title_accent' => ['type' => 'text', 'label' => 'Title (highlighted line, accent color)', 'show_if' => ['variant' => 'immersive-dark']],
+					'title_accent' => ['type' => 'text', 'label' => 'Title (highlighted line, accent color)'],
 					'subtitle' => ['type' => 'text', 'label' => 'Subtitle'],
 					'body' => ['type' => 'textarea', 'label' => 'Body'],
-					'foreground_image' => ['type' => 'media', 'label' => 'Foreground image', 'show_if' => ['variant' => ['immersive-dark']]],
+					'foreground_image' => ['type' => 'media', 'label' => 'Foreground image'],
 					'caption' => ['type' => 'textarea', 'label' => 'Caption'],
 					'use_background_image' => ['type' => 'select', 'label' => 'Enable background image?', 'options' => ['0' => 'No', '1' => 'Yes']],
 					'background_image' => ['type' => 'media', 'label' => 'Background image', 'show_if' => ['use_background_image' => '1']],
-					'overlay_intensity' => ['type' => 'range', 'label' => 'Overlay intensity', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical', 'protest-march']]],
-					'overlay_color' => ['type' => 'color', 'label' => 'Overlay color', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical', 'protest-march']]],
+					'overlay_intensity' => ['type' => 'range', 'label' => 'Overlay intensity', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical-light', 'analytical-dark', 'protest-march', 'protest-march-dark']]],
+					'overlay_color' => ['type' => 'color', 'label' => 'Overlay color', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical-light', 'analytical-dark', 'protest-march', 'protest-march-dark']]],
 					'align_horizontal' => ['type' => 'select', 'label' => 'Horizontal align', 'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'], 'default' => 'center'],
 					'align_vertical' => ['type' => 'select', 'label' => 'Vertical align', 'options' => ['top' => 'Top', 'center' => 'Center', 'bottom' => 'Bottom'], 'default' => 'center'],
 					'actions' => ['type' => 'repeater', 'label' => 'Actions', 'itemFields' => ['label' => ['type' => 'text', 'label' => 'Label'], 'href' => ['type' => 'chapter-target', 'label' => 'Target'], 'class' => ['type' => 'text', 'label' => 'Classes']]],
-				]),
+				]), ['continue_label']),
 			],
 			'feature-split' => [
 				'label' => 'Feature Split',
@@ -525,8 +513,11 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
 					'prompt' => ['type' => 'textarea', 'label' => 'Prompt', 'required' => true],
-					'button_label' => ['type' => 'text', 'label' => 'Button label'],
-					'button_href' => ['type' => 'text', 'label' => 'Button href'],
+					'intro' => ['type' => 'textarea', 'label' => 'Intro'],
+					'cards' => ['type' => 'repeater', 'label' => 'Cards', 'itemFields' => [
+						'title' => ['type' => 'text', 'label' => 'Card title'],
+						'body' => ['type' => 'textarea', 'label' => 'Card body'],
+					]],
 				]),
 			],
 			// Appended automatically by the render service when a reflection has
@@ -691,9 +682,8 @@ if (! function_exists('reci_reflection_system_registry')) {
 				'label' => 'Data Cards',
 				'kind' => 'chapter',
 				'loader' => 'modules/reflection-system/templates/chapters/chapter-data-cards',
-				'default_variant' => 'analytical',
+				'default_variant' => 'analytical-dark',
 				'variants' => [
-					'analytical' => 'Analytical (Inherit)',
 					'analytical-light' => 'Analytical (Light Card)',
 					'analytical-dark' => 'Analytical (Dark Card)',
 				],
@@ -841,6 +831,347 @@ if (! function_exists('reci_reflection_system_component_definition')) {
 	}
 }
 
+
+if (! function_exists('reci_reflection_color_is_dark')) {
+	/**
+	 * Whether a colour is dark enough to want light text on it.
+	 *
+	 * Unreadable input counts as dark, which is the safer assumption for a
+	 * system whose styles are mostly dark.
+	 */
+	function reci_reflection_color_is_dark(string $color): bool {
+		$hex = ltrim(trim($color), '#');
+		if (strlen($hex) === 3) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if (strlen($hex) !== 6 || ! ctype_xdigit($hex)) {
+			return true;
+		}
+
+		$luminance = (
+			0.299 * hexdec(substr($hex, 0, 2))
+			+ 0.587 * hexdec(substr($hex, 2, 2))
+			+ 0.114 * hexdec(substr($hex, 4, 2))
+		) / 255;
+
+		return $luminance < 0.5;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_keys')) {
+	/**
+	 * Every colour the reflection system understands, in the order it is
+	 * written out, mapped to its CSS custom property.
+	 *
+	 * @return array<string,string>
+	 */
+	function reci_reflection_palette_keys(): array {
+		return [
+			'color_bg' => '--reflection-bg',
+			'color_heading' => '--reflection-heading',
+			'color_body' => '--reflection-body',
+			'color_primary' => '--reflection-primary',
+			'color_accent' => '--reflection-accent',
+			'color_surface' => '--reflection-surface',
+			'color_surface_text' => '--reflection-surface-text',
+			'color_muted' => '--reflection-muted',
+			'color_text' => '--reflection-text',
+			'color_soft_text' => '--reflection-soft-text',
+			'color_card' => '--reflection-card',
+			'color_card_strong' => '--reflection-card-strong',
+			'color_border' => '--reflection-border',
+			'color_border_soft' => '--reflection-border-soft',
+			'color_hotspot_ring' => '--reflection-hotspot-ring',
+		];
+	}
+}
+
+if (! function_exists('reci_reflection_resolve_palette')) {
+	/**
+	 * Fill in the colours a style does not name for itself.
+	 *
+	 * A style declares five colours - background, heading, body, primary,
+	 * accent - and the builder's panel edits eight. The templates read
+	 * fifteen. The remaining seven are cards, borders and the hotspot ring:
+	 * tints of the foreground over the background, which is exactly the kind
+	 * of thing worth deriving rather than asking anyone to pick.
+	 *
+	 * Only documentary, immersive-dark and breaking-chains ship a stylesheet
+	 * that declares them. For voices-of-resistance, march-toward-justice and
+	 * racial-disparities they were simply undefined, so 93 uses of
+	 * var(--reflection-card) and friends resolved to nothing - no card, no
+	 * border, no ring. On the light style that is the difference between a
+	 * bordered card and a blank rectangle.
+	 *
+	 * Anything already set is left alone, so a style, a global setting or a
+	 * per-chapter override always wins.
+	 *
+	 * @param array<string,mixed> $colors Any subset of the palette keys.
+	 * @return array<string,string> The same colours, with the gaps filled.
+	 */
+	function reci_reflection_resolve_palette(array $colors, bool $derive = true): array {
+		$resolved = [];
+		foreach (reci_reflection_palette_keys() as $key => $_property) {
+			$value = trim((string) ($colors[$key] ?? ''));
+			if ('' !== $value) {
+				$resolved[$key] = $value;
+			}
+		}
+
+		$bg = $resolved['color_bg'] ?? '';
+		if ('' === $bg) {
+			// Nothing to derive from. The stylesheets answer, as they do now.
+			return $resolved;
+		}
+
+		// A surface with no colour of its own sits on the background. This one
+		// is stated rather than derived, because it has to beat the
+		// stylesheets: a style that sets a light background but no surface
+		// used to keep the theme's dark default for cards and panels, which
+		// put light-palette text on a dark card at 1.02:1.
+		if (! isset($resolved['color_surface'])) {
+			$resolved['color_surface'] = $bg;
+		}
+
+		if (! $derive) {
+			return $resolved;
+		}
+
+		$dark = reci_reflection_color_is_dark($bg);
+		// Tints of the foreground, laid over the background.
+		$tint = $dark ? '255,255,255' : '17,17,17';
+
+		$derived = [
+			// A card is the background lifted slightly toward the foreground.
+			'color_card' => 'rgba(' . $tint . ',' . ($dark ? '0.04' : '0.03') . ')',
+			'color_card_strong' => 'rgba(' . $tint . ',' . ($dark ? '0.08' : '0.06') . ')',
+			'color_border' => 'rgba(' . $tint . ',' . ($dark ? '0.18' : '0.14') . ')',
+			'color_border_soft' => 'rgba(' . $tint . ',' . ($dark ? '0.10' : '0.08') . ')',
+		];
+
+		// Body text carries the styles' running copy; heading carries titles.
+		// Where a style names them, the rest follow rather than guess.
+		$heading = $resolved['color_heading'] ?? '';
+		$body = $resolved['color_body'] ?? '';
+
+		if ('' !== $heading) {
+			$derived['color_text'] = $heading;
+			$derived['color_surface_text'] = $heading;
+		}
+		if ('' !== $body) {
+			$derived['color_soft_text'] = $body;
+			$derived['color_muted'] = $body;
+		}
+
+		// The hotspot ring is the accent, held back so it reads as a hint.
+		$accent = $resolved['color_accent'] ?? '';
+		if ('' !== $accent && preg_match('/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i', $accent)) {
+			$hex = ltrim($accent, '#');
+			if (strlen($hex) === 3) {
+				$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+			}
+			$derived['color_hotspot_ring'] = sprintf(
+				'rgba(%d,%d,%d,0.35)',
+				hexdec(substr($hex, 0, 2)),
+				hexdec(substr($hex, 2, 2)),
+				hexdec(substr($hex, 4, 2))
+			);
+		}
+
+		foreach ($derived as $key => $value) {
+			if (! isset($resolved[$key])) {
+				$resolved[$key] = $value;
+			}
+		}
+
+		return $resolved;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_declarations')) {
+	/**
+	 * Turn palette keys into CSS custom property declarations.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_declarations(array $colors): string {
+		$css = '';
+		foreach (reci_reflection_palette_keys() as $key => $property) {
+			$value = trim((string) ($colors[$key] ?? ''));
+			if ('' !== $value) {
+				$css .= $property . ': ' . esc_attr($value) . ';';
+			}
+		}
+
+		return $css;
+	}
+}
+
+if (! function_exists('reci_reflection_palette_css')) {
+	/**
+	 * The colours actually named, for an inline style attribute.
+	 *
+	 * Only what a style, a global setting or a chapter override states. What
+	 * nobody states belongs in reci_reflection_palette_defaults_css(), at a
+	 * specificity the stylesheets can beat.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_css(array $colors): string {
+		return reci_reflection_palette_declarations(reci_reflection_resolve_palette($colors, false));
+	}
+}
+
+if (! function_exists('reci_reflection_palette_defaults_css')) {
+	/**
+	 * The colours nobody named, derived from the ones they did.
+	 *
+	 * Written into a :where() rule, which carries no specificity, so a style's
+	 * own stylesheet and any inline colour both beat it. It fills gaps and
+	 * never overrules.
+	 *
+	 * @param array<string,mixed> $colors
+	 */
+	function reci_reflection_palette_defaults_css(array $colors): string {
+		$stated = reci_reflection_resolve_palette($colors, false);
+		$filled = reci_reflection_resolve_palette($colors, true);
+
+		foreach (array_keys($stated) as $key) {
+			unset($filled[$key]);
+		}
+
+		return reci_reflection_palette_declarations($filled);
+	}
+}
+
+if (! function_exists('reci_reflection_system_known_prop_keys')) {
+	/**
+	 * The prop keys the builder's editing form knows about for a family.
+	 *
+	 * Anything outside this set is a prop the builder cannot represent, so it
+	 * cannot be the author's intent to clear it.
+	 *
+	 * @return array<string,true>
+	 */
+	function reci_reflection_system_known_prop_keys(string $family): array {
+		$definition = reci_reflection_system_component_definition($family);
+		$fields     = is_array($definition['fields'] ?? null) ? $definition['fields'] : [];
+
+		$known = [];
+		foreach (array_keys($fields) as $key) {
+			$known[(string) $key] = true;
+		}
+
+		return $known;
+	}
+}
+
+if (! function_exists('reci_reflection_system_preserve_unknown_props')) {
+	/**
+	 * Carry forward props the builder cannot edit.
+	 *
+	 * The builder composes each chapter's props from the fields the registry
+	 * declares for its family, so a prop that is rendered but never declared
+	 * is absent from the posted JSON and would be lost on the first save -
+	 * silently, and for every author who so much as opens the chapter. That is
+	 * how We Humans lost its reflection intro and its six cards when its style
+	 * was swapped and swapped back.
+	 *
+	 * A declared field stays authoritative: clearing it in the builder really
+	 * does clear it. Only undeclared props are restored from what was stored.
+	 *
+	 * @param array<string,mixed> $incoming Normalized blueprint being saved.
+	 * @param array<string,mixed> $stored   Normalized blueprint currently held.
+	 * @return array<string,mixed>
+	 */
+	function reci_reflection_system_preserve_unknown_props(array $incoming, array $stored): array {
+		$stored_chapters = is_array($stored['chapters'] ?? null) ? $stored['chapters'] : [];
+		if (! $stored_chapters || ! is_array($incoming['chapters'] ?? null)) {
+			return $incoming;
+		}
+
+		// Index by id so a reorder still matches. Chapters with no id fall back
+		// to their position, which is the best that can be said about them.
+		$by_id = [];
+		foreach ($stored_chapters as $index => $chapter) {
+			if (! is_array($chapter)) {
+				continue;
+			}
+			$id  = (string) ($chapter['id'] ?? '');
+			$key = '' !== $id ? 'id:' . $id : 'pos:' . $index;
+			$by_id[$key] = $chapter;
+		}
+
+		foreach ($incoming['chapters'] as $index => $chapter) {
+			if (! is_array($chapter)) {
+				continue;
+			}
+
+			$id  = (string) ($chapter['id'] ?? '');
+			$key = '' !== $id ? 'id:' . $id : 'pos:' . $index;
+			$was = $by_id[$key] ?? null;
+
+			if (! is_array($was)) {
+				continue;
+			}
+
+			// A different family in the same slot is a replaced chapter, not an
+			// edited one, so its old props are not ours to resurrect.
+			if ((string) ($was['family'] ?? '') !== (string) ($chapter['family'] ?? '')) {
+				continue;
+			}
+
+			$old_props = is_array($was['props'] ?? null) ? $was['props'] : [];
+			if (! $old_props) {
+				continue;
+			}
+
+			$new_props = is_array($chapter['props'] ?? null) ? $chapter['props'] : [];
+			$known     = reci_reflection_system_known_prop_keys((string) ($chapter['family'] ?? ''));
+
+			foreach ($old_props as $prop_key => $prop_value) {
+				$prop_key = (string) $prop_key;
+
+				if (isset($known[$prop_key]) || array_key_exists($prop_key, $new_props)) {
+					continue;
+				}
+
+				$new_props[$prop_key] = $prop_value;
+			}
+
+			$incoming['chapters'][$index]['props'] = $new_props;
+		}
+
+		return $incoming;
+	}
+}
+
+if (! function_exists('reci_reflection_system_merge_saved_blueprint')) {
+	/**
+	 * Normalize a posted blueprint for storage against what the post already
+	 * holds. Both save paths go through here.
+	 *
+	 * @param array<string,mixed> $decoded
+	 * @return array<string,mixed>
+	 */
+	function reci_reflection_system_merge_saved_blueprint(array $decoded, int $post_id): array {
+		$normalized = reci_reflection_system_normalize_blueprint($decoded);
+
+		$raw = get_post_meta($post_id, '_reci_reflection_blueprint', true);
+		if (is_string($raw) && '' !== $raw) {
+			$raw = json_decode($raw, true);
+		}
+
+		if (is_array($raw)) {
+			$normalized = reci_reflection_system_preserve_unknown_props(
+				$normalized,
+				reci_reflection_system_normalize_blueprint($raw)
+			);
+		}
+
+		return $normalized;
+	}
+}
 
 if (! function_exists('reci_reflection_blueprint_uses_new_system')) {
 	function reci_reflection_blueprint_uses_new_system(int $post_id): bool {

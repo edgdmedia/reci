@@ -1,4 +1,7 @@
-:root {
+/* Scoped: this palette is this style's, not every reflection's. Declared on
+   :root it was the silent default everywhere, so a light palette inherited a
+   dark surface. */
+body.reci-style-immersive-dark {
 	--reflection-primary: #8B4513;
 	--reflection-bg: #111;
 	--reflection-body: #e0e0e0;
@@ -56,8 +59,6 @@
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
-	align-items: center;
 	position: relative;
 	background: black;
 	z-index: 100;
@@ -73,7 +74,19 @@
 	background-position: center;
 	filter: grayscale(100%);
 }
-.intro-content { z-index: 2; text-align: center; }
+.intro-content { z-index: 2; }
+
+/* Centred unless the hero's alignment controls say otherwise. :where() carries
+   no specificity, so the template's own alignment classes win, while the
+   legacy threshold-intro - which emits none - stays centred. */
+:where(.chapter-intro) {
+	justify-content: center;
+	align-items: center;
+}
+
+:where(.intro-content) {
+	text-align: center;
+}
 .intro-title {
 	font-family: 'Playfair Display', serif;
 	font-size: clamp(3rem, 10vw, 8rem);

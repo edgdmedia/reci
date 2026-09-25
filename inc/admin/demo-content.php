@@ -2725,7 +2725,7 @@ function reci_demo_black_wall_street_blueprint( array $img = [] ): array {
 			[
 				'id'      => 'bws-prosperity-stats',
 				'family'  => 'data-cards',
-				'variant' => 'analytical',
+				'variant' => 'analytical-light',
 				'props'   => [
 					'id'              => 'bws-prosperity-stats',
 					'title'           => 'A Self-Made Economy',
@@ -2978,7 +2978,6 @@ function reci_demo_black_wall_street_blueprint( array $img = [] ): array {
 					'id'           => 'bws-reflect',
 					'title'        => 'Reflect',
 					'prompt'       => '"What does remembering Black Wall Street ask of us today?"',
-					'button_label' => 'Return to Gallery',
 					'button_href'  => '/reflections/',
 				],
 			],

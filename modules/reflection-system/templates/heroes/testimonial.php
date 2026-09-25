@@ -14,7 +14,9 @@ $args = wp_parse_args(
 	[
 		'id' => 'top',
 		'eyebrow' => '',
+		'foreground_image' => '',
 		'title' => '',
+		'title_accent' => '',
 		'subtitle' => '',
 		'body' => '',
 		'caption' => '',
@@ -45,11 +47,14 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 		<?php endif; ?>
 		<div class="relative z-10 flex min-h-screen <?php echo esc_attr($args['align_v_class']); ?> px-5 pb-10 pt-24 sm:px-6 lg:px-12 xl:px-20 <?php echo esc_attr($args['align_h_class']); ?>">
 			<div class="max-w-[48rem] rounded-[2rem] border border-[color:var(--reflection-border-soft)] bg-[var(--reflection-surface,var(--reflection-card))] p-6 backdrop-blur-md sm:p-8 lg:p-10 <?php echo esc_attr($args['align_text_class']); ?>" style="--reflection-body: var(--reflection-surface-text, var(--reflection-body)); --reflection-soft-text: var(--reflection-surface-text, var(--reflection-soft-text)); --reflection-muted: var(--reflection-surface-text, var(--reflection-muted));">
-				<?php if ($args['eyebrow']) : ?>
+				<?php if (! empty($args['foreground_image'])) : ?>
+				<img src="<?php echo esc_url($args['foreground_image']); ?>" alt="" class="mb-6 max-h-[200px] w-auto" />
+			<?php endif; ?>
+			<?php if ($args['eyebrow']) : ?>
 					<div class="font-['Oswald'] text-sm uppercase tracking-[0.14em] reci-reflection-accent"><?php echo esc_html($args['eyebrow']); ?></div>
 				<?php endif; ?>
 				<?php if ($args['title']) : ?>
-					<h1 class="mt-4 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-6xl lg:text-[5rem]"><?php echo esc_html($args['title']); ?></h1>
+					<h1 class="mt-4 font-['Playfair_Display'] text-4xl font-semibold leading-tight reci-reflection-text sm:text-6xl lg:text-[5rem]"><?php echo esc_html($args['title']); ?><?php if (! empty($args['title_accent'])) : ?><br><span style="color: var(--reflection-accent);"><?php echo esc_html($args['title_accent']); ?></span><?php endif; ?></h1>
 				<?php endif; ?>
 				<?php if ($args['subtitle']) : ?>
 					<p class="mt-5 max-w-[34rem] text-lg italic leading-8 reci-reflection-soft-text sm:text-xl"><?php echo esc_html($args['subtitle']); ?></p>

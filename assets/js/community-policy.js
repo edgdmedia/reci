@@ -141,12 +141,19 @@
 		overlay.classList.add( 'flex' );
 	}
 
-	function buildLink() {
+	function buildLink( textarea ) {
 		// A link, not a button: it sits inline under the box people are writing
 		// in, and should read as part of the sentence around it.
 		var link = document.createElement( 'a' );
 		link.href = '#';
-		link.className = 'reci-policy-link inline-block mt-2 text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700';
+
+		// Full width inside a reflection prompt, where it sits in a stacked
+		// column under the textarea. The comment form lays out differently, so
+		// it keeps the inline width it already had.
+		var inPrompt = textarea && textarea.closest && textarea.closest( '[data-reci-prompt]' );
+		var width = inPrompt ? 'w-full ' : '';
+
+		link.className = 'reci-policy-link ' + width + 'inline-block mt-2 text-xs font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700';
 		link.textContent = data.linkLabel || 'Community guideline';
 		link.addEventListener( 'click', function ( event ) {
 			event.preventDefault();
@@ -165,7 +172,7 @@
 		textarea.insertAdjacentElement( 'afterend', notice );
 
 		if ( policyHtml ) {
-			textarea.insertAdjacentElement( 'afterend', buildLink() );
+			textarea.insertAdjacentElement( 'afterend', buildLink( textarea ) );
 		}
 
 		if ( ! terms.length ) {
