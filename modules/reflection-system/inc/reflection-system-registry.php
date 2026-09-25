@@ -161,44 +161,6 @@ if (! function_exists('reci_reflection_system_styles')) {
 					]
 				]
 			],
-			'breaking-chains' => [
-				'label' => 'Breaking Chains',
-				'base_variant' => 'immersive-dark',
-				'colors' => [
-					'primary' => '#111111',
-					'bg' => '#0a0a0a',
-					'heading' => '#e0e0e0',
-					'body' => '#e0e0e0',
-					'accent' => '#D4AF37',
-				],
-				'chapters' => [
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-						'props' => ['id' => 'bc-title', 'title' => 'Breaking Chains', 'subtitle' => 'Liberation is not merely the absence of physical chains. It is the transformation of consciousness.', 'actions' => [['label' => 'Scroll Down to Begin', 'href' => 'bc-chain-stage']]]
-					],
-					[
-						'family' => 'drag-reveal',
-						'variant' => 'chain',
-						'props' => ['id' => 'bc-chain-stage', 'text' => 'Historically, systems of oppression have relied on more than physical force...', 'instruction' => 'Drag Down to Break']
-					],
-					[
-						'family' => 'word-shift',
-						'variant' => 'liberation',
-						'props' => ['id' => 'word-shift', 'title' => 'Internal Narratives', 'html' => "The process of liberation requires <span class=\"shift-word\" data-shift=\"CONSCIENTIZATION\">awakening</span>... a shift from feeling <span class=\"shift-word\" data-shift=\"POWERFUL\">powerless</span> to recognizing one's own <span class=\"shift-word\" data-shift=\"AGENCY\">fate</span>.", 'continue_label' => 'Continue →', 'continue_target' => 'bc-hands']
-					],
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-				'props' => ['id' => 'bc-hands', 'title' => 'Unity', 'subtitle' => 'When people come together, they build the collective power necessary for change.', 'foreground_image' => trailingslashit(get_template_directory_uri()) . 'demo-content/images/site/theme/hands-unity.png', 'actions' => [['label' => 'Step Forward', 'href' => 'bc-freedom']]]
-					],
-					[
-						'family' => 'hero',
-						'variant' => 'immersive-dark',
-						'props' => ['id' => 'bc-freedom', 'title' => 'Freedom', 'subtitle' => 'A world where all people can live fully, freely, and with dignity.', 'actions' => [['label' => 'Return to Gallery', 'href' => '/reflections/']]]
-					]
-				]
-			],
 			'march-toward-justice' => [
 				'label' => 'March Toward Justice',
 				'base_variant' => 'documentary',
@@ -309,7 +271,7 @@ if (! function_exists('reci_reflection_system_styles')) {
 			],
 			'racial-disparities' => [
 				'label' => 'Racial Disparities',
-				'base_variant' => 'analytical',
+				'base_variant' => 'analytical-light',
 				'colors' => [
 					'primary' => '#2A4494',
 					'bg' => '#f4f4f4',
@@ -326,8 +288,8 @@ if (! function_exists('reci_reflection_system_styles')) {
 							'id' => 'rd-hero',
 							'use_background_image' => '1',
 							'background_image' => trailingslashit(get_stylesheet_directory_uri()) . 'assets/images/site/reflections/racial-disparities/pexels-anna-nekrashevich-8058540.jpg',
-							'overlay_rgb' => '255,255,255',
-							'overlay_opacity' => 0.70,
+							'overlay_color' => '#ffffff',
+							'overlay_intensity' => 70,
 							'title' => 'The Data Gap',
 							'body' => 'Racial disparities are not just numbers. They are structural realities that affect lives. Tap a domain to examine the evidence.',
 							'actions' => [['label' => 'View Data', 'href' => 'rd-analysis']]
@@ -409,12 +371,14 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'documentary' => 'Documentary',
 					'narrative' => 'Narrative',
 					'testimonial' => 'Testimonial',
-					'analytical' => 'Analytical',
+					'analytical-light' => 'Analytical (Light Card)',
+					'analytical-dark' => 'Analytical (Dark Card)',
 					'immersive-dark' => 'Immersive Dark',
 					'protest-march' => 'Protest March',
 					'protest-march-dark' => 'Protest March Dark',
 				],
 				'fields' => reci_reflection_system_with_transition_fields([
+					'id' => ['type' => 'text', 'label' => 'Section ID'],
 					'eyebrow' => ['type' => 'text', 'label' => 'Eyebrow'],
 					'title' => ['type' => 'text', 'label' => 'Title', 'required' => true],
 					'title_accent' => ['type' => 'text', 'label' => 'Title (highlighted line, accent color)', 'show_if' => ['variant' => 'immersive-dark']],
@@ -424,8 +388,8 @@ if (! function_exists('reci_reflection_system_registry')) {
 					'caption' => ['type' => 'textarea', 'label' => 'Caption'],
 					'use_background_image' => ['type' => 'select', 'label' => 'Enable background image?', 'options' => ['0' => 'No', '1' => 'Yes']],
 					'background_image' => ['type' => 'media', 'label' => 'Background image', 'show_if' => ['use_background_image' => '1']],
-					'overlay_intensity' => ['type' => 'range', 'label' => 'Overlay intensity', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical', 'protest-march']]],
-					'overlay_color' => ['type' => 'color', 'label' => 'Overlay color', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical', 'protest-march']]],
+					'overlay_intensity' => ['type' => 'range', 'label' => 'Overlay intensity', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical-light', 'analytical-dark', 'protest-march', 'protest-march-dark']]],
+					'overlay_color' => ['type' => 'color', 'label' => 'Overlay color', 'show_if' => ['use_background_image' => '1', 'variant' => ['documentary', 'narrative', 'testimonial', 'immersive-dark', 'analytical-light', 'analytical-dark', 'protest-march', 'protest-march-dark']]],
 					'align_horizontal' => ['type' => 'select', 'label' => 'Horizontal align', 'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right'], 'default' => 'center'],
 					'align_vertical' => ['type' => 'select', 'label' => 'Vertical align', 'options' => ['top' => 'Top', 'center' => 'Center', 'bottom' => 'Bottom'], 'default' => 'center'],
 					'actions' => ['type' => 'repeater', 'label' => 'Actions', 'itemFields' => ['label' => ['type' => 'text', 'label' => 'Label'], 'href' => ['type' => 'chapter-target', 'label' => 'Target'], 'class' => ['type' => 'text', 'label' => 'Classes']]],

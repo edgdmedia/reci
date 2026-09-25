@@ -59,8 +59,6 @@ body.reci-style-immersive-dark {
 	height: 100vh;
 	display: flex;
 	flex-direction: column;
-	justify-content: center;
-	align-items: center;
 	position: relative;
 	background: black;
 	z-index: 100;
@@ -76,7 +74,19 @@ body.reci-style-immersive-dark {
 	background-position: center;
 	filter: grayscale(100%);
 }
-.intro-content { z-index: 2; text-align: center; }
+.intro-content { z-index: 2; }
+
+/* Centred unless the hero's alignment controls say otherwise. :where() carries
+   no specificity, so the template's own alignment classes win, while the
+   legacy threshold-intro - which emits none - stays centred. */
+:where(.chapter-intro) {
+	justify-content: center;
+	align-items: center;
+}
+
+:where(.intro-content) {
+	text-align: center;
+}
 .intro-title {
 	font-family: 'Playfair Display', serif;
 	font-size: clamp(3rem, 10vw, 8rem);

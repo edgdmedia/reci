@@ -34,7 +34,7 @@ foreach ((array) $args['section_attributes'] as $attr_key => $attr_value) {
 	$section_attributes .= sprintf(' %s="%s"', esc_attr($attr_key), esc_attr((string) $attr_value));
 }
 ?>
-<section class="chapter-intro <?php echo esc_attr($args['section_class']); ?>" id="<?php echo esc_attr($args['id']); ?>"<?php echo $section_attributes; ?>>
+<section class="chapter-intro <?php echo esc_attr($args['align_h_class']); ?> <?php echo esc_attr($args['align_v_class']); ?> <?php echo esc_attr($args['section_class']); ?>" id="<?php echo esc_attr($args['id']); ?>"<?php echo $section_attributes; ?>>
 	<?php if (! empty($args['use_background_image']) && ! empty($args['background_image'])) : ?>
 		<div class="intro-bg" style="background-color:<?php echo esc_attr($args['overlay_color'] ?? '#000'); ?>;">
 			<div style="position:absolute; inset:0; background-image:url('<?php echo esc_url($args['background_image']); ?>'); background-size:cover; background-position:center; opacity:<?php echo esc_attr(1 - ($args['overlay_opacity'] ?? 0)); ?>;"></div>

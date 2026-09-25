@@ -133,25 +133,30 @@ if (! class_exists('RECI_Reflection_System_Render_Service')) {
 					$props['section_class'] = trim($section_class . ' reci-stage');
 				}
 
-				$props['overlay_opacity'] = min(1, max(0, (int) ($props['overlay_intensity'] ?? 72) / 100));
-				$overlay_color = trim((string) ($props['overlay_color'] ?? '#000000'));
-				if ($overlay_color === '') {
-					$overlay_color = '#000000';
-				}
-				$props['overlay_color'] = $overlay_color;
-				
-				$hex = ltrim($overlay_color, '#');
-				if (strlen($hex) === 3) {
-					$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-				}
-				if (strlen($hex) !== 6) {
-					$props['overlay_rgb'] = '0,0,0';
-				} else {
-					$props['overlay_rgb'] = hexdec(substr($hex, 0, 2)) . ',' . hexdec(substr($hex, 2, 2)) . ',' . hexdec(substr($hex, 4, 2));
+				// The builder's controls win when set. Failing that, an overlay
+				// the author wrote straight into the blueprint stands. Failing
+				// both, the key is left unset so the variant's own default
+				// applies - which is how a light variant keeps a light overlay.
+				$intensity = $props['overlay_intensity'] ?? '';
+				if ($intensity !== '' && $intensity !== null) {
+					$props['overlay_opacity'] = (float) min(1, max(0, (int) $intensity / 100));
+				} elseif (! isset($props['overlay_opacity']) || $props['overlay_opacity'] === '') {
+					unset($props['overlay_opacity']);
 				}
 
-				$bg_type = trim((string) ($props['background_type'] ?? 'image'));
-				$props['bg_type'] = $bg_type;
+				$overlay_color = trim((string) ($props['overlay_color'] ?? ''));
+				if ($overlay_color !== '') {
+					$hex = ltrim($overlay_color, '#');
+					if (strlen($hex) === 3) {
+						$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+					}
+					$props['overlay_color'] = $overlay_color;
+					$props['overlay_rgb'] = strlen($hex) === 6
+						? hexdec(substr($hex, 0, 2)) . ',' . hexdec(substr($hex, 2, 2)) . ',' . hexdec(substr($hex, 4, 2))
+						: '0,0,0';
+				} elseif (! isset($props['overlay_rgb']) || $props['overlay_rgb'] === '') {
+					unset($props['overlay_color'], $props['overlay_rgb']);
+				}
 
 				$align_h = trim((string) ($props['align_horizontal'] ?? 'center'));
 				$align_v = trim((string) ($props['align_vertical'] ?? 'center'));
