@@ -84,14 +84,46 @@ $social_links = function_exists('reci_get_social_links') ? reci_get_social_links
 		</div>
 	</div>
 
-	<!-- Mobile: single column. md+: 2 columns (col 1: Categories/Quiz/Donate/Social, col 2: RECI/Resources) -->
+	<?php
+	$reci_sign_in_url = function_exists('reci_get_auth_page_url') ? (reci_get_auth_page_url('sign-in') ?: home_url('/sign-in/')) : home_url('/sign-in/');
+	$reci_sign_up_url = function_exists('reci_get_auth_page_url') ? (reci_get_auth_page_url('sign-up') ?: home_url('/sign-up/')) : home_url('/sign-up/');
+	?>
+
+	<!-- Mobile: single column. md+: 2 columns (col 1: Get Involved/Categories, col 2: RECI/Resources/Donate/Social) -->
 	<div class="px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 md:gap-x-10">
 
-		<!-- ── Column 1: Categories, Quiz, Social ───────────────── -->
+		<!-- ── Column 1: Get Involved, Categories ───────────────── -->
 		<div>
 
-			<!-- Categories -->
+			<!-- Get Involved — moved here from the header so the header stays clean. -->
 			<div class="pt-10 pb-2 border-b border-zinc-200 flex items-center gap-2">
+				<?php echo reci_inline_svg("assets/icons/Tag.svg", "w-2 h-2 flex-shrink-0", ["aria-hidden" => "true"]); ?>
+				<span class="text-neutral-800 text-lg font-bold">Get Involved</span>
+			</div>
+
+			<nav aria-label="Get involved" class="pb-5 pt-3">
+				<a href="<?php echo esc_url(home_url('/submit/')); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Submit Content</span>
+				</a>
+				<?php if (is_user_logged_in()) : ?>
+				<a href="<?php echo esc_url(home_url('/dashboard/')); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Dashboard</span>
+				</a>
+				<a href="<?php echo esc_url(wp_logout_url(home_url('/'))); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Sign Out</span>
+				</a>
+				<?php else : ?>
+				<a href="<?php echo esc_url($reci_sign_in_url); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Sign In</span>
+				</a>
+				<a href="<?php echo esc_url($reci_sign_up_url); ?>" class="block pr-5 py-1 rounded-xl group">
+					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Join</span>
+				</a>
+				<?php endif; ?>
+			</nav>
+
+			<!-- Categories -->
+			<div class="pt-6 pb-2 border-b border-zinc-200 flex items-center gap-2">
 				<?php echo reci_inline_svg("assets/icons/Tag.svg", "w-2 h-2 flex-shrink-0", ["aria-hidden" => "true"]); ?>
 				<span class="text-neutral-800 text-lg font-bold">Categories</span>
 			</div>
@@ -104,27 +136,9 @@ $social_links = function_exists('reci_get_social_links') ? reci_get_social_links
 				<?php endforeach; ?>
 			</nav>
 
-			<!-- Donate -->
-			<div class="pt-6 pb-2 border-b border-zinc-200 flex items-center gap-2">
-				<?php echo reci_inline_svg("assets/icons/Tag.svg", "w-2 h-2 flex-shrink-0", ["aria-hidden" => "true"]); ?>
-				<span class="text-neutral-800 text-lg font-bold">Donate</span>
-			</div>
-
-			<div class="py-5 flex flex-col gap-5">
-				<p class="text-neutral-700 text-xl font-normal leading-7 ">
-					Support RECI's mission toward racial equity consciousness.
-				</p>
-				<a
-					href="https://give.pitt.edu/campaigns/64590/donations/new?designation_id=races&a=12750048"
-					target="_blank" rel="noopener noreferrer"
-					class="self-start px-5 py-2.5 bg-amber-400 rounded-lg flex items-center gap-2 hover:bg-amber-300 transition-colors">
-					<span class="text-zinc-800 text-sm font-medium leading-5">Donate</span>
-				</a>
-			</div>
-
 		</div><!-- .col-1 -->
 
-		<!-- ── Column 2: RECI, Resources ────────────────── -->
+		<!-- ── Column 2: RECI, Resources, Donate, Social ────────────────── -->
 		<div>
 
 			<!-- RECI -->
@@ -178,6 +192,24 @@ $social_links = function_exists('reci_get_social_links') ? reci_get_social_links
 					<span class="py-2 text-neutral-800 text-[24px] font-medium group-hover:text-amber-400 transition-colors">Collaborators</span>
 				</a>
 			</nav>
+
+			<!-- Donate -->
+			<div class="pt-6 pb-2 border-b border-zinc-200 flex items-center gap-2">
+				<?php echo reci_inline_svg("assets/icons/Tag.svg", "w-2 h-2 flex-shrink-0", ["aria-hidden" => "true"]); ?>
+				<span class="text-neutral-800 text-lg font-bold">Donate</span>
+			</div>
+
+			<div class="py-5 flex flex-col gap-5">
+				<p class="text-neutral-700 text-xl font-normal leading-7 ">
+					Support RECI's mission toward racial equity consciousness.
+				</p>
+				<a
+					href="https://give.pitt.edu/campaigns/64590/donations/new?designation_id=races&a=12750048"
+					target="_blank" rel="noopener noreferrer"
+					class="self-start px-5 py-2.5 bg-amber-400 rounded-lg flex items-center gap-2 hover:bg-amber-300 transition-colors">
+					<span class="text-zinc-800 text-sm font-medium leading-5">Donate</span>
+				</a>
+			</div>
 
 			<!-- Social Media -->
 			<div class="pt-6 pb-2 border-b border-zinc-200 flex items-center gap-2">

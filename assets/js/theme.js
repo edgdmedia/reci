@@ -813,9 +813,9 @@
 } )();
 
 /**
- * Mobile search drawer.
+ * Header search drawer.
  *
- * #search-toggle  — icon button (visible < md)
+ * #search-toggle  — icon button in the header (all screen sizes)
  * #search-drawer  — full-width drawer that drops below the navbar
  * #search-close   — ✕ button inside the drawer
  * #search-drawer-input — the actual <input> (focused on open)
@@ -846,7 +846,13 @@
 		toggle.focus();
 	}
 
-	toggle.addEventListener( 'click', openSearch );
+	toggle.addEventListener( 'click', function () {
+		if ( drawer.classList.contains( 'hidden' ) ) {
+			openSearch();
+		} else {
+			closeSearch();
+		}
+	} );
 
 	if ( closeBtn ) {
 		closeBtn.addEventListener( 'click', closeSearch );
