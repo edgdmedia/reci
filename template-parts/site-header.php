@@ -1,11 +1,17 @@
 <?php
 
 /**
- * Site header — CENTERED Only.
+ * Site header — one sticky white bar, per Pitt's brand standards for websites.
  *
- * 2 rows:
- * - Row 1: Pitt logo + Sign in/Donate
- * - Row 2: [Search] - [RECI Logo] - [Reflections + Hamburger]
+ * Left to right: Pitt shield + unit lockup | RECI logo | search, menu, Donate.
+ *
+ * The lockup follows the white two-line header in Pitt's starter template
+ * (communications.pitt.edu → Brand Standards for Websites → Site Title/Logos):
+ * the official blue shield at 135×42, a thin royal-blue rule, then the unit
+ * name as HTML Roboto text — parent unit at 17px over the unit at 24px Light.
+ * It is text, not an image, so search engines and screen readers can read it.
+ *
+ * Reflections, Sign in, Join and Submit Content live in the menu overlay.
  *
  * @package reci-media-hub
  */
@@ -15,196 +21,115 @@ if (!defined("ABSPATH")) {
 }
 
 $assets_url = get_template_directory_uri() . "/assets/images/";
-$is_logged_in = is_user_logged_in();
 
-$partner_logo_id = (int) reci_setting("branding_partner_logo");
 $reci_logo_id = (int) reci_setting("branding_reci_logo");
-// Logos render small — the Pitt mark at 40-48px tall, the RECI mark at 48-80px.
-// reci_logo_img() asks for a size that fits and emits a srcset; requesting
-// 'full' here meant every page load pulled the multi-hundred-KB original.
-$partner_logo_html = reci_logo_img(
-    $partner_logo_id,
-    $assets_url . "pitt-logo.png",
-    get_bloginfo("name"),
-    "h-10 md:h-12 w-auto",
-    "(min-width: 768px) 253px, 211px"
-);
+// The RECI mark renders 40-64px tall. reci_logo_img() asks for a size that
+// fits and emits a srcset, rather than pulling the full-size original.
 $reci_logo_html = reci_logo_img(
     $reci_logo_id,
     $assets_url . "reci-collab.png",
     "RECI Collaboratory",
-    "h-12 md:h-20 w-auto object-contain",
-    "(min-width: 768px) 311px, 187px"
+    "h-8 sm:h-10 md:h-14 xl:h-16 w-auto max-w-full object-contain",
+    "(min-width: 1280px) 249px, (min-width: 768px) 218px, 156px"
 );
-$hub_subtitle = reci_setting("branding_hub_subtitle", "Media Hub");
+
+// The unit lockup. The parent unit sits above the unit itself.
+$unit_parent = reci_setting("branding_unit_parent", "School of Social Work");
+$unit_name   = reci_setting("branding_unit_name", "Center on Race and Social Problems");
+$unit_url    = reci_setting("branding_unit_url", "https://crsp.pitt.edu");
+
+$donate_url = "https://give.pitt.edu/campaigns/64590/donations/new?designation_id=races&a=12750048";
 ?>
 
-<header id="site-header" class="relative z-40">
+<header id="site-header" class="sticky top-0 z-[60] w-full bg-white border-b border-zinc-400/50" role="banner">
+	<div class="reci-container py-4 md:py-5 flex items-center justify-between gap-2 md:gap-6">
 
-	<!-- Row 1: Pitt logo + Sign in/Donate -->
-	<div class="w-full bg-reci-blue">
-		<div class="reci-container py-4 flex flex-row justify-between items-start sm:items-center gap-4">
+		<!-- Left: Pitt shield + unit lockup -->
+		<div class="flex items-center shrink-0">
+			<a href="https://www.pitt.edu" title="University of Pittsburgh" class="shrink-0 lg:pr-[18px] lg:mr-[19px] lg:border-r lg:border-[#003594]/75 py-3">
+				<img
+					src="<?php echo esc_url($assets_url . "pitt-logo-shield-blue.png"); ?>"
+					alt="University of Pittsburgh"
+					width="135" height="42"
+					class="w-[92px] sm:w-[120px] md:w-[135px] h-auto">
+			</a>
+			<a href="<?php echo esc_url($unit_url); ?>" class="reci-unit-lockup hidden lg:block whitespace-nowrap font-sans text-[#003594] no-underline hover:text-[#003594]">
+				<span class="block font-bold text-[13px] xl:text-[17px] leading-tight"><?php echo esc_html($unit_parent); ?></span>
+				<span class="block font-light text-[17px] xl:text-[24px] leading-[1.18]"><?php echo esc_html($unit_name); ?></span>
+			</a>
+		</div>
 
-			<a href="https://crsp.pitt.edu" class="flex items-center">
-				<?php echo $partner_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
+		<!-- Center: RECI logo -->
+		<a href="<?php echo esc_url(home_url("/")); ?>" class="flex-1 min-w-0 flex items-center justify-center" aria-label="<?php esc_attr_e("RECI Media Hub home", "reci-media-hub"); ?>">
+			<?php echo $reci_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
+		</a>
+
+		<!-- Right: search, menu, Donate -->
+		<div class="flex items-center justify-end gap-0 sm:gap-3 lg:gap-4 shrink-0">
+
+			<button
+				id="search-toggle"
+				type="button"
+				aria-label="<?php esc_attr_e("Open search", "reci-media-hub"); ?>"
+				aria-expanded="false"
+				aria-controls="search-drawer"
+				class="p-2.5 rounded-lg text-[#003594] hover:bg-slate-100 transition-colors flex items-center justify-center">
+				<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+				</svg>
+			</button>
+
+			<button
+				id="menu-toggle"
+				type="button"
+				aria-label="<?php esc_attr_e("Open navigation menu", "reci-media-hub"); ?>"
+				aria-expanded="false"
+				aria-controls="menu-overlay"
+				class="p-2.5 rounded-lg text-[#003594] hover:bg-slate-100 transition-colors flex items-center justify-center cursor-pointer">
+				<?php echo reci_inline_svg("assets/icons/Menu.svg", "w-6 h-6", ["aria-hidden" => "true"]); ?>
+			</button>
+
+			<a href="<?php echo esc_url($donate_url); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-md text-lg xl:text-xl px-4 py-2 hidden sm:flex shrink-0">
+				<span>Donate</span>
 			</a>
 
-			<div class="w-auto flex justify-end items-center gap-4 sm:gap-6 lg:gap-14">
-
-			<div class="flex items-center gap-4 sm:gap-5">
-					<a href="<?php echo esc_url( home_url( '/submit/' ) ); ?>" aria-label="Submit Content" class="py-2 relative group flex items-center gap-2">
-						<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-						<span class="hidden sm:inline-flex text-white text-lg font-normal">Submit Content</span>
-						<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-					</a>
-
-				<?php if ($is_logged_in): ?>
-					<a href="<?php echo esc_url( home_url( '/dashboard/' ) ); ?>" aria-label="Dashboard" class="py-2 relative group flex items-center gap-2">
-						<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-						<span class="hidden sm:inline-flex text-white text-lg font-normal">Dashboard</span>
-						<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-					</a>
-					<a href="<?php echo esc_url(
-          wp_logout_url(home_url("/")),
-      ); ?>" aria-label="Sign out" class="py-2 relative group flex items-center gap-2">
-							<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-							<span class="hidden sm:inline-flex text-white text-lg font-normal">Sign out</span>
-							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-						</a>
-					<?php else: ?>
-						<a href="<?php echo esc_url( home_url( '/sign-in/' ) ); ?>" aria-label="Sign in or join" class="py-2 relative group flex items-center gap-2">
-							<svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14M13 8V7a3 3 0 00-3-3H6a3 3 0 00-3 3v10a3 3 0 003 3h4a3 3 0 003-3v-1" /></svg>
-							<span class="hidden sm:inline-flex text-white text-lg font-normal">Sign in/Join</span>
-							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-						</a>
-					<?php endif; ?>
-				</div>
-
-				<a href="https://give.pitt.edu/campaigns/64590/donations/new?designation_id=races&a=12750048" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-md text-2xl p-2 hidden sm:flex">
-					<span>Donate</span>
-				</a>
-
-			</div>
 		</div>
 	</div>
 
-</header>
-
-<!-- Row 2: [Search] - [RECI Logo] - [Reflections + Hamburger] (sticky) -->
-<div class="sticky top-0 z-[60] w-full bg-white border-b border-zinc-400/50">
-				<div class="reci-container py-3.5 flex flex-row flex-nowrap justify-between items-center gap-4">
-
-					<!-- Left: Search -->
-					<div class="hidden lg:flex relative w-2/7">
-						<div class="reci-search-container">
-						<form role="search" method="get" action="<?php echo esc_url(
-           home_url("/"),
-       ); ?>" class="flex w-full md:w-[280px] px-5 py-3.5 bg-slate-100 rounded-lg items-center gap-2.5">
-							<svg class="w-4 h-4 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
-							</svg>
-								<input
-									type="search"
-									name="s"
-									value="<?php echo esc_attr(get_search_query()); ?>"
-									placeholder="<?php esc_attr_e(
-             "Search Articles, Videos, Podcasts…",
-             "reci-media-hub",
-         ); ?>"
-									class="reci-live-search flex-1 bg-transparent text-neutral-600 text-sm font-light outline-none min-w-0 italic" />
-							</form>
-							<div class="reci-search-dropdown hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-zinc-200 max-h-[400px] overflow-y-auto z-50"></div>
-						</div>
-					</div>
-
-					<!-- Mobile search icon -->
+	<!-- Search drawer: drops below the bar at every screen size -->
+	<div
+		id="search-drawer"
+		class="hidden absolute left-0 right-0 top-full bg-white border-b border-zinc-300 shadow-lg"
+		role="search">
+		<div class="reci-container py-4">
+			<div class="reci-search-container relative max-w-3xl mx-auto">
+				<form method="get" action="<?php echo esc_url(home_url("/")); ?>" class="flex items-center gap-3 bg-slate-100 rounded-lg px-4 py-3">
+					<svg class="w-4 h-4 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+					</svg>
+					<label for="search-drawer-input" class="sr-only"><?php esc_html_e("Search the site", "reci-media-hub"); ?></label>
+					<input
+						id="search-drawer-input"
+						type="search"
+						name="s"
+						value="<?php echo esc_attr(get_search_query()); ?>"
+						placeholder="<?php esc_attr_e("Search Articles, Videos, Podcasts…", "reci-media-hub"); ?>"
+						autocomplete="off"
+						class="reci-live-search flex-1 bg-transparent text-neutral-800 text-base font-light outline-none min-w-0" />
 					<button
-						id="search-toggle"
 						type="button"
-						aria-label="<?php esc_attr_e("Open search", "reci-media-hub"); ?>"
-						aria-expanded="false"
-						aria-controls="search-drawer"
-						class="lg:hidden p-3 rounded-lg bg-slate-100 flex items-center justify-center">
-						<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+						id="search-close"
+						aria-label="<?php esc_attr_e("Close search", "reci-media-hub"); ?>"
+						class="p-1 text-neutral-600 hover:text-neutral-800 transition-colors flex-shrink-0">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
 						</svg>
 					</button>
-
-					<!-- Center: RECI Logo -->
-					<a href="<?php echo esc_url(
-         home_url("/"),
-     ); ?>" class="flex items-center gap-2 w-3/7 justify-center">
-						<?php echo $reci_logo_html; // phpcs:ignore WordPress.Security.EscapeOutput -- built by reci_logo_img(), already escaped. ?>
-					</a>
-
-					<!-- Right: Reflections + Hamburger -->
-					<div class="w-2/7 flex flex-row flex-nowrap justify-end items-stretch sm:items-center gap-4 lg:gap-10">
-
-						<!-- Reflections -->
-						<a
-							href="<?php echo esc_url(
-           get_post_type_archive_link("reci_reflection") ?:
-           home_url("/reflections/"),
-       ); ?>"
-							class="py-2 relative group items-center gap-1 flex-shrink-0 hidden md:flex">
-						<?php echo reci_inline_svg(
-			"assets/icons/lightbulb-on.svg",
-			"w-4 h-4 flex-shrink-0",
-			["aria-hidden" => "true"],
-		); ?>
-							<span class="text-neutral-800 text-[22px] font-normal">Reflections</span>
-							<span class="absolute bottom-0 left-0 w-full h-px bg-amber-400 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-						</a>
-
-						<div class="hidden sm:block w-px h-7 bg-zinc-400/50 flex-shrink-0"></div>
-
-						<!-- Hamburger -->
-						<button
-							id="menu-toggle"
-							aria-label="<?php esc_attr_e("Open navigation menu", "reci-media-hub"); ?>"
-							aria-expanded="false"
-							aria-controls="menu-overlay"
-							class="p-1.5 flex items-center gap-2.5 cursor-pointer">
-							<?php echo reci_inline_svg("assets/icons/Menu.svg", "w-5 h-5", [
-           "aria-hidden" => "true",
-       ]); ?>
-						</button>
-
-					</div>
-				</div>
-				<!-- Mobile search drawer -->
-			<div
-				id="search-drawer"
-				class="md:hidden hidden absolute left-0 right-0 top-full bg-white border-b border-zinc-300 shadow-lg z-50"
-				role="search">
-				<div class="reci-container py-3">
-					<form method="get" action="<?php echo esc_url(
-         home_url("/"),
-     ); ?>" class="flex items-center gap-3 bg-slate-100 rounded-lg px-4 py-3">
-						<svg class="w-4 h-4 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
-						</svg>
-						<input
-							type="search"
-							name="s"
-							value="<?php echo esc_attr(get_search_query()); ?>"
-							placeholder="<?php esc_attr_e(
-          "Search Articles, Videos, Podcasts…",
-          "reci-media-hub",
-      ); ?>"
-							class="flex-1 bg-transparent text-neutral-800 text-base font-light outline-none min-w-0" />
-						<button
-							type="button"
-							id="search-close"
-							aria-label="<?php esc_attr_e("Close search", "reci-media-hub"); ?>"
-							class="p-1 text-neutral-600 hover:text-neutral-800 transition-colors flex-shrink-0">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-							</svg>
-						</button>
-					</form>
-					</div>
-				</div>
+				</form>
+				<div class="reci-search-dropdown hidden absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-zinc-200 max-h-[400px] overflow-y-auto z-50"></div>
 			</div>
+		</div>
+	</div>
+</header>
 
-<?php get_template_part("template-parts/menu", "overlay"); 
+<?php get_template_part("template-parts/menu", "overlay");

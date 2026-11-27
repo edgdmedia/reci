@@ -172,7 +172,7 @@ if (! function_exists('reci_media_hub_enqueue_assets')) {
 	{
 		wp_enqueue_style(
 			'reci-media-hub-fonts',
-			'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Instrument+Serif&display=swap',
+			'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@300;400;500;700&family=Instrument+Serif&display=swap',
 			[],
 			null
 		);
@@ -471,7 +471,7 @@ if (! function_exists('reci_media_hub_enqueue_reflection_renderer')) {
 				if (file_exists($vor_css_path)) {
 					wp_enqueue_style(
 						'reci-reflection-immersive-dark-fonts',
-						'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@400;700&family=Instrument+Serif&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Oswald:wght@300;400;500;700&family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&family=Roboto+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;400;600;700&display=swap',
+						'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Roboto:wght@300;400;500;700&family=Instrument+Serif&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Oswald:wght@300;400;500;700&family=Cinzel:wght@400;700&family=Lato:wght@300;400;700&family=Roboto+Mono:wght@300;400;500&family=Space+Grotesk:wght@300;400;600;700&display=swap',
 						[],
 						null
 					);
